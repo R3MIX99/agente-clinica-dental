@@ -16,9 +16,8 @@ Los workflows usan **credenciales nativas de n8n** en lugar de variables de ento
 
 | Tipo de llamada | Mecanismo |
 |-----------------|-----------|
-| Supabase (consultas complejas con join) | HTTP Request + credencial `supabaseApi` |
-| Supabase (inserts/updates simples) | Nodo nativo Supabase |
-| Claude / Anthropic API | Nodo nativo Anthropic + credencial `anthropicApi` |
+| Supabase (todas las operaciones) | HTTP Request + credencial `supabaseApi` |
+| Claude / Anthropic API | HTTP Request + credencial `httpHeaderAuth` |
 | Telegram | Nodo nativo Telegram |
 | Secreto compartido (Workflow 3) | Constante en Code node (editar una sola vez) |
 
@@ -39,10 +38,11 @@ Ir a **Settings > Credentials > Add credential** y crear las siguientes:
 - Nombre exacto: `Telegram Bot — Clinica Dental`
 - Access Token: `<token del BotFather>`
 
-### 3. Anthropic — Clinica Dental
-- Tipo: **Anthropic**
-- Nombre exacto: `Anthropic — Clinica Dental`
-- API Key: `<tu API key de Anthropic>`
+### 3. Anthropic API Key
+- Tipo: **Header Auth**
+- Nombre exacto: `Anthropic API Key`
+- Name: `x-api-key`
+- Value: `<tu API key de Anthropic>`
 
 ## Secreto compartido (Workflow 3)
 

@@ -127,22 +127,25 @@
     },
     {
       "parameters": {
-        "operation": "create",
-        "tableId": "conversations",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "patient_id", "fieldValue": "={{ $json.paciente_id }}" },
-            { "fieldId": "channel", "fieldValue": "telegram" },
-            { "fieldId": "mode", "fieldValue": "bot" },
-            { "fieldId": "status", "fieldValue": "abierta" }
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ patient_id: $json.paciente_id, channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
       },
       "id": "node-crear-conv",
       "name": "Crear nueva conversacion",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [1780, 200],
       "credentials": {
         "supabaseApi": {
@@ -163,22 +166,25 @@
     },
     {
       "parameters": {
-        "operation": "create",
-        "tableId": "messages",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "conversation_id", "fieldValue": "={{ $json.conversacion_id }}" },
-            { "fieldId": "direction", "fieldValue": "entrante" },
-            { "fieldId": "sender", "fieldValue": "paciente" },
-            { "fieldId": "contenido", "fieldValue": "={{ $json.texto_entrante }}" }
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ conversation_id: $json.conversacion_id, direction: 'entrante', sender: 'paciente', contenido: $json.texto_entrante }) }}"
       },
       "id": "node-insertar-msg-entrante",
       "name": "Insertar mensaje entrante",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [2220, 300],
       "credentials": {
         "supabaseApi": {
@@ -292,38 +298,36 @@
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "claude-haiku-4-5-20251001",
-          "mode": "id"
-        },
-        "system": "={{ $json.system_prompt }}",
-        "messages": {
-          "values": [
-            {
-              "content": "={{ $json.texto_entrante }}"
-            }
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
-        "options": {
-          "maxTokens": 512
-        }
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, system: $json.system_prompt, messages: [{ role: 'user', content: $json.texto_entrante }] }) }}"
       },
       "id": "node-claude",
       "name": "Claude API (Haiku)",
-      "type": "n8n-nodes-base.anthropic",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [3100, 200],
       "credentials": {
-        "anthropicApi": {
-          "id": "cred-anthropic",
-          "name": "Anthropic — Clinica Dental"
+        "httpHeaderAuth": {
+          "id": "cred-anthropic-header",
+          "name": "Anthropic API Key"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const ctx = $('Construir system prompt').first().json;\nconst resp = $input.first().json;\n\n// El nodo nativo Anthropic expone el texto en resp.text o resp.content[0].text\nconst txt = resp.text || resp.content?.[0]?.text || '';\n\nlet parsed = { tipo: 'respuesta', texto: 'En este momento no puedo procesar su solicitud. Por favor llame al telefono de la clinica.' };\ntry {\n  const match = txt.match(/\\{[\\s\\S]*\\}/);\n  if (match) parsed = JSON.parse(match[0]);\n} catch (_) {}\n\nreturn [{ json: { ...ctx, tipo_respuesta: parsed.tipo, texto_respuesta: parsed.texto } }];\n"
+        "jsCode": "const ctx = $('Construir system prompt').first().json;\nconst resp = $input.first().json;\n\n// La API de Anthropic devuelve el texto en content[0].text\nconst txt = resp.content?.[0]?.text || '';\n\nlet parsed = { tipo: 'respuesta', texto: 'En este momento no puedo procesar su solicitud. Por favor llame al telefono de la clinica.' };\ntry {\n  const match = txt.match(/\\{[\\s\\S]*\\}/);\n  if (match) parsed = JSON.parse(match[0]);\n} catch (_) {}\n\nreturn [{ json: { ...ctx, tipo_respuesta: parsed.tipo, texto_respuesta: parsed.texto } }];\n"
       },
       "id": "node-parsear",
       "name": "Parsear respuesta de Claude",
@@ -346,22 +350,25 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "conversations",
-        "filterType": "id",
-        "value": "={{ $json.conversacion_id }}",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "mode", "fieldValue": "humano" },
-            { "fieldId": "status", "fieldValue": "pendiente" }
+        "method": "PATCH",
+        "url": "={{ 'https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations?id=eq.' + $json.conversacion_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ mode: 'humano', status: 'pendiente' }) }}"
       },
       "id": "node-conv-humano",
       "name": "Cambiar conv a modo humano",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [3760, 120],
       "credentials": {
         "supabaseApi": {
@@ -412,22 +419,25 @@
     },
     {
       "parameters": {
-        "operation": "create",
-        "tableId": "messages",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "conversation_id", "fieldValue": "={{ $('Parsear respuesta de Claude').first().json.conversacion_id }}" },
-            { "fieldId": "direction", "fieldValue": "saliente" },
-            { "fieldId": "sender", "fieldValue": "bot" },
-            { "fieldId": "contenido", "fieldValue": "={{ $('Parsear respuesta de Claude').first().json.texto_respuesta }}" }
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ conversation_id: $('Parsear respuesta de Claude').first().json.conversacion_id, direction: 'saliente', sender: 'bot', contenido: $('Parsear respuesta de Claude').first().json.texto_respuesta }) }}"
       },
       "id": "node-insertar-msg-bot",
       "name": "Insertar mensaje del bot",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [3980, 360],
       "credentials": {
         "supabaseApi": {
@@ -490,7 +500,7 @@
       ]
     },
     "Leer datos de la clinica": {
-      "main": [[{ "node": "Construir system prompt", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Leer servicios activos", "type": "main", "index": 0 }]]
     },
     "Leer servicios activos": {
       "main": [[{ "node": "Construir system prompt", "type": "main", "index": 0 }]]
@@ -525,7 +535,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "02-v2",
+  "versionId": "02-v3",
   "triggerCount": 0,
   "tags": []
 }

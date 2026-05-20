@@ -122,23 +122,25 @@
     },
     {
       "parameters": {
-        "operation": "create",
-        "tableId": "messages",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "conversation_id", "fieldValue": "={{ $('Validar secreto y extraer body').first().json.conversacion_id }}" },
-            { "fieldId": "direction", "fieldValue": "saliente" },
-            { "fieldId": "sender", "fieldValue": "agente" },
-            { "fieldId": "contenido", "fieldValue": "={{ $('Validar secreto y extraer body').first().json.texto }}" },
-            { "fieldId": "metadata", "fieldValue": "={{ JSON.stringify({ agente_id: $('Validar secreto y extraer body').first().json.agente_id }) }}" }
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ conversation_id: $('Validar secreto y extraer body').first().json.conversacion_id, direction: 'saliente', sender: 'agente', contenido: $('Validar secreto y extraer body').first().json.texto, metadata: JSON.stringify({ agente_id: $('Validar secreto y extraer body').first().json.agente_id }) }) }}"
       },
       "id": "node-insertar-msg",
       "name": "Insertar mensaje del agente",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [1340, 200],
       "credentials": {
         "supabaseApi": {
@@ -197,7 +199,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "03-v2",
+  "versionId": "03-v3",
   "triggerCount": 0,
   "tags": []
 }
