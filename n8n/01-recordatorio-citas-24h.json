@@ -48,7 +48,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const citas = Array.isArray($input.first().json) ? $input.first().json : [];\nconst ahora = Date.now();\nconst min = ahora + 23 * 3600000;\nconst max = ahora + 25 * 3600000;\n\nconst enVentana = citas.filter(c => {\n  // Normalizar formato Supabase '2026-05-21 15:10:36+00' a ISO 8601 valido\n  const iso = c.fecha_hora.replace(' ', 'T').replace(/\\+(\\d{2})$/, '+$1:00');\n  const t = new Date(iso).getTime();\n  return t >= min && t <= max;\n});\n\nreturn enVentana.map(c => ({ json: c }));\n"
+        "jsCode": "// Soporta array como item unico o items separados (segun version de n8n)\nconst todos = $input.all();\nlet citas = [];\nif (todos.length === 1 && Array.isArray(todos[0].json)) {\n  citas = todos[0].json;\n} else {\n  citas = todos.map(i => i.json).filter(v => v && typeof v === 'object' && !Array.isArray(v));\n}\n\nconst ahora = Date.now();\nconst min = ahora + 23 * 3600000;\nconst max = ahora + 25 * 3600000;\n\nconst enVentana = citas.filter(c => {\n  // Normalizar '2026-05-21 15:10:36+00' a ISO 8601 valido para new Date()\n  const iso = (c.fecha_hora || '').replace(' ', 'T').replace(/\\+(\\d{2})$/, '+$1:00');\n  const t = new Date(iso).getTime();\n  return !isNaN(t) && t >= min && t <= max;\n});\n\nreturn enVentana.map(c => ({ json: c }));\n"
       },
       "id": "node-filtrar-ventana",
       "name": "Filtrar ventana 23-25h",
@@ -233,7 +233,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "01-v4",
+  "versionId": "01-v5",
   "triggerCount": 0,
   "tags": []
 }
