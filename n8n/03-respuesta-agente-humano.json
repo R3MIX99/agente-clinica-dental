@@ -8,19 +8,19 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "node-webhook-trigger",
+      "id": "node-webhook",
       "name": "Webhook: recibir mensaje del agente",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [240, 300],
-      "webhookId": "agente-mensaje-webhook"
+      "webhookId": "agente-mensaje-dental"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body;\nconst headers = $input.first().json.headers;\n\nconst secretEsperado = $env.N8N_SHARED_SECRET;\nconst secretRecibido = headers['x-shared-secret'] || headers['X-Shared-Secret'] || '';\n\nconst esValido = secretRecibido === secretEsperado;\n\nreturn [{\n  json: {\n    es_valido: esValido,\n    conversacion_id: body.conversationId,\n    channel: body.channel,\n    channel_user_id: body.channelUserId,\n    texto: body.texto,\n    agente_id: body.agenteId\n  }\n}];\n"
+        "jsCode": "// IMPORTANTE: cambia este valor por tu secreto real y usa el mismo en el dashboard (.env.local N8N_SHARED_SECRET)\nconst SECRETO = 'CAMBIA_ESTE_SECRETO_POR_UNO_SEGURO';\n\nconst body = $input.first().json.body || {};\nconst headers = $input.first().json.headers || {};\nconst secretRecibido = headers['x-shared-secret'] || headers['X-Shared-Secret'] || '';\n\nreturn [{\n  json: {\n    es_valido: secretRecibido === SECRETO,\n    conversacion_id: body.conversationId || '',\n    channel: body.channel || 'telegram',\n    channel_user_id: body.channelUserId || '',\n    texto: body.texto || '',\n    agente_id: body.agenteId || ''\n  }\n}];\n"
       },
-      "id": "node-validar-secreto",
-      "name": "Validar secreto compartido",
+      "id": "node-validar",
+      "name": "Validar secreto y extraer body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [460, 300]
@@ -28,26 +28,11 @@
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "cond-secreto-valido",
-              "leftValue": "={{ $json.es_valido }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
+          "conditions": [{ "id": "c-valido", "leftValue": "={{ $json.es_valido }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }],
           "combinator": "and"
         }
       },
-      "id": "node-if-secreto",
+      "id": "node-if-valido",
       "name": "Secreto valido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -56,13 +41,11 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\"error\": \"No autorizado\"}",
-        "options": {
-          "responseCode": 401
-        }
+        "responseBody": "={ \"error\": \"No autorizado\" }",
+        "options": { "responseCode": 401 }
       },
-      "id": "node-responder-401",
-      "name": "Responder 401 No autorizado",
+      "id": "node-401",
+      "name": "Responder 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [900, 420]
@@ -73,22 +56,7 @@
           "values": [
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "strict"
-                },
-                "conditions": [
-                  {
-                    "id": "cond-telegram",
-                    "leftValue": "={{ $json.channel }}",
-                    "rightValue": "telegram",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
+                "conditions": [{ "id": "c-tg", "leftValue": "={{ $json.channel }}", "rightValue": "telegram", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -96,22 +64,7 @@
             },
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "strict"
-                },
-                "conditions": [
-                  {
-                    "id": "cond-whatsapp",
-                    "leftValue": "={{ $json.channel }}",
-                    "rightValue": "whatsapp",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
+                "conditions": [{ "id": "c-wa", "leftValue": "={{ $json.channel }}", "rightValue": "whatsapp", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -121,7 +74,7 @@
         },
         "options": {}
       },
-      "id": "node-switch-canal",
+      "id": "node-switch",
       "name": "Switch por canal",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
@@ -135,11 +88,11 @@
         "text": "={{ $json.texto }}",
         "additionalFields": {}
       },
-      "id": "node-telegram-send",
+      "id": "node-tg-send",
       "name": "Telegram: enviar mensaje del agente",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1120, 180],
+      "position": [1120, 160],
       "credentials": {
         "telegramApi": {
           "id": "cred-telegram",
@@ -149,180 +102,102 @@
     },
     {
       "parameters": {},
-      "id": "node-whatsapp-placeholder",
+      "id": "node-wa-noop",
       "name": "WhatsApp (pendiente)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1120, 320]
+      "position": [1120, 300]
     },
     {
       "parameters": {
-        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id del destinatario.",
-        "height": 80,
-        "width": 260
+        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.",
+        "height": 70,
+        "width": 220
       },
-      "id": "node-sticky-whatsapp",
+      "id": "node-sticky-wa",
       "name": "Nota WhatsApp",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1120, 420]
+      "position": [1120, 400]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=minimal"
-            }
+        "operation": "create",
+        "tableId": "messages",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "conversation_id", "fieldValue": "={{ $('Validar secreto y extraer body').first().json.conversacion_id }}" },
+            { "fieldId": "direction", "fieldValue": "saliente" },
+            { "fieldId": "sender", "fieldValue": "agente" },
+            { "fieldId": "contenido", "fieldValue": "={{ $('Validar secreto y extraer body').first().json.texto }}" },
+            { "fieldId": "metadata", "fieldValue": "={{ JSON.stringify({ agente_id: $('Validar secreto y extraer body').first().json.agente_id }) }}" }
           ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"conversation_id\": {{ JSON.stringify($('Validar secreto compartido').first().json.conversacion_id) }},\n  \"direction\": \"saliente\",\n  \"sender\": \"agente\",\n  \"contenido\": {{ JSON.stringify($('Validar secreto compartido').first().json.texto) }},\n  \"metadata\": { \"agente_id\": {{ JSON.stringify($('Validar secreto compartido').first().json.agente_id) }} }\n}"
+        }
       },
-      "id": "node-insertar-mensaje",
-      "name": "Insertar mensaje del agente en Supabase",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1340, 220]
+      "id": "node-insertar-msg",
+      "name": "Insertar mensaje del agente",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\"ok\": true}",
-        "options": {
-          "responseCode": 200
-        }
+        "responseBody": "={ \"ok\": true }",
+        "options": { "responseCode": 200 }
       },
-      "id": "node-responder-ok",
+      "id": "node-200",
       "name": "Responder 200 OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1560, 220]
+      "position": [1560, 200]
     }
   ],
   "connections": {
     "Webhook: recibir mensaje del agente": {
-      "main": [
-        [
-          {
-            "node": "Validar secreto compartido",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Validar secreto y extraer body", "type": "main", "index": 0 }]]
     },
-    "Validar secreto compartido": {
-      "main": [
-        [
-          {
-            "node": "Secreto valido?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Validar secreto y extraer body": {
+      "main": [[{ "node": "Secreto valido?", "type": "main", "index": 0 }]]
     },
     "Secreto valido?": {
       "main": [
-        [
-          {
-            "node": "Switch por canal",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Responder 401 No autorizado",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Switch por canal", "type": "main", "index": 0 }],
+        [{ "node": "Responder 401", "type": "main", "index": 0 }]
       ]
     },
     "Switch por canal": {
       "main": [
-        [
-          {
-            "node": "Telegram: enviar mensaje del agente",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "WhatsApp (pendiente)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Telegram: enviar mensaje del agente", "type": "main", "index": 0 }],
+        [{ "node": "WhatsApp (pendiente)", "type": "main", "index": 0 }]
       ]
     },
     "Telegram: enviar mensaje del agente": {
-      "main": [
-        [
-          {
-            "node": "Insertar mensaje del agente en Supabase",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Insertar mensaje del agente", "type": "main", "index": 0 }]]
     },
     "WhatsApp (pendiente)": {
-      "main": [
-        [
-          {
-            "node": "Insertar mensaje del agente en Supabase",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Insertar mensaje del agente", "type": "main", "index": 0 }]]
     },
-    "Insertar mensaje del agente en Supabase": {
-      "main": [
-        [
-          {
-            "node": "Responder 200 OK",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Insertar mensaje del agente": {
+      "main": [[{ "node": "Responder 200 OK", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "America/Mexico_City",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": ""
+    "saveManualExecutions": true
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
+  "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "03-respuesta-agente-humano-v1",
+  "versionId": "03-v2",
   "triggerCount": 0,
   "tags": []
 }

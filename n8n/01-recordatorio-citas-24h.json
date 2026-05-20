@@ -4,15 +4,10 @@
     {
       "parameters": {
         "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 15
-            }
-          ]
+          "interval": [{ "field": "minutes", "minutesInterval": 15 }]
         }
       },
-      "id": "node-schedule-trigger",
+      "id": "node-schedule",
       "name": "Disparador cada 15 minutos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -21,104 +16,84 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/appointments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
+            { "name": "Accept", "value": "application/json" }
           ]
         },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {
-              "name": "select",
-              "value": "id,fecha_hora,costo,notas,status,patients(nombre,channel,channel_user_id),services(nombre)"
-            },
-            {
-              "name": "fecha_hora",
-              "value": "=gte.{{ new Date(Date.now() + 23 * 3600000).toISOString() }}"
-            },
-            {
-              "name": "fecha_hora",
-              "value": "=lte.{{ new Date(Date.now() + 25 * 3600000).toISOString() }}"
-            },
-            {
-              "name": "status",
-              "value": "=in.(programada,confirmada)"
-            },
-            {
-              "name": "recordatorio_enviado_at",
-              "value": "=is.null"
-            }
+            { "name": "select", "value": "id,fecha_hora,costo,status,patient_id,service_id,patients(nombre,channel,channel_user_id),services(nombre)" },
+            { "name": "status", "value": "in.(programada,confirmada)" },
+            { "name": "recordatorio_enviado_at", "value": "is.null" }
           ]
         }
       },
       "id": "node-buscar-citas",
-      "name": "Buscar citas en ventana 24h",
+      "name": "Buscar citas sin recordatorio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 300]
+      "position": [460, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "cond-hay-citas",
-              "leftValue": "={{ $json.length }}",
-              "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
+        "jsCode": "const citas = Array.isArray($input.first().json) ? $input.first().json : [];\nconst ahora = Date.now();\nconst min = ahora + 23 * 3600000;\nconst max = ahora + 25 * 3600000;\n\nconst enVentana = citas.filter(c => {\n  const t = new Date(c.fecha_hora).getTime();\n  return t >= min && t <= max;\n});\n\nreturn enVentana.map(c => ({ json: c }));\n"
       },
-      "id": "node-if-hay-citas",
-      "name": "Hay citas pendientes?",
-      "type": "n8n-nodes-base.if",
+      "id": "node-filtrar-ventana",
+      "name": "Filtrar ventana 23-25h",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [680, 300]
     },
     {
       "parameters": {
-        "fieldToSplitOut": "=",
-        "options": {}
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-hay",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
       },
-      "id": "node-split-citas",
+      "id": "node-if-hay",
+      "name": "Hay citas en ventana?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": { "batchSize": 1, "options": {} },
+      "id": "node-split",
       "name": "Iterar por cita",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [900, 220]
+      "position": [1120, 220]
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\n\nconst paciente = item.patients;\nconst servicio = item.services;\nconst fechaISO = item.fecha_hora;\n\nconst fecha = new Date(fechaISO);\nconst opciones = {\n  timeZone: 'America/Mexico_City',\n  weekday: 'long',\n  year: 'numeric',\n  month: 'long',\n  day: 'numeric'\n};\nconst opcionesHora = {\n  timeZone: 'America/Mexico_City',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: true\n};\n\nconst fechaTexto = fecha.toLocaleDateString('es-MX', opciones);\nconst horaTexto = fecha.toLocaleTimeString('es-MX', opcionesHora);\n\nconst costoTexto = item.costo\n  ? `$${Number(item.costo).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`\n  : 'por confirmar';\n\nconst texto = `Estimado(a) ${paciente.nombre}, le recordamos que tiene una cita de ${servicio.nombre} programada para el ${fechaTexto} a las ${horaTexto}. Costo estimado: ${costoTexto}. Si necesita reagendar o tiene alguna pregunta, responda este mensaje.`;\n\nreturn [{\n  json: {\n    ...item,\n    texto_recordatorio: texto,\n    channel: paciente.channel,\n    channel_user_id: paciente.channel_user_id\n  }\n}];\n"
+        "jsCode": "const cita = $input.first().json;\nconst paciente = cita.patients;\nconst servicio = cita.services;\n\nconst fecha = new Date(cita.fecha_hora);\nconst opsFecha = { timeZone: 'America/Mexico_City', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };\nconst opsHora = { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true };\nconst fechaTxt = fecha.toLocaleDateString('es-MX', opsFecha);\nconst horaTxt = fecha.toLocaleTimeString('es-MX', opsHora);\nconst costoTxt = cita.costo ? `$${Number(cita.costo).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN` : 'por confirmar';\n\nconst texto = `Estimado(a) ${paciente.nombre}, le recordamos su cita de ${servicio.nombre} programada para el ${fechaTxt} a las ${horaTxt}. Costo estimado: ${costoTxt}. Responda este mensaje si necesita reagendar.`;\n\nreturn [{\n  json: {\n    id: cita.id,\n    channel: paciente.channel,\n    channel_user_id: paciente.channel_user_id,\n    texto_recordatorio: texto\n  }\n}];\n"
       },
       "id": "node-construir-texto",
       "name": "Construir texto del recordatorio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 220]
+      "position": [1340, 220]
     },
     {
       "parameters": {
@@ -126,22 +101,7 @@
           "values": [
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "strict"
-                },
-                "conditions": [
-                  {
-                    "id": "cond-telegram",
-                    "leftValue": "={{ $json.channel }}",
-                    "rightValue": "telegram",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
+                "conditions": [{ "id": "c1", "leftValue": "={{ $json.channel }}", "rightValue": "telegram", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -149,22 +109,7 @@
             },
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "strict"
-                },
-                "conditions": [
-                  {
-                    "id": "cond-whatsapp",
-                    "leftValue": "={{ $json.channel }}",
-                    "rightValue": "whatsapp",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
+                "conditions": [{ "id": "c2", "leftValue": "={{ $json.channel }}", "rightValue": "whatsapp", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -178,7 +123,7 @@
       "name": "Switch por canal",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [1340, 220]
+      "position": [1560, 220]
     },
     {
       "parameters": {
@@ -192,7 +137,7 @@
       "name": "Telegram: enviar recordatorio",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1560, 160],
+      "position": [1780, 160],
       "continueOnFail": true,
       "credentials": {
         "telegramApi": {
@@ -203,166 +148,89 @@
     },
     {
       "parameters": {},
-      "id": "node-whatsapp-placeholder",
+      "id": "node-whatsapp-noop",
       "name": "WhatsApp (pendiente)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1560, 300]
+      "position": [1780, 300]
     },
     {
       "parameters": {
-        "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments?id=eq.{{ $('Construir texto del recordatorio').first().json.id }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=minimal"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "recordatorio_enviado_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
+        "operation": "update",
+        "tableId": "appointments",
+        "filterType": "id",
+        "value": "={{ $('Construir texto del recordatorio').first().json.id }}",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "recordatorio_enviado_at", "fieldValue": "={{ new Date().toISOString() }}" }
           ]
         }
       },
       "id": "node-marcar-enviado",
-      "name": "Marcar recordatorio enviado en Supabase",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1780, 160],
-      "continueOnFail": true
+      "name": "Marcar recordatorio enviado",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2000, 160],
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
     },
     {
       "parameters": {
-        "content": "WhatsApp: conectar Cloud API aqui.\nImplementar cuando se habilite el canal de WhatsApp.\nUsar el campo channel_user_id como wa_id del destinatario.",
-        "height": 120,
-        "width": 300
+        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.",
+        "height": 80,
+        "width": 240
       },
-      "id": "node-sticky-whatsapp",
+      "id": "node-sticky-wa",
       "name": "Nota WhatsApp",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1560, 380]
+      "position": [1780, 400]
     }
   ],
   "connections": {
     "Disparador cada 15 minutos": {
-      "main": [
-        [
-          {
-            "node": "Buscar citas en ventana 24h",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Buscar citas sin recordatorio", "type": "main", "index": 0 }]]
     },
-    "Buscar citas en ventana 24h": {
-      "main": [
-        [
-          {
-            "node": "Hay citas pendientes?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Buscar citas sin recordatorio": {
+      "main": [[{ "node": "Filtrar ventana 23-25h", "type": "main", "index": 0 }]]
     },
-    "Hay citas pendientes?": {
-      "main": [
-        [
-          {
-            "node": "Iterar por cita",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Filtrar ventana 23-25h": {
+      "main": [[{ "node": "Hay citas en ventana?", "type": "main", "index": 0 }]]
+    },
+    "Hay citas en ventana?": {
+      "main": [[{ "node": "Iterar por cita", "type": "main", "index": 0 }]]
     },
     "Iterar por cita": {
-      "main": [
-        [
-          {
-            "node": "Construir texto del recordatorio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Construir texto del recordatorio", "type": "main", "index": 0 }]]
     },
     "Construir texto del recordatorio": {
-      "main": [
-        [
-          {
-            "node": "Switch por canal",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Switch por canal", "type": "main", "index": 0 }]]
     },
     "Switch por canal": {
       "main": [
-        [
-          {
-            "node": "Telegram: enviar recordatorio",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "WhatsApp (pendiente)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Telegram: enviar recordatorio", "type": "main", "index": 0 }],
+        [{ "node": "WhatsApp (pendiente)", "type": "main", "index": 0 }]
       ]
     },
     "Telegram: enviar recordatorio": {
-      "main": [
-        [
-          {
-            "node": "Marcar recordatorio enviado en Supabase",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Marcar recordatorio enviado", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "America/Mexico_City",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": ""
+    "saveManualExecutions": true
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
+  "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "01-recordatorio-citas-24h-v1",
+  "versionId": "01-v2",
   "triggerCount": 0,
   "tags": []
 }
