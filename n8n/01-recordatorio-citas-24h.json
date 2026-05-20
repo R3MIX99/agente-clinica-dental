@@ -1,0 +1,368 @@
+{
+  "name": "01 Recordatorio de Citas 24h",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Disparador cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,fecha_hora,costo,notas,status,patients(nombre,channel,channel_user_id),services(nombre)"
+            },
+            {
+              "name": "fecha_hora",
+              "value": "=gte.{{ new Date(Date.now() + 23 * 3600000).toISOString() }}"
+            },
+            {
+              "name": "fecha_hora",
+              "value": "=lte.{{ new Date(Date.now() + 25 * 3600000).toISOString() }}"
+            },
+            {
+              "name": "status",
+              "value": "=in.(programada,confirmada)"
+            },
+            {
+              "name": "recordatorio_enviado_at",
+              "value": "=is.null"
+            }
+          ]
+        }
+      },
+      "id": "node-buscar-citas",
+      "name": "Buscar citas en ventana 24h",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-hay-citas",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-hay-citas",
+      "name": "Hay citas pendientes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=",
+        "options": {}
+      },
+      "id": "node-split-citas",
+      "name": "Iterar por cita",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst paciente = item.patients;\nconst servicio = item.services;\nconst fechaISO = item.fecha_hora;\n\nconst fecha = new Date(fechaISO);\nconst opciones = {\n  timeZone: 'America/Mexico_City',\n  weekday: 'long',\n  year: 'numeric',\n  month: 'long',\n  day: 'numeric'\n};\nconst opcionesHora = {\n  timeZone: 'America/Mexico_City',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: true\n};\n\nconst fechaTexto = fecha.toLocaleDateString('es-MX', opciones);\nconst horaTexto = fecha.toLocaleTimeString('es-MX', opcionesHora);\n\nconst costoTexto = item.costo\n  ? `$${Number(item.costo).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`\n  : 'por confirmar';\n\nconst texto = `Estimado(a) ${paciente.nombre}, le recordamos que tiene una cita de ${servicio.nombre} programada para el ${fechaTexto} a las ${horaTexto}. Costo estimado: ${costoTexto}. Si necesita reagendar o tiene alguna pregunta, responda este mensaje.`;\n\nreturn [{\n  json: {\n    ...item,\n    texto_recordatorio: texto,\n    channel: paciente.channel,\n    channel_user_id: paciente.channel_user_id\n  }\n}];\n"
+      },
+      "id": "node-construir-texto",
+      "name": "Construir texto del recordatorio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 220]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-telegram",
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-whatsapp",
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-switch-canal",
+      "name": "Switch por canal",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1340, 220]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.channel_user_id }}",
+        "text": "={{ $json.texto_recordatorio }}",
+        "additionalFields": {}
+      },
+      "id": "node-telegram-send",
+      "name": "Telegram: enviar recordatorio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1560, 160],
+      "continueOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegram",
+          "name": "Telegram Bot — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "node-whatsapp-placeholder",
+      "name": "WhatsApp (pendiente)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments?id=eq.{{ $('Construir texto del recordatorio').first().json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "recordatorio_enviado_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "node-marcar-enviado",
+      "name": "Marcar recordatorio enviado en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 160],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "content": "WhatsApp: conectar Cloud API aqui.\nImplementar cuando se habilite el canal de WhatsApp.\nUsar el campo channel_user_id como wa_id del destinatario.",
+        "height": 120,
+        "width": 300
+      },
+      "id": "node-sticky-whatsapp",
+      "name": "Nota WhatsApp",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1560, 380]
+    }
+  ],
+  "connections": {
+    "Disparador cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Buscar citas en ventana 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar citas en ventana 24h": {
+      "main": [
+        [
+          {
+            "node": "Hay citas pendientes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay citas pendientes?": {
+      "main": [
+        [
+          {
+            "node": "Iterar por cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iterar por cita": {
+      "main": [
+        [
+          {
+            "node": "Construir texto del recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir texto del recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Switch por canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por canal": {
+      "main": [
+        [
+          {
+            "node": "Telegram: enviar recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp (pendiente)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: enviar recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Marcar recordatorio enviado en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": "01-recordatorio-citas-24h-v1",
+  "triggerCount": 0,
+  "tags": []
+}
