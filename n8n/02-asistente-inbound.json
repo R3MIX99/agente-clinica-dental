@@ -42,9 +42,15 @@
             { "name": "Prefer", "value": "resolution=merge-duplicates,return=representation" }
           ]
         },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "on_conflict", "value": "channel,channel_user_id" }
+          ]
+        },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id }) }}"
       },
       "id": "node-upsert-paciente",
       "name": "Upsert paciente",
@@ -139,8 +145,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ patient_id: $json.paciente_id, channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ patient_id: $json.paciente_id, channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
       },
       "id": "node-crear-conv",
       "name": "Crear nueva conversacion",
@@ -178,8 +184,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ conversation_id: $json.conversacion_id, direction: 'entrante', sender: 'paciente', contenido: $json.texto_entrante }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ conversation_id: $json.conversacion_id, direction: 'entrante', sender: 'paciente', contenido: $json.texto_entrante }) }}"
       },
       "id": "node-insertar-msg-entrante",
       "name": "Insertar mensaje entrante",
@@ -436,8 +442,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ conversation_id: $('Parsear respuesta de Claude').first().json.conversacion_id, direction: 'saliente', sender: 'bot', contenido: $('Parsear respuesta de Claude').first().json.texto_respuesta }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ conversation_id: $('Parsear respuesta de Claude').first().json.conversacion_id, direction: 'saliente', sender: 'bot', contenido: $('Parsear respuesta de Claude').first().json.texto_respuesta }) }}"
       },
       "id": "node-insertar-msg-bot",
       "name": "Insertar mensaje del bot",
@@ -540,7 +546,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "02-v5",
+  "versionId": "02-v6",
   "triggerCount": 0,
   "tags": []
 }

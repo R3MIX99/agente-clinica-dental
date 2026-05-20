@@ -134,8 +134,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ conversation_id: $('Validar secreto y extraer body').first().json.conversacion_id, direction: 'saliente', sender: 'agente', contenido: $('Validar secreto y extraer body').first().json.texto, metadata: JSON.stringify({ agente_id: $('Validar secreto y extraer body').first().json.agente_id }) }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ conversation_id: $('Validar secreto y extraer body').first().json.conversacion_id, direction: 'saliente', sender: 'agente', contenido: $('Validar secreto y extraer body').first().json.texto, metadata: JSON.stringify({ agente_id: $('Validar secreto y extraer body').first().json.agente_id }) }) }}"
       },
       "id": "node-insertar-msg",
       "name": "Insertar mensaje del agente",
@@ -199,7 +199,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "03-v3",
+  "versionId": "03-v4",
   "triggerCount": 0,
   "tags": []
 }
