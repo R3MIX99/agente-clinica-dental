@@ -157,7 +157,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://vbsoujyosifqtazcidul.supabase.co/rest/v1/appointments?id=eq.' + $('Construir texto del recordatorio').first().json.id }}",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/appointments",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
@@ -166,9 +166,15 @@
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "eq.{{ $('Construir texto del recordatorio').first().json.id }}" }
+          ]
+        },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ recordatorio_enviado_at: new Date().toISOString() }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ recordatorio_enviado_at: new Date().toISOString() }) }}"
       },
       "id": "node-marcar-enviado",
       "name": "Marcar recordatorio enviado",
@@ -233,7 +239,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "01-v5",
+  "versionId": "01-v6",
   "triggerCount": 0,
   "tags": []
 }

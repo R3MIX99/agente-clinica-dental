@@ -351,19 +351,24 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations?id=eq.' + $json.conversacion_id }}",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "eq.{{ $json.conversacion_id }}" }
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ mode: 'humano', status: 'pendiente' }) }}"
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ mode: 'humano', status: 'pendiente' }) }}"
       },
       "id": "node-conv-humano",
       "name": "Cambiar conv a modo humano",
@@ -535,7 +540,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "02-v4",
+  "versionId": "02-v5",
   "triggerCount": 0,
   "tags": []
 }
