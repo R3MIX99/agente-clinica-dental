@@ -145,6 +145,7 @@ export type Database = {
           assigned_agent_id: string | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at: string
+          deleted_at: string | null
           id: string
           last_message_at: string
           mode: Database["public"]["Enums"]["conversation_mode"]
@@ -155,6 +156,7 @@ export type Database = {
           assigned_agent_id?: string | null
           channel: Database["public"]["Enums"]["channel_type"]
           created_at?: string
+          deleted_at?: string | null
           id?: string
           last_message_at?: string
           mode?: Database["public"]["Enums"]["conversation_mode"]
@@ -165,6 +167,7 @@ export type Database = {
           assigned_agent_id?: string | null
           channel?: Database["public"]["Enums"]["channel_type"]
           created_at?: string
+          deleted_at?: string | null
           id?: string
           last_message_at?: string
           mode?: Database["public"]["Enums"]["conversation_mode"]
@@ -187,6 +190,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      doctors: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          especialidades: string[] | null
+          fecha_ingreso: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          especialidades?: string[] | null
+          fecha_ingreso?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          especialidades?: string[] | null
+          fecha_ingreso?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -226,36 +256,84 @@ export type Database = {
           },
         ]
       }
+      patient_doctors: {
+        Row: {
+          created_at: string | null
+          doctor_id: string
+          id: string
+          orden: number
+          patient_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          doctor_id: string
+          id?: string
+          orden?: number
+          patient_id: string
+        }
+        Update: {
+          created_at?: string | null
+          doctor_id?: string
+          id?: string
+          orden?: number
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_doctors_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_doctors_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           channel: Database["public"]["Enums"]["channel_type"]
           channel_user_id: string | null
           created_at: string
           email: string | null
+          fecha_ingreso: string | null
           id: string
+          laboratorio: string | null
           nombre: string
           notas: string | null
           telefono: string | null
+          tiempo_cita_min: number | null
         }
         Insert: {
           channel?: Database["public"]["Enums"]["channel_type"]
           channel_user_id?: string | null
           created_at?: string
           email?: string | null
+          fecha_ingreso?: string | null
           id?: string
+          laboratorio?: string | null
           nombre: string
           notas?: string | null
           telefono?: string | null
+          tiempo_cita_min?: number | null
         }
         Update: {
           channel?: Database["public"]["Enums"]["channel_type"]
           channel_user_id?: string | null
           created_at?: string
           email?: string | null
+          fecha_ingreso?: string | null
           id?: string
+          laboratorio?: string | null
           nombre?: string
           notas?: string | null
           telefono?: string | null
+          tiempo_cita_min?: number | null
         }
         Relationships: []
       }
@@ -288,6 +366,44 @@ export type Database = {
           precio?: number
         }
         Relationships: []
+      }
+      studies: {
+        Row: {
+          created_at: string | null
+          descripcion: string | null
+          fecha_indicacion: string | null
+          id: string
+          nombre: string
+          patient_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion?: string | null
+          fecha_indicacion?: string | null
+          id?: string
+          nombre: string
+          patient_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string | null
+          fecha_indicacion?: string | null
+          id?: string
+          nombre?: string
+          patient_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studies_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
