@@ -55,7 +55,6 @@ type FormCita = {
   doctor_id: string
   fecha_hora: string
   status: string
-  costo: string
   duracion_min: string
   notas: string
 }
@@ -77,7 +76,6 @@ const FORM_INICIAL: FormCita = {
   doctor_id: "",
   fecha_hora: "",
   status: "programada",
-  costo: "",
   duracion_min: "",
   notas: "",
 }
@@ -188,7 +186,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       doctor_id: cita.doctor_id ?? "",
       fecha_hora: isoAInputDatetime(cita.fecha_hora),
       status: cita.status,
-      costo: cita.costo != null ? String(cita.costo) : "",
       duracion_min: cita.duracion_min != null ? String(cita.duracion_min) : "",
       notas: cita.notas ?? "",
     })
@@ -357,7 +354,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 "Servicio",
                 "Doctor",
                 "Fecha y hora",
-                "Costo",
                 "Estado",
                 "Recordatorio",
                 "Acciones",
@@ -375,7 +371,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             {citas.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-sm text-muted-foreground"
                 >
                   Sin citas registradas.
@@ -398,13 +394,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 </td>
                 <td className="px-4 py-3 text-muted-foreground tabular-nums">
                   {formatFecha(cita.fecha_hora)}
-                </td>
-                <td className="px-4 py-3 tabular-nums">
-                  {cita.costo != null
-                    ? `$${Number(cita.costo).toLocaleString("es-MX", {
-                        minimumFractionDigits: 0,
-                      })}`
-                    : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -593,19 +582,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   </div>
                 )}
 
-                {/* Costo */}
-                {citaDrawer.costo != null && (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">Costo</span>
-                    <span className="font-medium tabular-nums">
-                      $
-                      {Number(citaDrawer.costo).toLocaleString("es-MX", {
-                        minimumFractionDigits: 0,
-                      })}
-                    </span>
-                  </div>
-                )}
-
                 {/* Duracion */}
                 {citaDrawer.duracion_min != null && (
                   <div className="flex items-center justify-between gap-4">
@@ -757,32 +733,19 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               </Select>
             </div>
 
-            {/* Costo y duracion */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Costo (MXN)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.costo}
-                  onChange={(e) => actualizarCampo("costo", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Duracion (min)</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="Ej. 60"
-                  value={form.duracion_min}
-                  onChange={(e) =>
-                    actualizarCampo("duracion_min", e.target.value)
-                  }
-                />
-              </div>
+            {/* Duracion */}
+            <div className="space-y-1.5">
+              <Label>Duracion (min)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Ej. 60"
+                value={form.duracion_min}
+                onChange={(e) =>
+                  actualizarCampo("duracion_min", e.target.value)
+                }
+              />
             </div>
 
             {/* Notas */}

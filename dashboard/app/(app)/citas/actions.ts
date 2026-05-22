@@ -59,7 +59,6 @@ export type DatosCita = {
   doctor_id: string
   fecha_hora: string
   status: string
-  costo: string
   duracion_min: string
   notas: string
 }
@@ -72,7 +71,6 @@ export async function crearCita(datos: DatosCita) {
     doctor_id: datos.doctor_id || null,
     fecha_hora: mexLocalToISO(datos.fecha_hora),
     status: (datos.status || "programada") as "programada" | "confirmada" | "cancelada" | "completada" | "no_asistio",
-    costo: datos.costo ? Number(datos.costo) : null,
     duracion_min: datos.duracion_min ? Number(datos.duracion_min) : null,
     notas: datos.notas || null,
   })
@@ -90,7 +88,6 @@ export async function actualizarCita(id: string, datos: DatosCita) {
       doctor_id: datos.doctor_id || null,
       fecha_hora: mexLocalToISO(datos.fecha_hora),
       status: datos.status as "programada" | "confirmada" | "cancelada" | "completada" | "no_asistio",
-      costo: datos.costo ? Number(datos.costo) : null,
       duracion_min: datos.duracion_min ? Number(datos.duracion_min) : null,
       notas: datos.notas || null,
     })
