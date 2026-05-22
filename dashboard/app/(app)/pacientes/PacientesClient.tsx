@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useTransition } from "react"
 import Link from "next/link"
@@ -932,7 +932,6 @@ export function PacientesClient({
         onOpenChange={(o) => {
           if (!o) setDrawerPaciente(null)
         }}
-        shouldScaleBackground
       >
         <DrawerContent style={{ height: "92svh" }}>
           {/* Encabezado fijo */}
@@ -1450,7 +1449,6 @@ export function PacientesClient({
             <Drawer
               open={formPacienteOpen && !isDesktop}
               onOpenChange={(o) => { if (!o) setFormPacienteOpen(false) }}
-              shouldScaleBackground
             >
               <DrawerContent style={{ height: "92svh" }}>
                 <DrawerHeader className="shrink-0 border-b border-border pb-3 text-left">

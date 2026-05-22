@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -483,7 +483,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         onOpenChange={(o) => {
           if (!o) setCitaDrawer(null)
         }}
-        shouldScaleBackground
       >
         <DrawerContent>
           <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
@@ -796,7 +795,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             <Drawer
               open={formOpen && !isDesktop}
               onOpenChange={(o) => { if (!o) setFormOpen(false) }}
-              shouldScaleBackground
             >
               <DrawerContent style={{ height: "92svh" }}>
                 <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
@@ -842,7 +840,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       <Drawer
         open={eliminarId !== null}
         onOpenChange={(o) => !o && setEliminarId(null)}
-        shouldScaleBackground
       >
         <DrawerContent>
           <DrawerHeader className="text-left">

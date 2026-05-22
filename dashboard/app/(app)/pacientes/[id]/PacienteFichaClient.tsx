@@ -1119,7 +1119,6 @@ export function PacienteFichaClient({
         onOpenChange={(o) => {
           if (!o) setCitaDrawer(null)
         }}
-        shouldScaleBackground
       >
         <DrawerContent>
           <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">

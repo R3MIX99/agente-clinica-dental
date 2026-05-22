@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -343,7 +343,6 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
       <Drawer
         open={!!drawerAgente}
         onOpenChange={(open) => { if (!open) setDrawerAgente(null) }}
-        shouldScaleBackground
       >
         <DrawerContent style={{ height: "60svh" }}>
           {drawerAgente && (
@@ -510,7 +509,6 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
             <Drawer
               open={formOpen && !isDesktop}
               onOpenChange={(o) => { if (!o) setFormOpen(false) }}
-              shouldScaleBackground
             >
               <DrawerContent style={{ height: "85svh" }}>
                 <DrawerHeader className="border-b border-border pb-3 shrink-0">
