@@ -22,8 +22,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
 import { toast } from "sonner"
-import { SquarePen, Clock, Trash2 } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -115,6 +121,24 @@ function formatFecha(raw: string): string {
   })
 }
 
+function formatFechaCompleta(raw: string): string {
+  const d = new Date(raw)
+  if (isNaN(d.getTime())) return raw
+  return d.toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function esProxima(fechaHora: string): boolean {
+  return new Date(fechaHora) > new Date()
+}
+
 function isoAInputDatetime(iso: string): string {
   if (!iso) return ""
   const d = new Date(iso)
@@ -145,6 +169,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const [citaEditando, setCitaEditando] = useState<Cita | null>(null)
   const [form, setForm] = useState<FormCita>(FORM_INICIAL)
   const [enviandoId, setEnviandoId] = useState<string | null>(null)
+  const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
 
   useEffect(() => {
     setCitas(citasIniciales)
@@ -259,20 +284,76 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   // -------------------------------------------------------------------------
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 pb-20 md:pb-5 space-y-5">
       {/* Cabecera */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Citas</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{citas.length} registros</span>
+          <span className="hidden sm:inline text-sm text-muted-foreground">
+            {citas.length} registros
+          </span>
           <Button size="sm" onClick={abrirFormNuevo}>
             Nueva cita
           </Button>
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      {/* ------------------------------------------------------------------ */}
+      {/* Vista mobile — lista de filas                                        */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="md:hidden">
+        {citas.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Sin citas registradas.
+          </p>
+        ) : (
+          <div className="rounded-lg border border-border overflow-hidden">
+            {citas.map((cita) => (
+              <button
+                key={cita.id}
+                onClick={() => setCitaDrawer(cita)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-border last:border-0 active:bg-muted/40 transition-colors text-left"
+              >
+                {/* Info izquierda */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {cita.patients?.nombre ?? "Sin paciente"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {[cita.services?.nombre, cita.doctors?.nombre]
+                      .filter(Boolean)
+                      .join(" · ") || "Sin servicio"}
+                  </p>
+                </div>
+
+                {/* Fecha + estado + chevron */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">
+                      {formatFecha(cita.fecha_hora)}
+                    </p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        ESTADO_ESTILO[cita.status] ??
+                          "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {STATUS_LABELS[cita.status] ?? cita.status}
+                    </span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Vista desktop — tabla                                                */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="hidden md:block rounded-lg border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
@@ -392,6 +473,156 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
           </tbody>
         </table>
       </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Drawer — detalle de cita (mobile)                                    */}
+      {/* ------------------------------------------------------------------ */}
+      <Drawer
+        open={citaDrawer !== null}
+        onOpenChange={(o) => {
+          if (!o) setCitaDrawer(null)
+        }}
+        shouldScaleBackground
+      >
+        <DrawerContent>
+          <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
+            <DrawerTitle>
+              {citaDrawer?.services?.nombre ?? "Cita sin servicio"}
+            </DrawerTitle>
+            {citaDrawer && (
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-1.5",
+                  ESTADO_ESTILO[citaDrawer.status] ??
+                    "bg-muted text-muted-foreground"
+                )}
+              >
+                {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
+              </span>
+            )}
+          </DrawerHeader>
+
+          {citaDrawer && (
+            <div className="px-4 py-4 pb-8 space-y-4">
+              {/* Datos de la cita */}
+              <div className="space-y-2.5 text-sm">
+                {/* Paciente */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Paciente</span>
+                  <span className="font-medium">
+                    {citaDrawer.patients?.nombre ?? "—"}
+                  </span>
+                </div>
+
+                {/* Fecha y hora */}
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-muted-foreground flex-shrink-0">
+                    Fecha y hora
+                  </span>
+                  <span className="font-medium text-right">
+                    {formatFechaCompleta(citaDrawer.fecha_hora)}
+                    {esProxima(citaDrawer.fecha_hora) && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 align-middle">
+                        proxima
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Doctor */}
+                {citaDrawer.doctors && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Doctor</span>
+                    <span className="font-medium">
+                      {citaDrawer.doctors.nombre}
+                    </span>
+                  </div>
+                )}
+
+                {/* Costo */}
+                {citaDrawer.costo != null && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Costo</span>
+                    <span className="font-medium tabular-nums">
+                      $
+                      {Number(citaDrawer.costo).toLocaleString("es-MX", {
+                        minimumFractionDigits: 0,
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Duracion */}
+                {citaDrawer.duracion_min != null && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Duracion</span>
+                    <span className="font-medium tabular-nums">
+                      {citaDrawer.duracion_min} min
+                    </span>
+                  </div>
+                )}
+
+                {/* Recordatorio */}
+                {citaDrawer.recordatorio_enviado_at && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Recordatorio</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                      Enviado
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Notas */}
+              {citaDrawer.notas && (
+                <div className="border-t border-border pt-3">
+                  <p className="text-xs text-muted-foreground mb-1.5">Notas</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                    {citaDrawer.notas}
+                  </p>
+                </div>
+              )}
+
+              {/* Acciones */}
+              <div className="border-t border-border pt-3 flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    abrirFormEdicion(citaDrawer)
+                    setCitaDrawer(null)
+                  }}
+                >
+                  Editar cita
+                </Button>
+                {citaDrawer.patients?.channel_user_id &&
+                  !citaDrawer.recordatorio_enviado_at && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        handleEnviarRecordatorio(citaDrawer)
+                        setCitaDrawer(null)
+                      }}
+                    >
+                      Enviar recordatorio
+                    </Button>
+                  )}
+                <Button
+                  variant="outline"
+                  className="w-full text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
+                  onClick={() => {
+                    setEliminarId(citaDrawer.id)
+                    setCitaDrawer(null)
+                  }}
+                >
+                  Eliminar cita
+                </Button>
+              </div>
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
 
       {/* Dialog — crear / editar */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
