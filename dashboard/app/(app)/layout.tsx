@@ -15,7 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AtencionProvider>
       <GlobalAtencionListener />
-      <div className="flex h-full">
+      <div className="flex h-full" {...({"vaul-drawer-wrapper": ""} as any)}>
 
         {/* Sidebar — solo escritorio */}
         <div className="hidden md:flex">
