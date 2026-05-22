@@ -795,22 +795,11 @@ export function PacientesClient({
       {/* ------------------------------------------------------------------ */}
       {/* Vista desktop — tabla                                                */}
       {/* ------------------------------------------------------------------ */}
-      <div className="hidden md:block rounded-lg border border-border overflow-x-auto">
-        <table className="w-full text-sm min-w-[1120px]">
+      <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {[
-                "Nombre",
-                "Telefono",
-                "Proxima cita",
-                "Doctor asignado",
-                "Laboratorio",
-                "Est. pendientes",
-                "Agendar cita",
-                "Canal",
-                "Tiempo cita",
-                "Acciones",
-              ].map((h) => (
+              {["Nombre", "Proxima cita", "Doctor", "Est. pendientes", "Acciones"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap"
@@ -824,7 +813,7 @@ export function PacientesClient({
             {pacientesFiltrados.length === 0 && (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={5}
                   className="px-4 py-8 text-center text-sm text-muted-foreground"
                 >
                   {busqueda
@@ -848,11 +837,6 @@ export function PacientesClient({
                   </Link>
                 </td>
 
-                {/* Telefono */}
-                <td className="px-4 py-3 text-muted-foreground tabular-nums whitespace-nowrap">
-                  {p.telefono ?? "—"}
-                </td>
-
                 {/* Proxima cita */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   {p.proxima_cita ? (
@@ -866,7 +850,7 @@ export function PacientesClient({
                   )}
                 </td>
 
-                {/* Doctor asignado */}
+                {/* Doctor */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   {p.doctor_principal ? (
                     <span>{p.doctor_principal.nombre}</span>
@@ -875,11 +859,6 @@ export function PacientesClient({
                       Sin asignar
                     </span>
                   )}
-                </td>
-
-                {/* Laboratorio */}
-                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                  {p.laboratorio ?? "—"}
                 </td>
 
                 {/* Estudios pendientes */}
@@ -895,36 +874,16 @@ export function PacientesClient({
                   )}
                 </td>
 
-                {/* Agendar cita */}
-                <td className="px-4 py-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => abrirAgendarCita(p)}
-                    className="h-7 text-xs gap-1.5"
-                  >
-                    <CalendarPlus size={13} />
-                    Agendar
-                  </Button>
-                </td>
-
-                {/* Canal */}
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    {CANAL_LABEL[p.channel] ?? p.channel}
-                  </span>
-                </td>
-
-                {/* Tiempo cita */}
-                <td className="px-4 py-3 text-muted-foreground tabular-nums whitespace-nowrap">
-                  {p.tiempo_cita_min != null
-                    ? `${p.tiempo_cita_min} min`
-                    : "—"}
-                </td>
-
                 {/* Acciones */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => abrirAgendarCita(p)}
+                      title="Agendar cita"
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    >
+                      <CalendarPlus size={15} />
+                    </button>
                     <button
                       onClick={() => abrirFormEdicion(p)}
                       title="Editar paciente"
