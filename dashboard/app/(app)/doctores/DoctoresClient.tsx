@@ -23,6 +23,13 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { toast } from "sonner"
 import {
   ChevronRight,
@@ -207,11 +214,21 @@ export function DoctoresClient({
   const [drawerPacientes, setDrawerPacientes] = useState<
     PacienteDoctorFicha[]
   >([])
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDoctores(doctoresIniciales)
   }, [doctoresIniciales])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const doctoresFiltrados = busqueda.trim()
     ? doctores.filter(
@@ -865,17 +882,14 @@ export function DoctoresClient({
       </Drawer>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Dialog — crear / editar doctor                                        */}
       {/* ------------------------------------------------------------------ */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {doctorEditando ? "Editar doctor" : "Nuevo doctor"}
-            </DialogTitle>
-          </DialogHeader>
+      {/* Formulario crear / editar doctor — mobile: dialog, desktop: sheet  */}
+      {/* ------------------------------------------------------------------ */}
+      {(() => {
+        const titulo = doctorEditando ? "Editar doctor" : "Nuevo doctor"
 
-          <div className="space-y-4 py-2">
+        const camposForm = (
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
             {/* Nombre */}
             <div className="space-y-1.5">
               <Label>
@@ -968,17 +982,60 @@ export function DoctoresClient({
               )}
             </div>
           </div>
+        )
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setFormOpen(false)}>
+        const botonesForm = (
+          <div className="flex gap-2 w-full">
+            <Button variant="ghost" className="flex-1" onClick={() => setFormOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleGuardar} disabled={isPending}>
+            <Button className="flex-1" onClick={handleGuardar} disabled={isPending}>
               {isPending ? "Guardando..." : "Guardar"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )
+
+        return (
+          <>
+            {/* Dialog — solo movil */}
+            <Dialog open={formOpen && !isDesktop} onOpenChange={setFormOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{titulo}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">{camposForm}</div>
+                <DialogFooter>{botonesForm}</DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Sheet lateral derecho — solo escritorio */}
+            <Sheet
+              open={formOpen && isDesktop}
+              onOpenChange={(o) => { if (!o) setFormOpen(false) }}
+            >
+              <SheetContent
+                side="right"
+                className="flex flex-col p-0 w-[480px] sm:max-w-[480px] rounded-xl"
+                showCloseButton={false}
+                style={{
+                  top: "10px",
+                  bottom: "10px",
+                  right: "10px",
+                  height: "calc(100svh - 20px)",
+                }}
+              >
+                <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
+                  <SheetTitle>{titulo}</SheetTitle>
+                </SheetHeader>
+                {camposForm}
+                <SheetFooter className="shrink-0 border-t border-border px-4 py-4">
+                  {botonesForm}
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </>
+        )
+      })()}
 
       {/* ------------------------------------------------------------------ */}
       {/* Dialog — confirmar eliminacion                                        */}

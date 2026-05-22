@@ -24,6 +24,13 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { ChevronRight, SquarePen } from "lucide-react"
 
@@ -103,11 +110,21 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
   const [formOpen, setFormOpen] = useState(false)
   const [agenteEditando, setAgenteEditando] = useState<Agente | null>(null)
   const [drawerAgente, setDrawerAgente] = useState<Agente | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAgentes(agentesIniciales)
   }, [agentesIniciales])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const {
     register,
@@ -393,105 +410,151 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
       </Drawer>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Drawer — crear / editar agente                                      */}
       {/* ------------------------------------------------------------------ */}
-      <Drawer open={formOpen} onOpenChange={setFormOpen} shouldScaleBackground>
-        <DrawerContent style={{ height: "85svh" }}>
-          <DrawerHeader className="border-b border-border pb-3 shrink-0">
-            <DrawerTitle>
-              {agenteEditando ? "Editar agente" : "Nuevo agente"}
-            </DrawerTitle>
-          </DrawerHeader>
+      {/* Formulario crear / editar agente — mobile: drawer, desktop: sheet  */}
+      {/* ------------------------------------------------------------------ */}
+      {(() => {
+        const titulo = agenteEditando ? "Editar agente" : "Nuevo agente"
 
-          <form onSubmit={onSubmit} className="flex flex-col h-full min-h-0">
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
-              {/* Nombre */}
-              <div className="space-y-1.5">
-                <Label htmlFor="nombre">
-                  Nombre <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="nombre"
-                  placeholder="Nombre completo"
-                  {...register("nombre")}
-                />
-                {errors.nombre && (
-                  <p className="text-xs text-red-500">{errors.nombre.message}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Correo electronico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-xs text-red-500">{errors.email.message}</p>
-                )}
-              </div>
-
-              {/* Rol */}
-              <div className="space-y-1.5">
-                <Label>Rol</Label>
-                <Controller
-                  control={control}
-                  name="role"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="recepcion">Recepcion</SelectItem>
-                        <SelectItem value="odontologo">Odontologo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              {/* Activo */}
-              <div className="flex items-center gap-3">
-                <Controller
-                  control={control}
-                  name="activo"
-                  render={({ field }) => (
-                    <Switch
-                      id="activo"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-                <Label htmlFor="activo" className="cursor-pointer">
-                  Agente activo
-                </Label>
-              </div>
+        const camposForm = (
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
+            {/* Nombre */}
+            <div className="space-y-1.5">
+              <Label htmlFor="nombre">
+                Nombre <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="nombre"
+                placeholder="Nombre completo"
+                {...register("nombre")}
+              />
+              {errors.nombre && (
+                <p className="text-xs text-red-500">{errors.nombre.message}</p>
+              )}
             </div>
 
-            <DrawerFooter className="border-t border-border shrink-0">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => setFormOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="flex-1">
-                  {isSubmitting ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </DrawerFooter>
-          </form>
-        </DrawerContent>
-      </Drawer>
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Correo electronico</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="correo@ejemplo.com"
+                {...register("email")}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Rol */}
+            <div className="space-y-1.5">
+              <Label>Rol</Label>
+              <Controller
+                control={control}
+                name="role"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="recepcion">Recepcion</SelectItem>
+                      <SelectItem value="odontologo">Odontologo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            {/* Activo */}
+            <div className="flex items-center gap-3">
+              <Controller
+                control={control}
+                name="activo"
+                render={({ field }) => (
+                  <Switch
+                    id="activo"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <Label htmlFor="activo" className="cursor-pointer">
+                Agente activo
+              </Label>
+            </div>
+          </div>
+        )
+
+        const botonesForm = (
+          <div className="flex gap-2 w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              className="flex-1"
+              onClick={() => setFormOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting} className="flex-1">
+              {isSubmitting ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        )
+
+        return (
+          <>
+            {/* Drawer inferior — solo movil */}
+            <Drawer
+              open={formOpen && !isDesktop}
+              onOpenChange={(o) => { if (!o) setFormOpen(false) }}
+              shouldScaleBackground
+            >
+              <DrawerContent style={{ height: "85svh" }}>
+                <DrawerHeader className="border-b border-border pb-3 shrink-0">
+                  <DrawerTitle>{titulo}</DrawerTitle>
+                </DrawerHeader>
+                <form onSubmit={onSubmit} className="flex flex-col h-full min-h-0">
+                  {camposForm}
+                  <DrawerFooter className="border-t border-border shrink-0">
+                    {botonesForm}
+                  </DrawerFooter>
+                </form>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Sheet lateral derecho — solo escritorio */}
+            <Sheet
+              open={formOpen && isDesktop}
+              onOpenChange={(o) => { if (!o) setFormOpen(false) }}
+            >
+              <SheetContent
+                side="right"
+                className="flex flex-col p-0 w-[480px] sm:max-w-[480px] rounded-xl"
+                showCloseButton={false}
+                style={{
+                  top: "10px",
+                  bottom: "10px",
+                  right: "10px",
+                  height: "calc(100svh - 20px)",
+                }}
+              >
+                <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
+                  <SheetTitle>{titulo}</SheetTitle>
+                </SheetHeader>
+                <form onSubmit={onSubmit} className="flex flex-col h-full min-h-0">
+                  {camposForm}
+                  <SheetFooter className="shrink-0 border-t border-border px-4 py-4">
+                    {botonesForm}
+                  </SheetFooter>
+                </form>
+              </SheetContent>
+            </Sheet>
+          </>
+        )
+      })()}
     </div>
   )
 }

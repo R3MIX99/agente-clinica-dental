@@ -35,6 +35,13 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { toast } from "sonner"
 import {
   Calendar,
@@ -440,11 +447,21 @@ export function PacientesClient({
   const [drawerDoctores, setDrawerDoctores] = useState<DoctorAsignadoFicha[]>(
     []
   )
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPacientes(pacientesIniciales)
   }, [pacientesIniciales])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const pacientesFiltrados = busqueda.trim()
     ? pacientes.filter(
@@ -1191,16 +1208,14 @@ export function PacientesClient({
         </DrawerContent>
       </Drawer>
 
-      {/* Dialog — crear / editar paciente */}
-      <Dialog open={formPacienteOpen} onOpenChange={setFormPacienteOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {pacienteEditando ? "Editar paciente" : "Nuevo paciente"}
-            </DialogTitle>
-          </DialogHeader>
+      {/* ------------------------------------------------------------------ */}
+      {/* Formulario crear / editar paciente — mobile: dialog, desktop: sheet*/}
+      {/* ------------------------------------------------------------------ */}
+      {(() => {
+        const titulo = pacienteEditando ? "Editar paciente" : "Nuevo paciente"
 
-          <div className="space-y-4 py-2">
+        const camposForm = (
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
             {/* Nombre */}
             <div className="space-y-1.5">
               <Label>
@@ -1411,19 +1426,64 @@ export function PacientesClient({
             </div>
           </div>
 
-          <DialogFooter>
+        )
+
+        const botonesForm = (
+          <div className="flex gap-2 w-full">
             <Button
               variant="ghost"
+              className="flex-1"
               onClick={() => setFormPacienteOpen(false)}
             >
               Cancelar
             </Button>
-            <Button onClick={handleGuardarPaciente} disabled={isPending}>
+            <Button className="flex-1" onClick={handleGuardarPaciente} disabled={isPending}>
               {isPending ? "Guardando..." : "Guardar"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )
+
+        return (
+          <>
+            {/* Dialog — solo movil */}
+            <Dialog open={formPacienteOpen && !isDesktop} onOpenChange={setFormPacienteOpen}>
+              <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{titulo}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">{camposForm}</div>
+                <DialogFooter>{botonesForm}</DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Sheet lateral derecho — solo escritorio */}
+            <Sheet
+              open={formPacienteOpen && isDesktop}
+              onOpenChange={(o) => { if (!o) setFormPacienteOpen(false) }}
+            >
+              <SheetContent
+                side="right"
+                className="flex flex-col p-0 w-[480px] sm:max-w-[480px] rounded-xl"
+                showCloseButton={false}
+                style={{
+                  top: "10px",
+                  bottom: "10px",
+                  right: "10px",
+                  height: "calc(100svh - 20px)",
+                }}
+              >
+                <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
+                  <SheetTitle>{titulo}</SheetTitle>
+                </SheetHeader>
+                {camposForm}
+                <SheetFooter className="shrink-0 border-t border-border px-4 py-4">
+                  {botonesForm}
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </>
+        )
+      })()}
 
       {/* Dialog — agendar cita */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
