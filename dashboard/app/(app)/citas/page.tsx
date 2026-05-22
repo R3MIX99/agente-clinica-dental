@@ -1,28 +1,41 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import { createServerClient } from "@/lib/supabase/server"
+import { CitasClient } from "./CitasClient"
 
 export const metadata = { title: "Citas — Clinica Dental" }
 
-export default function CitasPage() {
+export default async function CitasPage() {
+  const supabase = createServerClient()
+
+  const [{ data: citas }, { data: pacientes }, { data: servicios }, { data: doctores }] =
+    await Promise.all([
+      supabase
+        .from("appointments")
+        .select(
+          "id, patient_id, service_id, doctor_id, fecha_hora, costo, status, recordatorio_enviado_at, notas, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio), doctors(id, nombre)"
+        )
+        .order("fecha_hora", { ascending: false })
+        .limit(200),
+      supabase
+        .from("patients")
+        .select("id, nombre, channel, channel_user_id")
+        .order("nombre"),
+      supabase
+        .from("services")
+        .select("id, nombre, precio")
+        .eq("activo", true)
+        .order("nombre"),
+      supabase
+        .from("doctors")
+        .select("id, nombre")
+        .order("nombre"),
+    ])
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Citas</h1>
-        <Skeleton className="h-9 w-28" />
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="border-b border-border bg-muted/40 px-4 py-3 grid grid-cols-6 gap-4">
-          {["Paciente", "Servicio", "Fecha y hora", "Costo", "Estado", "Recordatorio"].map((h) => (
-            <Skeleton key={h} className="h-3.5 w-full max-w-[80px]" />
-          ))}
-        </div>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="px-4 py-3 grid grid-cols-6 gap-4 border-b border-border last:border-0">
-            {Array.from({ length: 6 }).map((_, j) => (
-              <Skeleton key={j} className="h-4 w-full" />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
+    <CitasClient
+      citas={(citas ?? []) as Parameters<typeof CitasClient>[0]["citas"]}
+      pacientes={pacientes ?? []}
+      servicios={(servicios ?? []) as Parameters<typeof CitasClient>[0]["servicios"]}
+      doctores={doctores ?? []}
+    />
   )
 }
