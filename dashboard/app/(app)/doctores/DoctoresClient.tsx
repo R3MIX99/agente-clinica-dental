@@ -622,6 +622,7 @@ export function DoctoresClient({
         onOpenChange={(o) => {
           if (!o) setDrawerDoctor(null)
         }}
+        shouldScaleBackground
       >
         <DrawerContent style={{ height: "92svh" }}>
           {/* Encabezado: nombre + iconos de accion */}
@@ -1001,6 +1002,7 @@ export function DoctoresClient({
             <Drawer
               open={formOpen && !isDesktop}
               onOpenChange={(o) => { if (!o) setFormOpen(false) }}
+              shouldScaleBackground
             >
               <DrawerContent style={{ height: "78svh" }}>
                 <DrawerHeader className="shrink-0 border-b border-border pb-3 text-left">

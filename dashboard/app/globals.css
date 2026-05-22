@@ -127,6 +127,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Evita que vaul sobreescriba el fondo del body con negro al escalar drawers */
+    background-color: var(--background) !important;
   }
   html {
     @apply font-sans;
