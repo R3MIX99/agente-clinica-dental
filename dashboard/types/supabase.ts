@@ -230,6 +230,41 @@ export type Database = {
           },
         ]
       }
+      doctor_schedules: {
+        Row: {
+          created_at: string
+          dia_semana: number
+          doctor_id: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          dia_semana: number
+          doctor_id: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          dia_semana?: number
+          doctor_id?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_schedules_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           created_at: string | null
