@@ -22,6 +22,13 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { ChevronRight, Clock, SquarePen, Trash2 } from "lucide-react"
 
@@ -162,11 +169,21 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const [form, setForm] = useState<FormCita>(FORM_INICIAL)
   const [enviandoId, setEnviandoId] = useState<string | null>(null)
   const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCitas(citasIniciales)
   }, [citasIniciales])
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   // -------------------------------------------------------------------------
   // Handlers — formulario
@@ -617,17 +634,12 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         </DrawerContent>
       </Drawer>
 
-      {/* Drawer — crear / editar cita */}
-      <Drawer open={formOpen} onOpenChange={setFormOpen} shouldScaleBackground>
-        <DrawerContent style={{ height: "92svh" }}>
-          <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
-            <DrawerTitle>
-              {citaEditando ? "Editar cita" : "Nueva cita"}
-            </DrawerTitle>
-          </DrawerHeader>
-
-          {/* Campos desplazables */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-2 space-y-4">
+      {/* ------------------------------------------------------------------ */}
+      {/* Formulario — campos compartidos mobile y desktop                   */}
+      {/* ------------------------------------------------------------------ */}
+      {(() => {
+        const camposForm = (
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
             {/* Paciente */}
             <div className="space-y-1.5">
               <Label>Paciente</Label>
@@ -760,9 +772,10 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               />
             </div>
           </div>
+        )
 
-          {/* Botones fijos en el fondo */}
-          <DrawerFooter className="flex-shrink-0 border-t border-border pt-3 flex-row gap-2">
+        const botonesForm = (
+          <div className="flex gap-2 w-full">
             <Button
               variant="ghost"
               className="flex-1"
@@ -777,9 +790,52 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             >
               {isPending ? "Guardando..." : "Guardar"}
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </div>
+        )
+
+        const tituloForm = citaEditando ? "Editar cita" : "Nueva cita"
+
+        return (
+          <>
+            {/* Drawer inferior — solo movil */}
+            <Drawer
+              open={formOpen && !isDesktop}
+              onOpenChange={(o) => { if (!o) setFormOpen(false) }}
+              shouldScaleBackground
+            >
+              <DrawerContent style={{ height: "92svh" }}>
+                <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
+                  <DrawerTitle>{tituloForm}</DrawerTitle>
+                </DrawerHeader>
+                {camposForm}
+                <DrawerFooter className="flex-shrink-0 border-t border-border pt-3">
+                  {botonesForm}
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Sheet lateral derecho — solo escritorio */}
+            <Sheet
+              open={formOpen && isDesktop}
+              onOpenChange={(o) => { if (!o) setFormOpen(false) }}
+            >
+              <SheetContent
+                side="right"
+                className="flex flex-col p-0 w-[480px] sm:max-w-[480px]"
+                showCloseButton={false}
+              >
+                <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
+                  <SheetTitle>{tituloForm}</SheetTitle>
+                </SheetHeader>
+                {camposForm}
+                <SheetFooter className="shrink-0 border-t border-border px-4 py-4">
+                  {botonesForm}
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+          </>
+        )
+      })()}
 
       {/* Drawer — confirmar eliminacion */}
       <Drawer
