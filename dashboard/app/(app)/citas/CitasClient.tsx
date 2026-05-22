@@ -490,15 +490,74 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               {citaDrawer?.services?.nombre ?? "Cita sin servicio"}
             </DrawerTitle>
             {citaDrawer && (
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-1.5",
-                  ESTADO_ESTILO[citaDrawer.status] ??
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
-              </span>
+              <div className="flex items-center justify-between gap-2 mt-1.5">
+                {/* Badge de estado */}
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    ESTADO_ESTILO[citaDrawer.status] ??
+                      "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
+                </span>
+
+                {/* Iconos de accion */}
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => {
+                      abrirFormEdicion(citaDrawer)
+                      setCitaDrawer(null)
+                    }}
+                    title="Editar cita"
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  >
+                    <SquarePen size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleEnviarRecordatorio(citaDrawer)
+                      setCitaDrawer(null)
+                    }}
+                    disabled={
+                      !citaDrawer.patients?.channel_user_id ||
+                      !!citaDrawer.recordatorio_enviado_at ||
+                      enviandoId === citaDrawer.id
+                    }
+                    title={
+                      !citaDrawer.patients?.channel_user_id
+                        ? "Sin ID de canal configurado"
+                        : citaDrawer.recordatorio_enviado_at
+                        ? "Recordatorio ya enviado"
+                        : "Enviar recordatorio"
+                    }
+                    className={cn(
+                      "p-1.5 rounded-md transition-colors",
+                      citaDrawer.patients?.channel_user_id &&
+                        !citaDrawer.recordatorio_enviado_at
+                        ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        : "text-muted-foreground/30 cursor-not-allowed"
+                    )}
+                  >
+                    <Clock
+                      size={16}
+                      className={
+                        enviandoId === citaDrawer.id ? "animate-spin" : ""
+                      }
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEliminarId(citaDrawer.id)
+                      setCitaDrawer(null)
+                    }}
+                    title="Eliminar cita"
+                    className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
             )}
           </DrawerHeader>
 
@@ -582,43 +641,6 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   </p>
                 </div>
               )}
-
-              {/* Acciones */}
-              <div className="border-t border-border pt-3 flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    abrirFormEdicion(citaDrawer)
-                    setCitaDrawer(null)
-                  }}
-                >
-                  Editar cita
-                </Button>
-                {citaDrawer.patients?.channel_user_id &&
-                  !citaDrawer.recordatorio_enviado_at && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        handleEnviarRecordatorio(citaDrawer)
-                        setCitaDrawer(null)
-                      }}
-                    >
-                      Enviar recordatorio
-                    </Button>
-                  )}
-                <Button
-                  variant="outline"
-                  className="w-full text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
-                  onClick={() => {
-                    setEliminarId(citaDrawer.id)
-                    setCitaDrawer(null)
-                  }}
-                >
-                  Eliminar cita
-                </Button>
-              </div>
             </div>
           )}
         </DrawerContent>
