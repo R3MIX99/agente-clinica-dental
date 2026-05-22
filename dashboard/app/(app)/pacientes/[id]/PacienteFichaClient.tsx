@@ -36,10 +36,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
 import { toast } from "sonner"
 import {
   ArrowLeft,
   CalendarPlus,
+  ChevronRight,
   FileText,
   FlaskConical,
   Calendar,
@@ -367,6 +374,9 @@ export function PacienteFichaClient({
   // Nota clinica
   const [notaTexto, setNotaTexto] = useState("")
 
+  // Drawer — detalle de cita (mobile)
+  const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
+
   // ---------------------------------------------------------------------------
   // Handlers — agendar cita
   // ---------------------------------------------------------------------------
@@ -464,7 +474,7 @@ export function PacienteFichaClient({
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="p-6 pb-20 md:pb-6 space-y-6 max-w-5xl mx-auto">
       {/* Enlace de regreso */}
       <Link
         href="/pacientes"
@@ -689,80 +699,27 @@ export function PacienteFichaClient({
                   Sin citas registradas para este paciente.
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[640px]">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/40">
-                        {[
-                          "Servicio",
-                          "Doctor",
-                          "Fecha y hora",
-                          "Costo",
-                          "Duracion",
-                          "Estado",
-                        ].map((h) => (
-                          <th
-                            key={h}
-                            className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap"
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {citas.map((cita) => {
-                        const proxima = esProxima(cita.fecha_hora)
-                        return (
-                          <tr
-                            key={cita.id}
-                            className={cn(
-                              "border-b border-border last:border-0 transition-colors",
-                              proxima
-                                ? "bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/70 dark:hover:bg-blue-950/30"
-                                : "hover:bg-muted/30"
-                            )}
-                          >
-                            <td className="px-4 py-3 font-medium whitespace-nowrap">
-                              {cita.servicio?.nombre ?? (
-                                <span className="text-muted-foreground">
-                                  —
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                              {cita.doctor?.nombre ?? "—"}
-                            </td>
-                            <td className="px-4 py-3 tabular-nums whitespace-nowrap">
-                              <span
-                                className={
-                                  proxima ? "font-medium" : "text-muted-foreground"
-                                }
-                              >
-                                {formatFechaCompleta(cita.fecha_hora)}
-                              </span>
-                              {proxima && (
-                                <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-                                  proxima
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                              {cita.costo != null
-                                ? `$${Number(cita.costo).toLocaleString(
-                                    "es-MX",
-                                    { minimumFractionDigits: 0 }
-                                  )}`
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                              {cita.servicio?.duracion_min != null
-                                ? `${cita.servicio.duracion_min} min`
-                                : paciente.tiempo_cita_min != null
-                                ? `${paciente.tiempo_cita_min} min`
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-3">
+                <>
+                  {/* Mobile — lista cliqueables */}
+                  <div className="md:hidden px-4 pt-2 pb-4 space-y-2">
+                    {citas.map((cita) => {
+                      const proxima = esProxima(cita.fecha_hora)
+                      return (
+                        <button
+                          key={cita.id}
+                          onClick={() => setCitaDrawer(cita)}
+                          className={cn(
+                            "w-full text-left rounded-lg border p-3 space-y-1.5 transition-colors active:bg-muted/40",
+                            proxima
+                              ? "border-blue-200 bg-blue-50/40 dark:border-blue-800/40 dark:bg-blue-950/20"
+                              : "border-border hover:bg-muted/20"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium leading-tight">
+                              {cita.servicio?.nombre ?? "Cita sin servicio"}
+                            </p>
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               <span
                                 className={cn(
                                   "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
@@ -770,16 +727,122 @@ export function PacienteFichaClient({
                                     "bg-muted text-muted-foreground"
                                 )}
                               >
-                                {STATUS_CITA_LABELS[cita.status] ??
-                                  cita.status}
+                                {STATUS_CITA_LABELS[cita.status] ?? cita.status}
                               </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFechaCompleta(cita.fecha_hora)}
+                            {proxima && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                                proxima
+                              </span>
+                            )}
+                          </p>
+                          {cita.doctor && (
+                            <p className="text-xs text-muted-foreground">
+                              {cita.doctor.nombre}
+                            </p>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Desktop — tabla */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm min-w-[640px]">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40">
+                          {[
+                            "Servicio",
+                            "Doctor",
+                            "Fecha y hora",
+                            "Costo",
+                            "Duracion",
+                            "Estado",
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap"
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {citas.map((cita) => {
+                          const proxima = esProxima(cita.fecha_hora)
+                          return (
+                            <tr
+                              key={cita.id}
+                              className={cn(
+                                "border-b border-border last:border-0 transition-colors",
+                                proxima
+                                  ? "bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/70 dark:hover:bg-blue-950/30"
+                                  : "hover:bg-muted/30"
+                              )}
+                            >
+                              <td className="px-4 py-3 font-medium whitespace-nowrap">
+                                {cita.servicio?.nombre ?? (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                                {cita.doctor?.nombre ?? "—"}
+                              </td>
+                              <td className="px-4 py-3 tabular-nums whitespace-nowrap">
+                                <span
+                                  className={
+                                    proxima
+                                      ? "font-medium"
+                                      : "text-muted-foreground"
+                                  }
+                                >
+                                  {formatFechaCompleta(cita.fecha_hora)}
+                                </span>
+                                {proxima && (
+                                  <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                                    proxima
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                                {cita.costo != null
+                                  ? `$${Number(cita.costo).toLocaleString(
+                                      "es-MX",
+                                      { minimumFractionDigits: 0 }
+                                    )}`
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                                {cita.servicio?.duracion_min != null
+                                  ? `${cita.servicio.duracion_min} min`
+                                  : paciente.tiempo_cita_min != null
+                                  ? `${paciente.tiempo_cita_min} min`
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+                                    STATUS_CITA_ESTILO[cita.status] ??
+                                      "bg-muted text-muted-foreground"
+                                  )}
+                                >
+                                  {STATUS_CITA_LABELS[cita.status] ??
+                                    cita.status}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -1053,6 +1116,103 @@ export function PacienteFichaClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Drawer — detalle de cita (mobile)                                    */}
+      {/* ------------------------------------------------------------------ */}
+      <Drawer
+        open={citaDrawer !== null}
+        onOpenChange={(o) => {
+          if (!o) setCitaDrawer(null)
+        }}
+        shouldScaleBackground
+      >
+        <DrawerContent>
+          <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
+            <DrawerTitle>
+              {citaDrawer?.servicio?.nombre ?? "Cita sin servicio"}
+            </DrawerTitle>
+            {citaDrawer && (
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-1.5",
+                  STATUS_CITA_ESTILO[citaDrawer.status] ??
+                    "bg-muted text-muted-foreground"
+                )}
+              >
+                {STATUS_CITA_LABELS[citaDrawer.status] ?? citaDrawer.status}
+              </span>
+            )}
+          </DrawerHeader>
+
+          {citaDrawer && (
+            <div className="px-4 py-4 pb-8 space-y-3">
+              <div className="space-y-2.5 text-sm">
+                {/* Fecha */}
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-muted-foreground flex-shrink-0">
+                    Fecha y hora
+                  </span>
+                  <span className="font-medium text-right">
+                    {formatFechaCompleta(citaDrawer.fecha_hora)}
+                    {esProxima(citaDrawer.fecha_hora) && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 align-middle">
+                        proxima
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Doctor */}
+                {citaDrawer.doctor && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Doctor</span>
+                    <span className="font-medium">
+                      {citaDrawer.doctor.nombre}
+                    </span>
+                  </div>
+                )}
+
+                {/* Costo */}
+                {citaDrawer.costo != null && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Costo</span>
+                    <span className="font-medium tabular-nums">
+                      $
+                      {Number(citaDrawer.costo).toLocaleString("es-MX", {
+                        minimumFractionDigits: 0,
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Duracion */}
+                {(citaDrawer.servicio?.duracion_min != null ||
+                  paciente.tiempo_cita_min != null) && (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Duracion</span>
+                    <span className="font-medium tabular-nums">
+                      {citaDrawer.servicio?.duracion_min ??
+                        paciente.tiempo_cita_min}{" "}
+                      min
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Notas de la cita */}
+              {citaDrawer.notas && (
+                <div className="border-t border-border pt-3">
+                  <p className="text-xs text-muted-foreground mb-1.5">Notas</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                    {citaDrawer.notas}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }
