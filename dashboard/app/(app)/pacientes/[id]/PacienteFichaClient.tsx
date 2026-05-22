@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -38,6 +38,7 @@ import {
 import {
   Drawer,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -358,11 +359,22 @@ export function PacienteFichaClient({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // Dialog — agendar cita
+  // Detectar escritorio
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
+  // Dialog/Drawer — agendar cita
   const [agendarOpen, setAgendarOpen] = useState(false)
   const [formCita, setFormCita] = useState(FORM_CITA_INICIAL)
 
-  // Dialog — editar doctores
+  // Dialog/Drawer — editar doctores
   const [editarDoctoresOpen, setEditarDoctoresOpen] = useState(false)
   const [formDoctores, setFormDoctores] = useState({
     principal: doctoresAsignados[0]?.id ?? "",
@@ -906,15 +918,11 @@ export function PacienteFichaClient({
       </Tabs>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Dialog — Agendar cita                                                */}
+      {/* Agendar cita — Drawer (movil) / Dialog (escritorio)                  */}
       {/* ------------------------------------------------------------------ */}
-      <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Agendar cita</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
+      {(() => {
+        const camposCita = (
+          <div className="space-y-4 py-2 px-4 overflow-y-auto flex-1">
             <div className="space-y-1.5">
               <Label>Paciente</Label>
               <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted">
@@ -977,18 +985,6 @@ export function PacienteFichaClient({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Costo (MXN)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={formCita.costo}
-                onChange={(e) => actualizarCampoCita("costo", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
               <Label>Notas</Label>
               <Textarea
                 placeholder="Observaciones adicionales..."
@@ -999,28 +995,56 @@ export function PacienteFichaClient({
               />
             </div>
           </div>
-
-          <DialogFooter>
+        )
+        const botonesCita = (
+          <>
             <Button variant="ghost" onClick={() => setAgendarOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleAgendarCita} disabled={isPending}>
               {isPending ? "Guardando..." : "Agendar cita"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        )
+        return (
+          <>
+            {/* Drawer — solo movil */}
+            <Drawer
+              open={agendarOpen && !isDesktop}
+              onOpenChange={(o) => { if (!o) setAgendarOpen(false) }}
+              shouldScaleBackground
+            >
+              <DrawerContent style={{ height: "85svh" }}>
+                <DrawerHeader className="border-b border-border pb-3 shrink-0">
+                  <DrawerTitle>Agendar cita</DrawerTitle>
+                </DrawerHeader>
+                {camposCita}
+                <DrawerFooter className="border-t border-border shrink-0 flex-row justify-end gap-2">
+                  {botonesCita}
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Dialog — solo escritorio */}
+            <Dialog open={agendarOpen && isDesktop} onOpenChange={(o) => { if (!o) setAgendarOpen(false) }}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Agendar cita</DialogTitle>
+                </DialogHeader>
+                {camposCita}
+                <DialogFooter>{botonesCita}</DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )
+      })()}
 
       {/* ------------------------------------------------------------------ */}
-      {/* Dialog — Editar asignacion de doctores                               */}
+      {/* Editar doctores — Drawer (movil) / Dialog (escritorio)               */}
       {/* ------------------------------------------------------------------ */}
-      <Dialog open={editarDoctoresOpen} onOpenChange={setEditarDoctoresOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Asignacion de medicos</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
+      {(() => {
+        const camposDoctores = (
+          <div className="space-y-4 py-2 px-4 overflow-y-auto flex-1">
             <div className="space-y-1.5">
               <Label>Doctor principal</Label>
               <Select
@@ -1096,20 +1120,49 @@ export function PacienteFichaClient({
               </Select>
             </div>
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setEditarDoctoresOpen(false)}
-            >
+        )
+        const botonesDoctores = (
+          <>
+            <Button variant="ghost" onClick={() => setEditarDoctoresOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleGuardarDoctores} disabled={isPending}>
               {isPending ? "Guardando..." : "Guardar"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        )
+        return (
+          <>
+            {/* Drawer — solo movil */}
+            <Drawer
+              open={editarDoctoresOpen && !isDesktop}
+              onOpenChange={(o) => { if (!o) setEditarDoctoresOpen(false) }}
+              shouldScaleBackground
+            >
+              <DrawerContent style={{ height: "70svh" }}>
+                <DrawerHeader className="border-b border-border pb-3 shrink-0">
+                  <DrawerTitle>Asignacion de medicos</DrawerTitle>
+                </DrawerHeader>
+                {camposDoctores}
+                <DrawerFooter className="border-t border-border shrink-0 flex-row justify-end gap-2">
+                  {botonesDoctores}
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Dialog — solo escritorio */}
+            <Dialog open={editarDoctoresOpen && isDesktop} onOpenChange={(o) => { if (!o) setEditarDoctoresOpen(false) }}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Asignacion de medicos</DialogTitle>
+                </DialogHeader>
+                {camposDoctores}
+                <DialogFooter>{botonesDoctores}</DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )
+      })()}
 
       {/* ------------------------------------------------------------------ */}
       {/* Drawer — detalle de cita (mobile)                                    */}
