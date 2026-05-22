@@ -7,10 +7,10 @@ export const metadata = { title: "Ficha de paciente — Clinica Dental" }
 export default async function PacienteFichaPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   const supabase = createServerClient()
-  const { id } = params
+  const { id } = await params
 
   const [
     { data: paciente },
