@@ -821,8 +821,14 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             >
               <SheetContent
                 side="right"
-                className="flex flex-col p-0 w-[480px] sm:max-w-[480px]"
+                className="flex flex-col p-0 w-[480px] sm:max-w-[480px] rounded-xl"
                 showCloseButton={false}
+                style={{
+                  top: "10px",
+                  bottom: "10px",
+                  right: "10px",
+                  height: "calc(100svh - 20px)",
+                }}
               >
                 <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
                   <SheetTitle>{tituloForm}</SheetTitle>
