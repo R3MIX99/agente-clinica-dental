@@ -32,6 +32,7 @@ import {
 import {
   Drawer,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -1445,16 +1446,22 @@ export function PacientesClient({
 
         return (
           <>
-            {/* Dialog — solo movil */}
-            <Dialog open={formPacienteOpen && !isDesktop} onOpenChange={setFormPacienteOpen}>
-              <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{titulo}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-2">{camposForm}</div>
-                <DialogFooter>{botonesForm}</DialogFooter>
-              </DialogContent>
-            </Dialog>
+            {/* Drawer inferior — solo movil */}
+            <Drawer
+              open={formPacienteOpen && !isDesktop}
+              onOpenChange={(o) => { if (!o) setFormPacienteOpen(false) }}
+              shouldScaleBackground
+            >
+              <DrawerContent style={{ height: "92svh" }}>
+                <DrawerHeader className="shrink-0 border-b border-border pb-3 text-left">
+                  <DrawerTitle>{titulo}</DrawerTitle>
+                </DrawerHeader>
+                {camposForm}
+                <DrawerFooter className="shrink-0 border-t border-border">
+                  {botonesForm}
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
 
             {/* Sheet lateral derecho — solo escritorio */}
             <Sheet
