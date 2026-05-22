@@ -105,6 +105,7 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
   const [drawerAgente, setDrawerAgente] = useState<Agente | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAgentes(agentesIniciales)
   }, [agentesIniciales])
 

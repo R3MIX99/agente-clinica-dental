@@ -209,6 +209,7 @@ export function DoctoresClient({
   >([])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDoctores(doctoresIniciales)
   }, [doctoresIniciales])
 

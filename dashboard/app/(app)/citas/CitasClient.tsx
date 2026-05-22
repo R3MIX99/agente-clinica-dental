@@ -166,6 +166,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCitas(citasIniciales)
   }, [citasIniciales])
 
