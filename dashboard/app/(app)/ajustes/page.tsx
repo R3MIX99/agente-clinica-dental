@@ -1,20 +1,25 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import { createServerClient } from "@/lib/supabase/server"
+import { AjustesClient } from "./AjustesClient"
 
 export const metadata = { title: "Ajustes — Clinica Dental" }
 
-export default function AjustesPage() {
-  return (
-    <div className="p-6 max-w-2xl space-y-6">
-      <h1 className="text-xl font-semibold">Ajustes de la clinica</h1>
-      <div className="rounded-lg border border-border p-6 space-y-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="space-y-1.5">
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-9 w-full" />
-          </div>
-        ))}
-        <Skeleton className="h-9 w-28 mt-2" />
-      </div>
-    </div>
-  )
+export default async function AjustesPage() {
+  const supabase = createServerClient()
+  const { data } = await supabase
+    .from("clinic_info")
+    .select(
+      "nombre, direccion, telefono, email, sitio_web, horario, formas_pago, facturacion, mapa_url, faq"
+    )
+    .limit(1)
+    .single()
+
+  type FaqItem = { pregunta: string; respuesta: string }
+  const clinica = data
+    ? {
+        ...data,
+        faq: data.faq as FaqItem[] | null,
+      }
+    : null
+
+  return <AjustesClient clinica={clinica} />
 }
