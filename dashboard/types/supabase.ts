@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           costo: number | null
           created_at: string
+          doctor_id: string | null
           fecha_hora: string
           id: string
           notas: string | null
@@ -56,6 +57,7 @@ export type Database = {
         Insert: {
           costo?: number | null
           created_at?: string
+          doctor_id?: string | null
           fecha_hora: string
           id?: string
           notas?: string | null
@@ -67,6 +69,7 @@ export type Database = {
         Update: {
           costo?: number | null
           created_at?: string
+          doctor_id?: string | null
           fecha_hora?: string
           id?: string
           notas?: string | null
@@ -76,6 +79,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["appointment_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_patient_id_fkey"
             columns: ["patient_id"]
@@ -139,6 +149,35 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      clinical_notes: {
+        Row: {
+          contenido: string
+          created_at: string
+          id: string
+          patient_id: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          id?: string
+          patient_id: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          id?: string
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
