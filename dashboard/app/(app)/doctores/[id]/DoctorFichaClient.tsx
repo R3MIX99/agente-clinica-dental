@@ -65,10 +65,20 @@ type CitaDoctor = {
   servicio: { id: string; nombre: string; duracion_min: number | null } | null
 }
 
+type PacienteDoctor = {
+  id: string
+  nombre: string
+  telefono: string | null
+  email: string | null
+  channel: string | null
+  orden: number
+}
+
 interface Props {
   doctor: Doctor
   horarios: Horario[]
   citas: CitaDoctor[]
+  pacientes: PacienteDoctor[]
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +169,28 @@ function agruparCitasPorDia(
 // Componente principal
 // ---------------------------------------------------------------------------
 
-export function DoctorFichaClient({ doctor, horarios, citas }: Props) {
+const ROL_LABEL: Record<number, string> = {
+  1: "Principal",
+  2: "Respaldo 1",
+  3: "Respaldo 2",
+}
+
+const CANAL_ESTILO: Record<string, string> = {
+  whatsapp:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+  phone:
+    "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  email:
+    "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
+}
+
+const CANAL_NOMBRE: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  phone: "Telefono",
+  email: "Correo",
+}
+
+export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -363,6 +394,9 @@ export function DoctorFichaClient({ doctor, horarios, citas }: Props) {
           <TabsTrigger value="citas">
             Citas proximas{citas.length > 0 ? ` (${citas.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="pacientes">
+            Pacientes{pacientes.length > 0 ? ` (${pacientes.length})` : ""}
+          </TabsTrigger>
         </TabsList>
 
         {/* ---------------------------------------------------------------- */}
@@ -500,6 +534,67 @@ export function DoctorFichaClient({ doctor, horarios, citas }: Props) {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ---------------------------------------------------------------- */}
+        {/* Tab — Pacientes                                                    */}
+        {/* ---------------------------------------------------------------- */}
+        <TabsContent value="pacientes" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium">
+                Pacientes asignados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pacientes.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Este doctor no tiene pacientes asignados.
+                </p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {pacientes.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
+                    >
+                      {/* Nombre */}
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/pacientes/${p.id}`}
+                          className="text-sm font-medium hover:underline underline-offset-4 truncate block"
+                        >
+                          {p.nombre}
+                        </Link>
+                        {p.telefono && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {p.telefono}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Canal */}
+                      {p.channel && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium flex-shrink-0",
+                            CANAL_ESTILO[p.channel] ??
+                              "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {CANAL_NOMBRE[p.channel] ?? p.channel}
+                        </span>
+                      )}
+
+                      {/* Rol */}
+                      <span className="text-xs text-muted-foreground flex-shrink-0 w-20 text-right">
+                        {ROL_LABEL[p.orden] ?? "Respaldo"}
+                      </span>
                     </div>
                   ))}
                 </div>

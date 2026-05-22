@@ -18,6 +18,7 @@ export default async function DoctorFichaPage({
     { data: doctor },
     { data: horarios },
     { data: citasRaw },
+    { data: pacientesRaw },
   ] = await Promise.all([
     supabase
       .from("doctors")
@@ -39,6 +40,10 @@ export default async function DoctorFichaPage({
       .gte("fecha_hora", ahora)
       .in("status", ["programada", "confirmada"])
       .order("fecha_hora"),
+    supabase
+      .from("patient_doctors")
+      .select("orden, patients(id, nombre, telefono, email, channel)")
+      .eq("doctor_id", id),
   ])
 
   if (!doctor) notFound()
@@ -56,11 +61,41 @@ export default async function DoctorFichaPage({
     } | null,
   }))
 
+  const pacientes = (pacientesRaw ?? [])
+    .map((pd) => {
+      const p = pd.patients as {
+        id: string
+        nombre: string
+        telefono: string | null
+        email: string | null
+        channel: string | null
+      } | null
+      if (!p) return null
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        telefono: p.telefono,
+        email: p.email,
+        channel: p.channel,
+        orden: pd.orden,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a!.nombre.localeCompare(b!.nombre)) as Array<{
+    id: string
+    nombre: string
+    telefono: string | null
+    email: string | null
+    channel: string | null
+    orden: number
+  }>
+
   return (
     <DoctorFichaClient
       doctor={doctor}
       horarios={horarios ?? []}
       citas={citas}
+      pacientes={pacientes}
     />
   )
 }
