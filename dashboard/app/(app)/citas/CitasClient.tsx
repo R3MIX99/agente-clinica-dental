@@ -30,7 +30,7 @@ import { SquarePen, Clock, Trash2 } from "lucide-react"
 // ---------------------------------------------------------------------------
 
 type Paciente = { id: string; nombre: string; channel: string; channel_user_id: string | null }
-type Servicio = { id: string; nombre: string; precio: number }
+type Servicio = { id: string; nombre: string; precio: number; duracion_min: number | null }
 type Doctor = { id: string; nombre: string }
 
 type Cita = {
@@ -41,6 +41,7 @@ type Cita = {
   fecha_hora: string
   status: string
   costo: number | null
+  duracion_min: number | null
   recordatorio_enviado_at: string | null
   notas: string | null
   patients: Paciente | null
@@ -55,6 +56,7 @@ type FormCita = {
   fecha_hora: string
   status: string
   costo: string
+  duracion_min: string
   notas: string
 }
 
@@ -76,6 +78,7 @@ const FORM_INICIAL: FormCita = {
   fecha_hora: "",
   status: "programada",
   costo: "",
+  duracion_min: "",
   notas: "",
 }
 
@@ -166,6 +169,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       fecha_hora: isoAInputDatetime(cita.fecha_hora),
       status: cita.status,
       costo: cita.costo != null ? String(cita.costo) : "",
+      duracion_min: cita.duracion_min != null ? String(cita.duracion_min) : "",
       notas: cita.notas ?? "",
     })
     setFormOpen(true)
@@ -424,7 +428,17 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               <Label>Servicio</Label>
               <Select
                 value={form.service_id}
-                onValueChange={(v) => actualizarCampo("service_id", v)}
+                onValueChange={(v) => {
+                  const servicio = servicios.find((s) => s.id === v)
+                  setForm((prev) => ({
+                    ...prev,
+                    service_id: v,
+                    duracion_min:
+                      servicio?.duracion_min != null
+                        ? String(servicio.duracion_min)
+                        : prev.duracion_min,
+                  }))
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un servicio" />
@@ -494,17 +508,30 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               </Select>
             </div>
 
-            {/* Costo */}
-            <div className="space-y-1.5">
-              <Label>Costo (MXN)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={form.costo}
-                onChange={(e) => actualizarCampo("costo", e.target.value)}
-              />
+            {/* Costo y duracion */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Costo (MXN)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={form.costo}
+                  onChange={(e) => actualizarCampo("costo", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Duracion (min)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Ej. 60"
+                  value={form.duracion_min}
+                  onChange={(e) => actualizarCampo("duracion_min", e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Notas */}

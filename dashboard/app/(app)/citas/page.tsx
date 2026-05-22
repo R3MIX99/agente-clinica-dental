@@ -11,7 +11,7 @@ export default async function CitasPage() {
       supabase
         .from("appointments")
         .select(
-          "id, patient_id, service_id, doctor_id, fecha_hora, costo, status, recordatorio_enviado_at, notas, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio), doctors(id, nombre)"
+          "id, patient_id, service_id, doctor_id, fecha_hora, costo, duracion_min, status, recordatorio_enviado_at, notas, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio, duracion_min), doctors(id, nombre)"
         )
         .order("fecha_hora", { ascending: false })
         .limit(200),
@@ -21,7 +21,7 @@ export default async function CitasPage() {
         .order("nombre"),
       supabase
         .from("services")
-        .select("id, nombre, precio")
+        .select("id, nombre, precio, duracion_min")
         .eq("activo", true)
         .order("nombre"),
       supabase

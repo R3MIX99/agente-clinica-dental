@@ -46,6 +46,7 @@ export type Database = {
           costo: number | null
           created_at: string
           doctor_id: string | null
+          duracion_min: number | null
           fecha_hora: string
           id: string
           notas: string | null
@@ -58,6 +59,7 @@ export type Database = {
           costo?: number | null
           created_at?: string
           doctor_id?: string | null
+          duracion_min?: number | null
           fecha_hora: string
           id?: string
           notas?: string | null
@@ -70,6 +72,7 @@ export type Database = {
           costo?: number | null
           created_at?: string
           doctor_id?: string | null
+          duracion_min?: number | null
           fecha_hora?: string
           id?: string
           notas?: string | null
