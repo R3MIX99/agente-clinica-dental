@@ -938,11 +938,6 @@ export function PacienteFichaClient({
                   {todosServicios.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.nombre}
-                      {s.precio != null && (
-                        <span className="ml-2 text-muted-foreground">
-                          — ${Number(s.precio).toLocaleString("es-MX")}
-                        </span>
-                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
