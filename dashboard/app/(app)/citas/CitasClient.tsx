@@ -16,15 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   Drawer,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -646,16 +640,17 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         </DrawerContent>
       </Drawer>
 
-      {/* Dialog — crear / editar */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
+      {/* Drawer — crear / editar cita */}
+      <Drawer open={formOpen} onOpenChange={setFormOpen} shouldScaleBackground>
+        <DrawerContent style={{ height: "92svh" }}>
+          <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
+            <DrawerTitle>
               {citaEditando ? "Editar cita" : "Nueva cita"}
-            </DialogTitle>
-          </DialogHeader>
+            </DrawerTitle>
+          </DrawerHeader>
 
-          <div className="space-y-4 py-2">
+          {/* Campos desplazables */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-2 space-y-4">
             {/* Paciente */}
             <div className="space-y-1.5">
               <Label>Paciente</Label>
@@ -782,7 +777,9 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   step="1"
                   placeholder="Ej. 60"
                   value={form.duracion_min}
-                  onChange={(e) => actualizarCampo("duracion_min", e.target.value)}
+                  onChange={(e) =>
+                    actualizarCampo("duracion_min", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -800,40 +797,59 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setFormOpen(false)}>
+          {/* Botones fijos en el fondo */}
+          <DrawerFooter className="flex-shrink-0 border-t border-border pt-3 flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              onClick={() => setFormOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleGuardar} disabled={isPending}>
+            <Button
+              className="flex-1"
+              onClick={handleGuardar}
+              disabled={isPending}
+            >
               {isPending ? "Guardando..." : "Guardar"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
-      {/* Dialog — confirmar eliminacion */}
-      <Dialog open={eliminarId !== null} onOpenChange={(o) => !o && setEliminarId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Eliminar cita</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            Esta accion no se puede deshacer. La cita sera eliminada permanentemente.
+      {/* Drawer — confirmar eliminacion */}
+      <Drawer
+        open={eliminarId !== null}
+        onOpenChange={(o) => !o && setEliminarId(null)}
+        shouldScaleBackground
+      >
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <DrawerTitle>Eliminar cita</DrawerTitle>
+          </DrawerHeader>
+          <p className="px-4 pb-2 text-sm text-muted-foreground">
+            Esta accion no se puede deshacer. La cita sera eliminada
+            permanentemente.
           </p>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEliminarId(null)}>
+          <DrawerFooter className="flex-shrink-0 border-t border-border pt-3 flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              onClick={() => setEliminarId(null)}
+            >
               Cancelar
             </Button>
             <Button
               variant="destructive"
+              className="flex-1"
               onClick={handleConfirmarEliminar}
               disabled={isPending}
             >
               {isPending ? "Eliminando..." : "Eliminar"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }
