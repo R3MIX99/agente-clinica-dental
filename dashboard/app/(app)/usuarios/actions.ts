@@ -1,7 +1,7 @@
 "use server"
 
 import { createServerClient as createServiceClient } from "@/lib/supabase/server"
-import { createAuthClient, getProfile } from "@/lib/supabase/server-auth"
+import { getProfile } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 export type PerfilUsuario = {
@@ -12,26 +12,6 @@ export type PerfilUsuario = {
   activo: boolean
   doctor_id: string | null
   doctor_nombre: string | null
-}
-
-export async function listarUsuarios(): Promise<PerfilUsuario[]> {
-  const db = createServiceClient()
-  const { data, error } = await db
-    .from("profiles")
-    .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre)")
-    .order("nombre")
-
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).map((p) => ({
-    id: p.id,
-    nombre: p.nombre,
-    email: p.email,
-    rol: p.rol as PerfilUsuario["rol"],
-    activo: p.activo,
-    doctor_id: p.doctor_id,
-    doctor_nombre: (p.doctors as { nombre: string } | null)?.nombre ?? null,
-  }))
 }
 
 export type DatosUsuario = {
