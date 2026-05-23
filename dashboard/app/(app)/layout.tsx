@@ -1,62 +1,18 @@
-"use client"
+import { createAuthClient } from "@/lib/supabase/server-auth"
+import { AppLayoutClient } from "./AppLayoutClient"
 
-import { motion, AnimatePresence } from "framer-motion"
-import { usePathname } from "next/navigation"
-import { AppSidebar } from "@/components/app-sidebar"
-import { MobileHeader } from "@/components/mobile-header"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { AtencionProvider } from "@/lib/atencion-context"
-import { GlobalAtencionListener } from "@/components/global-atencion-listener"
+export type Rol = "administrador" | "supervisor" | "doctor"
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
+const ROLES_VALIDOS: Rol[] = ["administrador", "supervisor", "doctor"]
 
-  return (
-    <AtencionProvider>
-      <GlobalAtencionListener />
-      <div className="flex h-full" {...({"vaul-drawer-wrapper": ""} as any)}>
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const authClient = await createAuthClient()
+  const { data: { session } } = await authClient.auth.getSession()
 
-        {/* Sidebar — solo escritorio */}
-        <div className="hidden md:flex">
-          <AppSidebar />
-        </div>
+  // El rol se lee del JWT — no requiere llamada a la base de datos.
+  // El middleware ya valido el token en cada request, por lo que el JWT es confiable para la UI.
+  const rolRaw = session?.user?.user_metadata?.rol
+  const rol: Rol = ROLES_VALIDOS.includes(rolRaw) ? (rolRaw as Rol) : "supervisor"
 
-        {/* Area principal */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-
-          {/* Header movil */}
-          <MobileHeader />
-
-          {/* Topbar escritorio */}
-          <header className="hidden md:flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-            <span className="flex-1 text-sm font-medium text-muted-foreground">
-              Panel de Control
-            </span>
-            <ThemeToggle />
-          </header>
-
-          {/* Contenido con animacion de ruta */}
-          {/* pb-16 en movil para no quedar tapado por la barra inferior */}
-          <main className="flex-1 overflow-auto pb-16 md:pb-0">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className="h-full"
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
-          </main>
-        </div>
-      </div>
-
-      {/* Barra de navegacion inferior — solo movil */}
-      <MobileBottomNav />
-    </AtencionProvider>
-  )
+  return <AppLayoutClient rol={rol}>{children}</AppLayoutClient>
 }

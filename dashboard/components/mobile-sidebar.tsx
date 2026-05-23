@@ -5,8 +5,9 @@ import { Menu, Stethoscope } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { SidebarNav } from "./sidebar-nav"
+import type { Rol } from "@/app/(app)/layout"
 
-export function MobileSidebar() {
+export function MobileSidebar({ rol = "supervisor" }: { rol?: Rol }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -22,7 +23,7 @@ export function MobileSidebar() {
           <SheetTitle className="text-sm font-semibold text-sidebar-foreground">Clínica Dental</SheetTitle>
         </SheetHeader>
         <div className="py-4">
-          <SidebarNav onNavigate={() => setOpen(false)} />
+          <SidebarNav rol={rol} onNavigate={() => setOpen(false)} />
         </div>
       </SheetContent>
     </Sheet>

@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation"
 import { MessageSquare, CalendarDays, Users, Stethoscope, UserCog } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
+import type { Rol } from "@/app/(app)/layout"
 
-const TAB_ITEMS = [
+const TABS_ADMIN_SUPERVISOR = [
   { href: "/conversaciones", icon: MessageSquare, label: "Conversaciones" },
   { href: "/citas",          icon: CalendarDays,  label: "Citas" },
   { href: "/pacientes",      icon: Users,          label: "Pacientes" },
@@ -14,9 +15,17 @@ const TAB_ITEMS = [
   { href: "/usuarios",       icon: UserCog,        label: "Usuarios" },
 ]
 
-export function MobileBottomNav() {
+const TABS_DOCTOR = [
+  { href: "/citas",     icon: CalendarDays, label: "Mis citas" },
+  { href: "/pacientes", icon: Users,         label: "Mis pacientes" },
+  { href: "/doctores",  icon: Stethoscope,   label: "Mi ficha" },
+]
+
+export function MobileBottomNav({ rol }: { rol: Rol }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
+
+  const TAB_ITEMS = rol === "doctor" ? TABS_DOCTOR : TABS_ADMIN_SUPERVISOR
 
   return (
     <nav
@@ -56,7 +65,6 @@ export function MobileBottomNav() {
                 strokeWidth={active ? 2.5 : 1.6}
                 aria-hidden="true"
               />
-              {/* Badge de atencion */}
               {mostrarAtencion && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />

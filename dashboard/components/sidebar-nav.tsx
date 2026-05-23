@@ -5,19 +5,28 @@ import { usePathname } from "next/navigation"
 import { MessageSquare, CalendarDays, Users, UserCog, Settings, Stethoscope } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
+import type { Rol } from "@/app/(app)/layout"
 
-const navItems = [
+const NAV_ADMIN_SUPERVISOR = [
   { href: "/conversaciones", label: "Conversaciones", icon: MessageSquare },
-  { href: "/citas", label: "Citas", icon: CalendarDays },
-  { href: "/pacientes", label: "Pacientes", icon: Users },
-  { href: "/doctores", label: "Doctores", icon: Stethoscope },
-  { href: "/usuarios", label: "Usuarios", icon: UserCog },
-  { href: "/ajustes", label: "Ajustes", icon: Settings },
+  { href: "/citas",          label: "Citas",           icon: CalendarDays },
+  { href: "/pacientes",      label: "Pacientes",       icon: Users },
+  { href: "/doctores",       label: "Doctores",        icon: Stethoscope },
+  { href: "/usuarios",       label: "Usuarios",        icon: UserCog },
+  { href: "/ajustes",        label: "Ajustes",         icon: Settings },
 ]
 
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+const NAV_DOCTOR = [
+  { href: "/citas",     label: "Mis citas",    icon: CalendarDays },
+  { href: "/pacientes", label: "Mis pacientes", icon: Users },
+  { href: "/doctores",  label: "Mi ficha",     icon: Stethoscope },
+]
+
+export function SidebarNav({ rol, onNavigate }: { rol: Rol; onNavigate?: () => void }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
+
+  const navItems = rol === "doctor" ? NAV_DOCTOR : NAV_ADMIN_SUPERVISOR
 
   return (
     <nav aria-label="Navegacion principal">

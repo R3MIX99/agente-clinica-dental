@@ -4,8 +4,9 @@ import { useTransition } from "react"
 import { Stethoscope, LogOut, Loader2 } from "lucide-react"
 import { SidebarNav } from "./sidebar-nav"
 import { logoutAction } from "@/app/actions/auth"
+import type { Rol } from "@/app/(app)/layout"
 
-export function AppSidebar() {
+export function AppSidebar({ rol }: { rol: Rol }) {
   const [isPending, startTransition] = useTransition()
 
   function handleLogout() {
@@ -21,7 +22,7 @@ export function AppSidebar() {
         <span className="text-sm font-semibold text-sidebar-foreground">Clinica Dental</span>
       </div>
       <div className="flex-1 overflow-y-auto py-4">
-        <SidebarNav />
+        <SidebarNav rol={rol} />
       </div>
       {/* Cerrar sesion */}
       <div className="shrink-0 border-t border-sidebar-border p-3">
