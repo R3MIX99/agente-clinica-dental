@@ -93,6 +93,17 @@ export async function editarUsuario(
 
   const db = createServiceClient()
 
+  // Verificar si el objetivo es administrador (supervisores no pueden editar admins)
+  const { data: objetivo } = await db
+    .from("profiles")
+    .select("rol")
+    .eq("id", id)
+    .single()
+
+  if (objetivo?.rol === "administrador" && perfilActual.rol === "supervisor") {
+    return { error: "Un supervisor no puede editar a un administrador" }
+  }
+
   // Actualizar perfil
   const { error: profileError } = await db
     .from("profiles")

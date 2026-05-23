@@ -94,11 +94,19 @@ const FORM_DEFAULT: UsuarioForm = {
 }
 
 // ---------------------------------------------------------------------------
-// Helper — puede el perfil actual eliminar a este usuario?
+// Helpers de permisos
 // ---------------------------------------------------------------------------
 
+function puedeEditar(perfilActual: PerfilActual, usuario: PerfilUsuario): boolean {
+  // Supervisor no puede editar cuentas con rol administrador
+  if (perfilActual.rol === "supervisor" && usuario.rol === "administrador") return false
+  return true
+}
+
 function puedeEliminar(perfilActual: PerfilActual, usuario: PerfilUsuario): boolean {
+  // Nadie puede eliminarse a si mismo
   if (perfilActual.id === usuario.id) return false
+  // Supervisor no puede eliminar administradores
   if (perfilActual.rol === "supervisor" && usuario.rol === "administrador") return false
   return true
 }
@@ -467,13 +475,15 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => abrirFormEdicion(usuario)}
-                      title="Editar usuario"
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                    >
-                      <SquarePen size={15} />
-                    </button>
+                    {puedeEditar(perfilActual, usuario) && (
+                      <button
+                        onClick={() => abrirFormEdicion(usuario)}
+                        title="Editar usuario"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      >
+                        <SquarePen size={15} />
+                      </button>
+                    )}
                     {puedeEliminar(perfilActual, usuario) && (
                       <button
                         onClick={() => confirmarEliminar(usuario)}
@@ -518,13 +528,15 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                       {ROL_LABELS[drawerUsuario.rol] ?? drawerUsuario.rol}
                     </span>
                   </div>
-                  <button
-                    onClick={() => abrirFormEdicion(drawerUsuario)}
-                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-                    title="Editar usuario"
-                  >
-                    <SquarePen size={16} />
-                  </button>
+                  {puedeEditar(perfilActual, drawerUsuario) && (
+                    <button
+                      onClick={() => abrirFormEdicion(drawerUsuario)}
+                      className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+                      title="Editar usuario"
+                    >
+                      <SquarePen size={16} />
+                    </button>
+                  )}
                 </div>
               </DrawerHeader>
 
