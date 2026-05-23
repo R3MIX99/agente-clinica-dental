@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getProfile } from "@/lib/supabase/server-auth"
+import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import type { PerfilUsuario } from "./actions"
 import { UsuariosClient } from "./UsuariosClient"
@@ -7,20 +7,31 @@ import { UsuariosClient } from "./UsuariosClient"
 export const metadata = { title: "Usuarios — Clinica Dental" }
 
 export default async function UsuariosPage() {
-  const perfil = await getProfile()
+  // getSession() lee el JWT del cookie sin llamada de red al servidor de Auth.
+  // El middleware ya valido el token antes de llegar aqui, por lo que es seguro.
+  const authClient = await createAuthClient()
+  const { data: { session } } = await authClient.auth.getSession()
 
-  if (!perfil) redirect("/login")
-  if (perfil.rol === "doctor") redirect("/conversaciones")
+  if (!session?.user) redirect("/login")
 
   const db = createServerClient()
 
-  const [{ data: perfilesData }, { data: doctoresData }] = await Promise.all([
-    db
-      .from("profiles")
-      .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre)")
-      .order("nombre"),
-    db.from("doctors").select("id, nombre").order("nombre"),
-  ])
+  // Los tres queries corren en paralelo: perfil actual + lista de usuarios + doctores
+  const [{ data: perfilData }, { data: perfilesData }, { data: doctoresData }] =
+    await Promise.all([
+      authClient
+        .from("profiles")
+        .select("id, nombre, rol, doctor_id")
+        .eq("id", session.user.id)
+        .single(),
+      db
+        .from("profiles")
+        .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre)")
+        .order("nombre"),
+      db.from("doctors").select("id, nombre").order("nombre"),
+    ])
+
+  if (!perfilData || perfilData.rol === "doctor") redirect("/conversaciones")
 
   const usuarios: PerfilUsuario[] = (perfilesData ?? []).map((p) => ({
     id: p.id,
@@ -41,7 +52,7 @@ export default async function UsuariosPage() {
     <UsuariosClient
       usuarios={usuarios}
       doctores={doctores}
-      perfilActual={{ id: perfil.id, rol: perfil.rol }}
+      perfilActual={{ id: perfilData.id, rol: perfilData.rol }}
     />
   )
 }
