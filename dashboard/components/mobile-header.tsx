@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Stethoscope, UserCircle, Settings, LogOut, Moon, Sun } from "lucide-react"
+import { useTransition } from "react"
+import { Stethoscope, UserCircle, Settings, LogOut, Moon, Sun, Loader2 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,9 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { logoutAction } from "@/app/actions/auth"
 
 export function MobileHeader() {
   const { theme, setTheme } = useTheme()
+  const [isPending, startTransition] = useTransition()
+
+  function handleLogout() {
+    startTransition(async () => {
+      await logoutAction()
+    })
+  }
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 md:hidden">
@@ -27,7 +36,11 @@ export function MobileHeader() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Menu de usuario">
-            <UserCircle className="h-5 w-5" />
+            {isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <UserCircle className="h-5 w-5" />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
@@ -50,7 +63,11 @@ export function MobileHeader() {
             Modo {theme === "dark" ? "claro" : "oscuro"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer">
+          <DropdownMenuItem
+            onClick={handleLogout}
+            disabled={isPending}
+            className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+          >
             <LogOut className="h-4 w-4" />
             Cerrar sesion
           </DropdownMenuItem>
