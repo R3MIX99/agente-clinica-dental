@@ -11,7 +11,7 @@ const TAB_ITEMS = [
   { href: "/citas",          icon: CalendarDays,  label: "Citas" },
   { href: "/pacientes",      icon: Users,          label: "Pacientes" },
   { href: "/doctores",       icon: Stethoscope,    label: "Doctores" },
-  { href: "/agentes",        icon: UserCog,        label: "Agentes" },
+  { href: "/usuarios",       icon: UserCog,        label: "Usuarios" },
 ]
 
 export function MobileBottomNav() {

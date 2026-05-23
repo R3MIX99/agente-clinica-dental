@@ -11,7 +11,7 @@ const navItems = [
   { href: "/citas", label: "Citas", icon: CalendarDays },
   { href: "/pacientes", label: "Pacientes", icon: Users },
   { href: "/doctores", label: "Doctores", icon: Stethoscope },
-  { href: "/agentes", label: "Agentes", icon: UserCog },
+  { href: "/usuarios", label: "Usuarios", icon: UserCog },
   { href: "/ajustes", label: "Ajustes", icon: Settings },
 ]
 

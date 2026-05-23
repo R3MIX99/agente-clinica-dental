@@ -414,24 +414,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activo: boolean
           created_at: string
           doctor_id: string | null
+          email: string | null
           id: string
           nombre: string
           rol: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
+          activo?: boolean
           created_at?: string
           doctor_id?: string | null
+          email?: string | null
           id: string
           nombre: string
           rol?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
+          activo?: boolean
           created_at?: string
           doctor_id?: string | null
+          email?: string | null
           id?: string
           nombre?: string
           rol?: Database["public"]["Enums"]["user_role"]
