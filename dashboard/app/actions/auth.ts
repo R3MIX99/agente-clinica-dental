@@ -6,13 +6,14 @@ import { redirect } from "next/navigation"
 export async function loginAction(email: string, password: string): Promise<{ error: string } | never> {
   const supabase = await createAuthClient()
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     return { error: "Credenciales incorrectas. Verifica tu email y contrasena." }
   }
 
-  redirect("/conversaciones")
+  const rol = data.user?.user_metadata?.rol
+  redirect(rol === "doctor" ? "/citas" : "/conversaciones")
 }
 
 export async function logoutAction() {

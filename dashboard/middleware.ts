@@ -41,9 +41,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // Con sesion y en /login → redirigir al dashboard
+  // Con sesion y en /login → redirigir al dashboard segun rol
   if (user && esRutaAuth) {
-    return NextResponse.redirect(new URL("/conversaciones", request.url))
+    const rol = user.user_metadata?.rol
+    const destino = rol === "doctor" ? "/citas" : "/conversaciones"
+    return NextResponse.redirect(new URL(destino, request.url))
   }
 
   return supabaseResponse
