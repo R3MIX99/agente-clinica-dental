@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { createAuthClient } from "@/lib/supabase/server-auth"
 import { sendAgentMessage } from "@/lib/n8n"
 import { revalidatePath } from "next/cache"
 
@@ -53,6 +54,47 @@ function mexLocalToISO(localStr: string): string {
   return new Date(asUTC.getTime() + offsetMs).toISOString()
 }
 
+// ---------------------------------------------------------------------------
+// Guard de permisos para doctores
+// ---------------------------------------------------------------------------
+
+async function verificarPermisosCita(datos: DatosCita) {
+  const authClient = await createAuthClient()
+  const { data: { session } } = await authClient.auth.getSession()
+  if (!session?.user) throw new Error("No autenticado")
+
+  const { data: perfil } = await authClient
+    .from("profiles")
+    .select("rol, doctor_id")
+    .eq("id", session.user.id)
+    .single()
+
+  // Admin y supervisor no tienen restricciones
+  if (perfil?.rol !== "doctor") return
+
+  const doctorId = perfil.doctor_id
+  if (!doctorId) throw new Error("Tu cuenta no tiene un doctor vinculado")
+
+  // El doctor_id enviado debe ser el propio
+  if (datos.doctor_id && datos.doctor_id !== doctorId) {
+    throw new Error("No puedes asignar citas a otro doctor")
+  }
+
+  // El paciente debe estar asignado al doctor
+  if (datos.patient_id) {
+    const db = createServerClient()
+    const { data: asignacion } = await db
+      .from("patient_doctors")
+      .select("patient_id")
+      .eq("doctor_id", doctorId)
+      .eq("patient_id", datos.patient_id)
+      .maybeSingle()
+    if (!asignacion) {
+      throw new Error("Solo puedes crear citas para tus pacientes asignados")
+    }
+  }
+}
+
 export type DatosCita = {
   patient_id: string
   service_id: string
@@ -64,6 +106,7 @@ export type DatosCita = {
 }
 
 export async function crearCita(datos: DatosCita) {
+  await verificarPermisosCita(datos)
   const supabase = createServerClient()
   const { error } = await supabase.from("appointments").insert({
     patient_id: datos.patient_id || null,
@@ -79,6 +122,7 @@ export async function crearCita(datos: DatosCita) {
 }
 
 export async function actualizarCita(id: string, datos: DatosCita) {
+  await verificarPermisosCita(datos)
   const supabase = createServerClient()
   const { error } = await supabase
     .from("appointments")

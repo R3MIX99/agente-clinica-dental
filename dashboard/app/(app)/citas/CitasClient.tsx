@@ -71,6 +71,8 @@ interface Props {
   pacientes: Paciente[]
   servicios: Servicio[]
   doctores: Doctor[]
+  esDoctor?: boolean
+  doctorId?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +161,7 @@ function isoAInputDatetime(iso: string): string {
 // Componente
 // ---------------------------------------------------------------------------
 
-export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores }: Props) {
+export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores, esDoctor = false, doctorId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [citas, setCitas] = useState<Cita[]>(citasIniciales)
@@ -191,7 +193,8 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
 
   function abrirFormNuevo() {
     setCitaEditando(null)
-    setForm(FORM_INICIAL)
+    // Para doctores: pre-rellenar su propio doctor_id
+    setForm({ ...FORM_INICIAL, doctor_id: esDoctor && doctorId ? doctorId : "" })
     setFormOpen(true)
   }
 
@@ -693,21 +696,28 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             {/* Doctor */}
             <div className="space-y-1.5">
               <Label>Doctor</Label>
-              <Select
-                value={form.doctor_id}
-                onValueChange={(v) => actualizarCampo("doctor_id", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un doctor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctores.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {esDoctor ? (
+                // El doctor no puede cambiar el campo — se muestra como texto
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {doctores[0]?.nombre ?? "—"}
+                </div>
+              ) : (
+                <Select
+                  value={form.doctor_id}
+                  onValueChange={(v) => actualizarCampo("doctor_id", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctores.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Fecha y hora */}

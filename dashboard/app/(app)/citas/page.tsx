@@ -12,12 +12,12 @@ export default async function CitasPage() {
 
   const db = createServerClient()
 
-  // Perfil en paralelo con el resto de los datos
+  // Fase 1 — perfil + datos estaticos en paralelo
   const [
     { data: perfil },
-    { data: pacientes },
+    { data: todosPacientes },
     { data: servicios },
-    { data: doctores },
+    { data: todosDoctores },
   ] = await Promise.all([
     authClient
       .from("profiles")
@@ -32,7 +32,7 @@ export default async function CitasPage() {
   const esDoctor = perfil?.rol === "doctor"
   const doctorId = perfil?.doctor_id ?? null
 
-  // Citas: si es doctor, filtrar solo las suyas
+  // Fase 2 — citas (filtradas) + asignaciones del doctor, en paralelo
   let citasQuery = db
     .from("appointments")
     .select(
@@ -45,14 +45,35 @@ export default async function CitasPage() {
     citasQuery = citasQuery.eq("doctor_id", doctorId)
   }
 
-  const { data: citas } = await citasQuery
+  const [{ data: citas }, { data: asignaciones }] = await Promise.all([
+    citasQuery,
+    esDoctor && doctorId
+      ? db.from("patient_doctors").select("patient_id").eq("doctor_id", doctorId)
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  // Filtrar pacientes y doctores visibles segun el rol
+  const idsPermitidos =
+    esDoctor && doctorId
+      ? new Set((asignaciones ?? []).map((a) => a.patient_id))
+      : null
+
+  const pacientes = idsPermitidos
+    ? (todosPacientes ?? []).filter((p) => idsPermitidos.has(p.id))
+    : (todosPacientes ?? [])
+
+  const doctores = esDoctor && doctorId
+    ? (todosDoctores ?? []).filter((d) => d.id === doctorId)
+    : (todosDoctores ?? [])
 
   return (
     <CitasClient
       citas={(citas ?? []) as Parameters<typeof CitasClient>[0]["citas"]}
-      pacientes={pacientes ?? []}
+      pacientes={pacientes}
       servicios={(servicios ?? []) as Parameters<typeof CitasClient>[0]["servicios"]}
-      doctores={doctores ?? []}
+      doctores={doctores}
+      esDoctor={esDoctor}
+      doctorId={doctorId}
     />
   )
 }
