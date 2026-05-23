@@ -104,14 +104,20 @@ export async function editarUsuario(
     return { error: "Un supervisor no puede editar a un administrador" }
   }
 
+  // Supervisores no pueden cambiar su propio rol — se conserva el rol actual
+  const rolFinal =
+    perfilActual.rol === "supervisor" && id === perfilActual.id
+      ? (objetivo?.rol ?? datos.rol)
+      : datos.rol
+
   // Actualizar perfil
   const { error: profileError } = await db
     .from("profiles")
     .update({
       nombre: datos.nombre,
-      rol: datos.rol,
+      rol: rolFinal,
       activo: datos.activo,
-      doctor_id: datos.rol === "doctor" && datos.doctor_id ? datos.doctor_id : null,
+      doctor_id: rolFinal === "doctor" && datos.doctor_id ? datos.doctor_id : null,
       email: datos.email,
     })
     .eq("id", id)
@@ -121,7 +127,7 @@ export async function editarUsuario(
   // Actualizar email en auth si cambio
   const { error: authError } = await db.auth.admin.updateUserById(id, {
     email: datos.email,
-    user_metadata: { nombre: datos.nombre, rol: datos.rol },
+    user_metadata: { nombre: datos.nombre, rol: rolFinal },
   })
 
   if (authError) return { error: authError.message }

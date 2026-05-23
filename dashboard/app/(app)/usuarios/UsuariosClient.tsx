@@ -268,28 +268,30 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
         )}
       </div>
 
-      {/* Rol */}
-      <div className="space-y-1.5">
-        <Label>
-          Rol <span className="text-red-500">*</span>
-        </Label>
-        <Controller
-          control={control}
-          name="rol"
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="administrador">Administrador</SelectItem>
-                <SelectItem value="supervisor">Supervisor</SelectItem>
-                <SelectItem value="doctor">Doctor</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
+      {/* Rol — oculto cuando el supervisor edita su propia cuenta */}
+      {!(perfilActual.rol === "supervisor" && usuarioEditando?.id === perfilActual.id) && (
+        <div className="space-y-1.5">
+          <Label>
+            Rol <span className="text-red-500">*</span>
+          </Label>
+          <Controller
+            control={control}
+            name="rol"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="administrador">Administrador</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
+      )}
 
       {/* Doctor vinculado — solo si rol es doctor */}
       {rolActual === "doctor" && (
