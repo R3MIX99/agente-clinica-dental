@@ -14,5 +14,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const rolRaw = session?.user?.user_metadata?.rol
   const rol: Rol = ROLES_VALIDOS.includes(rolRaw) ? (rolRaw as Rol) : "supervisor"
 
-  return <AppLayoutClient rol={rol}>{children}</AppLayoutClient>
+  // Para doctores: obtener doctor_id desde profiles.
+  // No esta en el JWT (user_metadata), asi que requiere una consulta a la BD.
+  // Se usa para que el enlace "Mi ficha" apunte directamente a /doctores/[id]
+  // y evitar el redirect intermitente en Vercel durante navegacion RSC.
+  let doctorId: string | null = null
+  if (rol === "doctor" && session?.user?.id) {
+    const { data } = await authClient
+      .from("profiles")
+      .select("doctor_id")
+      .eq("id", session.user.id)
+      .single()
+    doctorId = data?.doctor_id ?? null
+  }
+
+  return <AppLayoutClient rol={rol} doctorId={doctorId}>{children}</AppLayoutClient>
 }

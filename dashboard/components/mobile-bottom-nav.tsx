@@ -15,15 +15,17 @@ const TABS_ADMIN_SUPERVISOR = [
   { href: "/usuarios",       icon: UserCog,        label: "Usuarios" },
 ]
 
-const TABS_DOCTOR = [
-  { href: "/citas",     icon: CalendarDays, label: "Mis citas" },
-  { href: "/pacientes", icon: Users,         label: "Mis pacientes" },
-  { href: "/doctores",  icon: Stethoscope,   label: "Mi ficha" },
-]
-
-export function MobileBottomNav({ rol }: { rol: Rol }) {
+export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string | null }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
+
+  // La href de "Mi ficha" apunta directamente a /doctores/[id] para evitar
+  // el redirect intermitente en Vercel durante la navegacion RSC del lado del cliente.
+  const TABS_DOCTOR = [
+    { href: "/citas",                                         icon: CalendarDays, label: "Mis citas" },
+    { href: "/pacientes",                                     icon: Users,        label: "Mis pacientes" },
+    { href: doctorId ? `/doctores/${doctorId}` : "/doctores", icon: Stethoscope,  label: "Mi ficha" },
+  ]
 
   const TAB_ITEMS = rol === "doctor" ? TABS_DOCTOR : TABS_ADMIN_SUPERVISOR
 

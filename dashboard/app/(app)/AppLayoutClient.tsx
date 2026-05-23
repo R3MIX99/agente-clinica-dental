@@ -13,9 +13,11 @@ import type { Rol } from "./layout"
 export function AppLayoutClient({
   children,
   rol,
+  doctorId,
 }: {
   children: React.ReactNode
   rol: Rol
+  doctorId?: string | null
 }) {
   const pathname = usePathname()
 
@@ -26,7 +28,7 @@ export function AppLayoutClient({
 
         {/* Sidebar — solo escritorio */}
         <div className="hidden md:flex">
-          <AppSidebar rol={rol} />
+          <AppSidebar rol={rol} doctorId={doctorId} />
         </div>
 
         {/* Area principal */}
@@ -63,7 +65,7 @@ export function AppLayoutClient({
       </div>
 
       {/* Barra de navegacion inferior — solo movil */}
-      <MobileBottomNav rol={rol} />
+      <MobileBottomNav rol={rol} doctorId={doctorId} />
     </AtencionProvider>
   )
 }

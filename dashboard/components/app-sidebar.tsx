@@ -6,7 +6,7 @@ import { SidebarNav } from "./sidebar-nav"
 import { logoutAction } from "@/app/actions/auth"
 import type { Rol } from "@/app/(app)/layout"
 
-export function AppSidebar({ rol }: { rol: Rol }) {
+export function AppSidebar({ rol, doctorId }: { rol: Rol; doctorId?: string | null }) {
   const [isPending, startTransition] = useTransition()
 
   function handleLogout() {
@@ -22,7 +22,7 @@ export function AppSidebar({ rol }: { rol: Rol }) {
         <span className="text-sm font-semibold text-sidebar-foreground">Clinica Dental</span>
       </div>
       <div className="flex-1 overflow-y-auto py-4">
-        <SidebarNav rol={rol} />
+        <SidebarNav rol={rol} doctorId={doctorId} />
       </div>
       {/* Cerrar sesion */}
       <div className="shrink-0 border-t border-sidebar-border p-3">

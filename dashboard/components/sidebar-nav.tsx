@@ -16,15 +16,17 @@ const NAV_ADMIN_SUPERVISOR = [
   { href: "/ajustes",        label: "Ajustes",         icon: Settings },
 ]
 
-const NAV_DOCTOR = [
-  { href: "/citas",     label: "Mis citas",    icon: CalendarDays },
-  { href: "/pacientes", label: "Mis pacientes", icon: Users },
-  { href: "/doctores",  label: "Mi ficha",     icon: Stethoscope },
-]
-
-export function SidebarNav({ rol, onNavigate }: { rol: Rol; onNavigate?: () => void }) {
+export function SidebarNav({ rol, doctorId, onNavigate }: { rol: Rol; doctorId?: string | null; onNavigate?: () => void }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
+
+  // La href de "Mi ficha" apunta directamente a /doctores/[id] para evitar
+  // el redirect intermitente en Vercel durante la navegacion RSC del lado del cliente.
+  const NAV_DOCTOR = [
+    { href: "/citas",                                         label: "Mis citas",     icon: CalendarDays },
+    { href: "/pacientes",                                     label: "Mis pacientes", icon: Users },
+    { href: doctorId ? `/doctores/${doctorId}` : "/doctores", label: "Mi ficha",      icon: Stethoscope },
+  ]
 
   const navItems = rol === "doctor" ? NAV_DOCTOR : NAV_ADMIN_SUPERVISOR
 
