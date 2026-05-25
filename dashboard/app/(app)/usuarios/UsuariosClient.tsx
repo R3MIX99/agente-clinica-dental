@@ -153,12 +153,8 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
   const rolActual = watch("rol")
   const doctorIdActual = watch("doctor_id")
 
-  // Auto-rellenar nombre al seleccionar un doctor vinculado
-  useEffect(() => {
-    if (rolActual !== "doctor" || !doctorIdActual) return
-    const doctor = doctores.find((d) => d.id === doctorIdActual)
-    if (doctor) setValue("nombre", doctor.nombre, { shouldValidate: true })
-  }, [doctorIdActual, rolActual, doctores, setValue])
+  // doctorIdActual se mantiene para conservar el doctor_id en el payload sin mostrarlo en UI
+  void doctorIdActual
 
   // -------------------------------------------------------------------------
   // Handlers — formulario
@@ -173,10 +169,14 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
   function abrirFormEdicion(usuario: PerfilUsuario) {
     setUsuarioEditando(usuario)
     reset({
-      nombre: usuario.nombre,
+      // Para doctores se muestra el nombre real del registro vinculado
+      nombre: usuario.rol === "doctor" && usuario.doctor_nombre
+        ? usuario.doctor_nombre
+        : usuario.nombre,
       email: usuario.email ?? "",
       rol: usuario.rol,
       activo: usuario.activo,
+      // Se conserva el doctor_id aunque no se muestre en el formulario
       doctor_id: usuario.doctor_id ?? "",
     })
     setDrawerUsuario(null)
@@ -241,47 +241,65 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
 
   const camposForm = (
     <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
-      {/* Nombre */}
+      {/* Nombre — bloqueado al editar un doctor */}
       <div className="space-y-1.5">
         <Label htmlFor="nombre">
           Nombre <span className="text-red-500">*</span>
         </Label>
-        <Input
-          id="nombre"
-          placeholder="Nombre completo"
-          readOnly={rolActual === "doctor" && !!doctorIdActual}
-          className={rolActual === "doctor" && !!doctorIdActual ? "bg-muted text-muted-foreground" : ""}
-          {...register("nombre")}
-        />
-        {rolActual === "doctor" && !!doctorIdActual ? (
-          <p className="text-xs text-muted-foreground">
-            El nombre se toma automaticamente del registro del doctor vinculado.
-          </p>
+        {!esNuevo && rolActual === "doctor" ? (
+          <>
+            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+              {watch("nombre") || "—"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              El nombre proviene del registro del doctor y no se puede modificar aqui.
+            </p>
+          </>
         ) : (
-          errors.nombre && (
-            <p className="text-xs text-red-500">{errors.nombre.message}</p>
-          )
+          <>
+            <Input
+              id="nombre"
+              placeholder="Nombre completo"
+              {...register("nombre")}
+            />
+            {errors.nombre && (
+              <p className="text-xs text-red-500">{errors.nombre.message}</p>
+            )}
+          </>
         )}
       </div>
 
-      {/* Email */}
+      {/* Email — bloqueado al editar un doctor */}
       <div className="space-y-1.5">
         <Label htmlFor="email">
           Correo electronico <span className="text-red-500">*</span>
         </Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="correo@ejemplo.com"
-          {...register("email")}
-        />
-        {errors.email && (
-          <p className="text-xs text-red-500">{errors.email.message}</p>
-        )}
-        {esNuevo && (
-          <p className="text-xs text-muted-foreground">
-            Se enviara una invitacion de acceso al correo ingresado.
-          </p>
+        {!esNuevo && rolActual === "doctor" ? (
+          <>
+            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+              {watch("email") || "—"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              El correo electronico no se puede cambiar desde aqui.
+            </p>
+          </>
+        ) : (
+          <>
+            <Input
+              id="email"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-xs text-red-500">{errors.email.message}</p>
+            )}
+            {esNuevo && (
+              <p className="text-xs text-muted-foreground">
+                Se enviara una invitacion de acceso al correo ingresado.
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -310,33 +328,6 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
         </div>
       )}
 
-      {/* Doctor vinculado — solo si rol es doctor */}
-      {rolActual === "doctor" && (
-        <div className="space-y-1.5">
-          <Label>Doctor vinculado</Label>
-          <Controller
-            control={control}
-            name="doctor_id"
-            render={({ field }) => (
-              <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar doctor..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctores.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <p className="text-xs text-muted-foreground">
-            Vincula esta cuenta al registro del doctor en el sistema.
-          </p>
-        </div>
-      )}
 
       {/* Activo */}
       <div className="flex items-center gap-3">

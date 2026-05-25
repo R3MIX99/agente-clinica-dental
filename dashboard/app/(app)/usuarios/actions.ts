@@ -93,9 +93,10 @@ export async function editarUsuario(
   const db = createServiceClient()
 
   // Verificar si el objetivo es administrador (supervisores no pueden editar admins)
+  // Se incluye doctor_id para preservarlo al editar (el campo ya no se muestra en el form)
   const { data: objetivo } = await db
     .from("profiles")
-    .select("rol")
+    .select("rol, doctor_id")
     .eq("id", id)
     .single()
 
@@ -109,28 +110,45 @@ export async function editarUsuario(
       ? (objetivo?.rol ?? datos.rol)
       : datos.rol
 
-  // Si es doctor vinculado, el nombre viene del registro del doctor
-  const nombreFinal = await resolverNombrePerfil(db, { ...datos, rol: rolFinal })
+  // El doctor_id se preserva desde la BD; el formulario ya no lo envia
+  const doctorIdFinal =
+    rolFinal === "doctor"
+      ? (datos.doctor_id || objetivo?.doctor_id || null)
+      : null
 
-  // Actualizar perfil
+  // Si es doctor vinculado, el nombre viene del registro del doctor
+  const nombreFinal = await resolverNombrePerfil(db, {
+    ...datos,
+    rol: rolFinal,
+    doctor_id: doctorIdFinal ?? "",
+  })
+
+  // Actualizar perfil (sin email para doctores — el campo esta bloqueado en UI)
+  const updateData: Record<string, unknown> = {
+    nombre: nombreFinal,
+    rol: rolFinal,
+    activo: datos.activo,
+    doctor_id: doctorIdFinal,
+  }
+  if (rolFinal !== "doctor") {
+    updateData.email = datos.email
+  }
+
   const { error: profileError } = await db
     .from("profiles")
-    .update({
-      nombre: nombreFinal,
-      rol: rolFinal,
-      activo: datos.activo,
-      doctor_id: rolFinal === "doctor" && datos.doctor_id ? datos.doctor_id : null,
-      email: datos.email,
-    })
+    .update(updateData)
     .eq("id", id)
 
   if (profileError) return { error: profileError.message }
 
-  // Actualizar email en auth si cambio
-  const { error: authError } = await db.auth.admin.updateUserById(id, {
-    email: datos.email,
+  // Actualizar metadata en auth; email solo para no-doctores
+  const authUpdate: Record<string, unknown> = {
     user_metadata: { nombre: nombreFinal, rol: rolFinal },
-  })
+  }
+  if (rolFinal !== "doctor") {
+    authUpdate.email = datos.email
+  }
+  const { error: authError } = await db.auth.admin.updateUserById(id, authUpdate)
 
   if (authError) return { error: authError.message }
 
