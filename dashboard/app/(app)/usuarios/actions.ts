@@ -12,6 +12,8 @@ export type PerfilUsuario = {
   activo: boolean
   doctor_id: string | null
   doctor_nombre: string | null
+  // Correo del registro en doctors — es el que se muestra para usuarios con rol doctor
+  doctor_email: string | null
 }
 
 export type DatosUsuario = {

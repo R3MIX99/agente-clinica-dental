@@ -277,10 +277,10 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
         {!esNuevo && rolActual === "doctor" ? (
           <>
             <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-              {watch("email") || "—"}
+              {(usuarioEditando?.doctor_email ?? usuarioEditando?.email) || "—"}
             </div>
             <p className="text-xs text-muted-foreground">
-              El correo electronico no se puede cambiar desde aqui.
+              El correo se edita desde la ficha del doctor en el sistema.
             </p>
           </>
         ) : (
@@ -469,7 +469,9 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                     : usuario.nombre}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {usuario.email ?? "—"}
+                  {usuario.rol === "doctor"
+                    ? (usuario.doctor_email ?? usuario.email ?? "—")
+                    : (usuario.email ?? "—")}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -565,7 +567,9 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">Correo</dt>
                     <dd className="font-medium text-right truncate max-w-[60%]">
-                      {drawerUsuario.email ?? "—"}
+                      {drawerUsuario.rol === "doctor"
+                        ? (drawerUsuario.doctor_email ?? drawerUsuario.email ?? "—")
+                        : (drawerUsuario.email ?? "—")}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4">

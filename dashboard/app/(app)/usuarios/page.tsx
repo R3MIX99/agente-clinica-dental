@@ -26,22 +26,26 @@ export default async function UsuariosPage() {
         .single(),
       db
         .from("profiles")
-        .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre)")
+        .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre, email)")
         .order("nombre"),
       db.from("doctors").select("id, nombre").order("nombre"),
     ])
 
   if (!perfilData || perfilData.rol === "doctor") redirect("/conversaciones")
 
-  const usuarios: PerfilUsuario[] = (perfilesData ?? []).map((p) => ({
-    id: p.id,
-    nombre: p.nombre,
-    email: p.email,
-    rol: p.rol as PerfilUsuario["rol"],
-    activo: p.activo,
-    doctor_id: p.doctor_id,
-    doctor_nombre: (p.doctors as { nombre: string } | null)?.nombre ?? null,
-  }))
+  const usuarios: PerfilUsuario[] = (perfilesData ?? []).map((p) => {
+    const doctorRec = p.doctors as { nombre: string; email: string | null } | null
+    return {
+      id: p.id,
+      nombre: p.nombre,
+      email: p.email,
+      rol: p.rol as PerfilUsuario["rol"],
+      activo: p.activo,
+      doctor_id: p.doctor_id,
+      doctor_nombre: doctorRec?.nombre ?? null,
+      doctor_email: doctorRec?.email ?? null,
+    }
+  })
 
   const doctores = (doctoresData ?? []).map((d) => ({
     id: d.id,
