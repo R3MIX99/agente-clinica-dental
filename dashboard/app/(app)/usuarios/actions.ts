@@ -123,32 +123,28 @@ export async function editarUsuario(
     doctor_id: doctorIdFinal ?? "",
   })
 
-  // Actualizar perfil (sin email para doctores — el campo esta bloqueado en UI)
-  const updateData: Record<string, unknown> = {
-    nombre: nombreFinal,
-    rol: rolFinal,
-    activo: datos.activo,
-    doctor_id: doctorIdFinal,
-  }
-  if (rolFinal !== "doctor") {
-    updateData.email = datos.email
-  }
-
-  const { error: profileError } = await db
-    .from("profiles")
-    .update(updateData)
-    .eq("id", id)
+  // Actualizar perfil — email solo se toca para no-doctores (campo bloqueado en UI)
+  const { error: profileError } = rolFinal === "doctor"
+    ? await db
+        .from("profiles")
+        .update({ nombre: nombreFinal, rol: rolFinal, activo: datos.activo, doctor_id: doctorIdFinal })
+        .eq("id", id)
+    : await db
+        .from("profiles")
+        .update({ nombre: nombreFinal, rol: rolFinal, activo: datos.activo, doctor_id: doctorIdFinal, email: datos.email })
+        .eq("id", id)
 
   if (profileError) return { error: profileError.message }
 
   // Actualizar metadata en auth; email solo para no-doctores
-  const authUpdate: Record<string, unknown> = {
-    user_metadata: { nombre: nombreFinal, rol: rolFinal },
-  }
-  if (rolFinal !== "doctor") {
-    authUpdate.email = datos.email
-  }
-  const { error: authError } = await db.auth.admin.updateUserById(id, authUpdate)
+  const { error: authError } = rolFinal === "doctor"
+    ? await db.auth.admin.updateUserById(id, {
+        user_metadata: { nombre: nombreFinal, rol: rolFinal },
+      })
+    : await db.auth.admin.updateUserById(id, {
+        email: datos.email,
+        user_metadata: { nombre: nombreFinal, rol: rolFinal },
+      })
 
   if (authError) return { error: authError.message }
 
