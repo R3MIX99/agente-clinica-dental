@@ -22,6 +22,22 @@ export type DatosUsuario = {
   doctor_id: string
 }
 
+// Resuelve el nombre que tendra el perfil: si es doctor vinculado, usa el nombre del doctor.
+async function resolverNombrePerfil(
+  db: ReturnType<typeof createServiceClient>,
+  datos: DatosUsuario
+): Promise<string> {
+  if (datos.rol === "doctor" && datos.doctor_id) {
+    const { data } = await db
+      .from("doctors")
+      .select("nombre")
+      .eq("id", datos.doctor_id)
+      .single()
+    if (data?.nombre) return data.nombre
+  }
+  return datos.nombre
+}
+
 export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: string }> {
   const perfilActual = await getProfile()
   if (!perfilActual || perfilActual.rol === "doctor") {
@@ -30,10 +46,13 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
 
   const db = createServiceClient()
 
+  // Si es doctor vinculado, el nombre viene del registro del doctor
+  const nombreFinal = await resolverNombrePerfil(db, datos)
+
   // Crear cuenta en Supabase Auth (envia invitacion por email)
   const { data: authData, error: authError } = await db.auth.admin.inviteUserByEmail(
     datos.email,
-    { data: { nombre: datos.nombre, rol: datos.rol } }
+    { data: { nombre: nombreFinal, rol: datos.rol } }
   )
 
   if (authError) {
@@ -48,7 +67,7 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
   const { error: profileError } = await db
     .from("profiles")
     .update({
-      nombre: datos.nombre,
+      nombre: nombreFinal,
       rol: datos.rol,
       activo: datos.activo,
       doctor_id: datos.rol === "doctor" && datos.doctor_id ? datos.doctor_id : null,
@@ -90,11 +109,14 @@ export async function editarUsuario(
       ? (objetivo?.rol ?? datos.rol)
       : datos.rol
 
+  // Si es doctor vinculado, el nombre viene del registro del doctor
+  const nombreFinal = await resolverNombrePerfil(db, { ...datos, rol: rolFinal })
+
   // Actualizar perfil
   const { error: profileError } = await db
     .from("profiles")
     .update({
-      nombre: datos.nombre,
+      nombre: nombreFinal,
       rol: rolFinal,
       activo: datos.activo,
       doctor_id: rolFinal === "doctor" && datos.doctor_id ? datos.doctor_id : null,
@@ -107,7 +129,7 @@ export async function editarUsuario(
   // Actualizar email en auth si cambio
   const { error: authError } = await db.auth.admin.updateUserById(id, {
     email: datos.email,
-    user_metadata: { nombre: datos.nombre, rol: rolFinal },
+    user_metadata: { nombre: nombreFinal, rol: rolFinal },
   })
 
   if (authError) return { error: authError.message }

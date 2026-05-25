@@ -64,6 +64,8 @@ interface Props {
   conversaciones: Conversacion[]
   agentes: Agente[]
   papelera: Conversacion[]
+  nombreUsuario: string
+  agenteActual: Agente | null
 }
 
 // ---------------------------------------------------------------------------
@@ -356,11 +358,11 @@ function ListaPanel({
             ))}
       </div>
 
-      {agenteActual && (
+      {nombreUsuario && (
         <div className="border-t border-border px-4 py-2.5 shrink-0">
           <p className="text-[11px] text-muted-foreground">
             Agente activo:{" "}
-            <span className="font-medium text-foreground">{agenteActual.nombre}</span>
+            <span className="font-medium text-foreground">{nombreUsuario}</span>
           </p>
         </div>
       )}
@@ -539,7 +541,7 @@ function ChatPanel({
 // Componente principal
 // ---------------------------------------------------------------------------
 
-export function ConversacionesClient({ conversaciones, agentes, papelera }: Props) {
+export function ConversacionesClient({ conversaciones, agentes, papelera, nombreUsuario, agenteActual: agenteActualProp }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [cargandoMensajes, setCargandoMensajes] = useState(false)
@@ -569,7 +571,8 @@ export function ConversacionesClient({ conversaciones, agentes, papelera }: Prop
   useEffect(() => { setPapeleraConvs(papelera) }, [papelera])
   useEffect(() => { convsRef.current = convs }, [convs])
 
-  const agenteActual = agentes[0] ?? null
+  // El agente activo viene resuelto desde el servidor (usuario actual → agents tabla).
+  const agenteActual = agenteActualProp
 
   const convSeleccionada =
     convs.find((c) => c.id === selectedId) ??

@@ -143,6 +143,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
     control,
     reset,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<UsuarioForm>({
     resolver: zodResolver(usuarioSchema),
@@ -150,6 +151,14 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
   })
 
   const rolActual = watch("rol")
+  const doctorIdActual = watch("doctor_id")
+
+  // Auto-rellenar nombre al seleccionar un doctor vinculado
+  useEffect(() => {
+    if (rolActual !== "doctor" || !doctorIdActual) return
+    const doctor = doctores.find((d) => d.id === doctorIdActual)
+    if (doctor) setValue("nombre", doctor.nombre, { shouldValidate: true })
+  }, [doctorIdActual, rolActual, doctores, setValue])
 
   // -------------------------------------------------------------------------
   // Handlers — formulario
@@ -240,10 +249,18 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
         <Input
           id="nombre"
           placeholder="Nombre completo"
+          readOnly={rolActual === "doctor" && !!doctorIdActual}
+          className={rolActual === "doctor" && !!doctorIdActual ? "bg-muted text-muted-foreground" : ""}
           {...register("nombre")}
         />
-        {errors.nombre && (
-          <p className="text-xs text-red-500">{errors.nombre.message}</p>
+        {rolActual === "doctor" && !!doctorIdActual ? (
+          <p className="text-xs text-muted-foreground">
+            El nombre se toma automaticamente del registro del doctor vinculado.
+          </p>
+        ) : (
+          errors.nombre && (
+            <p className="text-xs text-red-500">{errors.nombre.message}</p>
+          )
         )}
       </div>
 
@@ -397,7 +414,11 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
               }`}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{usuario.nombre}</p>
+              <p className="text-sm font-medium truncate">
+              {usuario.rol === "doctor" && usuario.doctor_nombre
+                ? usuario.doctor_nombre
+                : usuario.nombre}
+            </p>
               {usuario.email && (
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
                   {usuario.email}
@@ -451,7 +472,11 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                 key={usuario.id}
                 className="border-b border-border last:border-0 hover:bg-muted/30"
               >
-                <td className="px-4 py-3 font-medium">{usuario.nombre}</td>
+                <td className="px-4 py-3 font-medium">
+                  {usuario.rol === "doctor" && usuario.doctor_nombre
+                    ? usuario.doctor_nombre
+                    : usuario.nombre}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {usuario.email ?? "—"}
                 </td>
@@ -520,7 +545,9 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <DrawerTitle className="text-base font-semibold leading-tight">
-                      {drawerUsuario.nombre}
+                      {drawerUsuario.rol === "doctor" && drawerUsuario.doctor_nombre
+                        ? drawerUsuario.doctor_nombre
+                        : drawerUsuario.nombre}
                     </DrawerTitle>
                     <span
                       className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
