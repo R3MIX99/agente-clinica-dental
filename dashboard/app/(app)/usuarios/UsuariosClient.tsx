@@ -61,7 +61,7 @@ interface Props {
 
 const usuarioSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
-  email: z.string().email("Correo electronico invalido"),
+  email: z.string().email("Correo electrónico inválido"),
   rol: z.enum(["administrador", "supervisor", "doctor"]),
   activo: z.boolean(),
   doctor_id: z.string().optional(),
@@ -204,7 +204,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
     toast.success(
       usuarioEditando
         ? "Usuario actualizado correctamente"
-        : "Invitacion enviada al correo del usuario"
+        : "Invitación enviada al correo del usuario"
     )
     setFormOpen(false)
     router.refresh()
@@ -252,7 +252,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
               {watch("nombre") || "—"}
             </div>
             <p className="text-xs text-muted-foreground">
-              El nombre proviene del registro del doctor y no se puede modificar aqui.
+              El nombre proviene del registro del doctor y no se puede modificar aquí.
             </p>
           </>
         ) : (
@@ -272,7 +272,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
       {/* Email — bloqueado al editar un doctor */}
       <div className="space-y-1.5">
         <Label htmlFor="email">
-          Correo electronico <span className="text-red-500">*</span>
+          Correo electrónico <span className="text-red-500">*</span>
         </Label>
         {!esNuevo && rolActual === "doctor" ? (
           <>
@@ -296,7 +296,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
             )}
             {esNuevo && (
               <p className="text-xs text-muted-foreground">
-                Se enviara una invitacion de acceso al correo ingresado.
+                Se enviará una invitación de acceso al correo ingresado.
               </p>
             )}
           </>
@@ -437,7 +437,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {["Nombre", "Correo electronico", "Rol", "Estado", "Acciones"].map((h) => (
+              {["Nombre", "Correo electrónico", "Rol", "Estado", "Acciones"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-medium text-muted-foreground"
@@ -686,8 +686,8 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
           <DialogHeader>
             <DialogTitle>Eliminar usuario</DialogTitle>
             <DialogDescription>
-              Esta accion eliminara permanentemente la cuenta de{" "}
-              <strong>{usuarioParaEliminar?.nombre}</strong>. El usuario perdera acceso al sistema de inmediato. Esta accion no se puede deshacer.
+              Esta acción eliminará permanentemente la cuenta de{" "}
+              <strong>{usuarioParaEliminar?.nombre}</strong>. El usuario perderá acceso al sistema de inmediato. Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

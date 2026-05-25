@@ -107,10 +107,10 @@ const DIA_NOMBRE: Record<number, string> = {
   0: "Domingo",
   1: "Lunes",
   2: "Martes",
-  3: "Miercoles",
+  3: "Miércoles",
   4: "Jueves",
   5: "Viernes",
-  6: "Sabado",
+  6: "Sábado",
 }
 
 const STATUS_ESTILO: Record<string, string> = {
@@ -465,7 +465,7 @@ export function DoctoresClient({
         {doctoresFiltrados.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {busqueda
-              ? "Sin resultados para esa busqueda."
+              ? "Sin resultados para esa búsqueda."
               : "Sin doctores registrados."}
           </p>
         ) : (
@@ -541,7 +541,7 @@ export function DoctoresClient({
                   className="px-4 py-8 text-center text-sm text-muted-foreground"
                 >
                   {busqueda
-                    ? "Sin resultados para esa busqueda."
+                    ? "Sin resultados para esa búsqueda."
                     : "Sin doctores registrados."}
                 </td>
               </tr>
@@ -774,16 +774,16 @@ export function DoctoresClient({
                 </div>
 
                 {/* -------------------------------------------------------- */}
-                {/* Citas proximas                                             */}
+                {/* Citas próximas                                             */}
                 {/* -------------------------------------------------------- */}
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                    Citas proximas
+                    Citas próximas
                     {drawerCitas.length > 0 ? ` (${drawerCitas.length})` : ""}
                   </p>
                   {citasAgrupadas.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Sin citas proximas asignadas.
+                      Sin citas próximas asignadas.
                     </p>
                   ) : (
                     <div className="space-y-4">
@@ -908,7 +908,7 @@ export function DoctoresClient({
             {/* Email y Fecha ingreso */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Correo electronico</Label>
+                <Label>Correo electrónico</Label>
                 <Input
                   type="email"
                   placeholder="doctor@clinica.com"
@@ -1056,8 +1056,8 @@ export function DoctoresClient({
             <DialogTitle>Eliminar doctor</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            Esta accion no se puede deshacer. Si el doctor tiene citas o
-            pacientes asociados, no podra eliminarse.
+            Esta acción no se puede deshacer. Si el doctor tiene citas o
+            pacientes asociados, no podrá eliminarse.
           </p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEliminarId(null)}>

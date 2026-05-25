@@ -94,7 +94,7 @@ const STATUS_LABELS: Record<string, string> = {
   confirmada: "Confirmada",
   cancelada: "Cancelada",
   completada: "Completada",
-  no_asistio: "No asistio",
+  no_asistio: "No asistió",
 }
 
 const ESTADO_ESTILO: Record<string, string> = {
@@ -586,7 +586,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                     {formatFechaCompleta(citaDrawer.fecha_hora)}
                     {esProxima(citaDrawer.fecha_hora) && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 align-middle">
-                        proxima
+                        próxima
                       </span>
                     )}
                   </span>
@@ -602,10 +602,10 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   </div>
                 )}
 
-                {/* Duracion */}
+                {/* Duración */}
                 {citaDrawer.duracion_min != null && (
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">Duracion</span>
+                    <span className="text-muted-foreground">Duración</span>
                     <span className="font-medium tabular-nums">
                       {citaDrawer.duracion_min} min
                     </span>
@@ -750,9 +750,9 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               </Select>
             </div>
 
-            {/* Duracion */}
+            {/* Duración */}
             <div className="space-y-1.5">
-              <Label>Duracion (min)</Label>
+              <Label>Duración (min)</Label>
               <Input
                 type="number"
                 min="1"
@@ -859,7 +859,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             <DrawerTitle>Eliminar cita</DrawerTitle>
           </DrawerHeader>
           <p className="px-4 pb-2 text-sm text-muted-foreground">
-            Esta accion no se puede deshacer. La cita sera eliminada
+            Esta acción no se puede deshacer. La cita será eliminada
             permanentemente.
           </p>
           <DrawerFooter className="flex-shrink-0 border-t border-border pt-3 flex-row gap-2">

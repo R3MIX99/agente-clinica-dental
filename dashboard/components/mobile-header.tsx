@@ -29,13 +29,13 @@ export function MobileHeader() {
       {/* Logo y nombre */}
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-primary" aria-hidden />
-        <span className="text-sm font-semibold">Clinica Dental</span>
+        <span className="text-sm font-semibold">Clínica Dental</span>
       </div>
 
-      {/* Menu de usuario */}
+      {/* Menú de usuario */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Menu de usuario">
+          <Button variant="ghost" size="icon" aria-label="Menú de usuario">
             {isPending ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
@@ -69,7 +69,7 @@ export function MobileHeader() {
             className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
-            Cerrar sesion
+            Cerrar sesión
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

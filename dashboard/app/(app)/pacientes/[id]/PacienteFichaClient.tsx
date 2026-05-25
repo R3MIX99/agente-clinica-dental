@@ -134,7 +134,7 @@ const STATUS_CITA_LABELS: Record<string, string> = {
   confirmada: "Confirmada",
   cancelada: "Cancelada",
   completada: "Completada",
-  no_asistio: "No asistio",
+  no_asistio: "No asistió",
 }
 
 const STATUS_CITA_ESTILO: Record<string, string> = {
@@ -466,12 +466,12 @@ export function PacienteFichaClient({
     startTransition(async () => {
       try {
         await actualizarDoctoresFicha(paciente.id, doctoresOrdenados)
-        toast.success("Asignacion actualizada correctamente")
+        toast.success("Asignación actualizada correctamente")
         setEditarDoctoresOpen(false)
         router.refresh()
       } catch (e: unknown) {
         toast.error(
-          e instanceof Error ? e.message : "Error al actualizar la asignacion"
+          e instanceof Error ? e.message : "Error al actualizar la asignación"
         )
       }
     })
@@ -562,7 +562,7 @@ export function PacienteFichaClient({
                 {paciente.telefono && (
                   <p>
                     <span className="font-medium text-foreground/70">
-                      Telefono:{" "}
+                      Teléfono:{" "}
                     </span>
                     {paciente.telefono}
                   </p>
@@ -594,7 +594,7 @@ export function PacienteFichaClient({
                 {paciente.tiempo_cita_min != null && (
                   <p>
                     <span className="font-medium text-foreground/70">
-                      Duracion de cita:{" "}
+                      Duración de cita:{" "}
                     </span>
                     {paciente.tiempo_cita_min} min
                   </p>
@@ -630,7 +630,7 @@ export function PacienteFichaClient({
       {/* ------------------------------------------------------------------ */}
       <Tabs defaultValue="citas">
         <TabsList>
-          <TabsTrigger value="medicos">Medicos</TabsTrigger>
+          <TabsTrigger value="medicos">Médicos</TabsTrigger>
           <TabsTrigger value="citas">
             Citas{citas.length > 0 ? ` (${citas.length})` : ""}
           </TabsTrigger>
@@ -638,13 +638,13 @@ export function PacienteFichaClient({
         </TabsList>
 
         {/* ---------------------------------------------------------------- */}
-        {/* Tab — Medicos                                                      */}
+        {/* Tab — Médicos                                                      */}
         {/* ---------------------------------------------------------------- */}
         <TabsContent value="medicos" className="mt-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base font-medium">
-                Asignacion de medicos
+                Asignación de médicos
               </CardTitle>
               {todosDoctores.length > 0 && (
                 <Button
@@ -796,7 +796,7 @@ export function PacienteFichaClient({
                             {formatFechaCompleta(cita.fecha_hora)}
                             {proxima && (
                               <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-                                proxima
+                                próxima
                               </span>
                             )}
                           </p>
@@ -820,7 +820,7 @@ export function PacienteFichaClient({
                             "Doctor",
                             "Fecha y hora",
                             "Costo",
-                            "Duracion",
+                            "Duración",
                             "Estado",
                           ].map((h) => (
                             <th
@@ -912,16 +912,16 @@ export function PacienteFichaClient({
         {/* Tab — Trayectoria                                                  */}
         {/* ---------------------------------------------------------------- */}
         <TabsContent value="trayectoria" className="mt-4 space-y-4">
-          {/* Agregar nota clinica */}
+          {/* Agregar nota clínica */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">
-                Agregar nota clinica
+                Agregar nota clínica
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Textarea
-                placeholder="Observaciones clinicas, indicaciones, evolucion del paciente..."
+                placeholder="Observaciones clínicas, indicaciones, evolución del paciente..."
                 value={notaTexto}
                 onChange={(e) => setNotaTexto(e.target.value)}
                 rows={3}
@@ -947,8 +947,8 @@ export function PacienteFichaClient({
             <CardContent>
               {timeline.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  Sin eventos registrados. Las citas, estudios y notas clinicas
-                  apareceran aqui.
+                  Sin eventos registrados. Las citas, estudios y notas clínicas
+                  aparecerán aquí.
                 </p>
               ) : (
                 <div>
@@ -1199,7 +1199,7 @@ export function PacienteFichaClient({
             >
               <DrawerContent style={{ height: "70svh" }}>
                 <DrawerHeader className="border-b border-border pb-3 shrink-0">
-                  <DrawerTitle>Asignacion de medicos</DrawerTitle>
+                  <DrawerTitle>Asignación de médicos</DrawerTitle>
                 </DrawerHeader>
                 {camposDoctores}
                 <DrawerFooter className="border-t border-border shrink-0 flex-row justify-end gap-2">
@@ -1212,7 +1212,7 @@ export function PacienteFichaClient({
             <Dialog open={editarDoctoresOpen && isDesktop} onOpenChange={(o) => { if (!o) setEditarDoctoresOpen(false) }}>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
-                  <DialogTitle>Asignacion de medicos</DialogTitle>
+                  <DialogTitle>Asignación de médicos</DialogTitle>
                 </DialogHeader>
                 {camposDoctores}
                 <DialogFooter>{botonesDoctores}</DialogFooter>
@@ -1222,7 +1222,6 @@ export function PacienteFichaClient({
         )
       })()}
 
-      {/* ------------------------------------------------------------------ */}
       {/* ------------------------------------------------------------------ */}
       {/* Confirmar eliminacion                                                */}
       {/* ------------------------------------------------------------------ */}
@@ -1234,14 +1233,14 @@ export function PacienteFichaClient({
           <DialogHeader>
             <DialogTitle>
               {confirmarEliminar?.tipo === "nota"
-                ? "Eliminar nota clinica"
+                ? "Eliminar nota clínica"
                 : "Eliminar cita"}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             {confirmarEliminar?.tipo === "nota"
-              ? "Esta accion eliminara la nota clinica de forma permanente y no se puede deshacer."
-              : "Esta accion eliminara la cita de forma permanente y no se puede deshacer."}
+              ? "Esta acción eliminará la nota clínica de forma permanente y no se puede deshacer."
+              : "Esta acción eliminará la cita de forma permanente y no se puede deshacer."}
           </p>
           <DialogFooter>
             <Button
@@ -1331,11 +1330,11 @@ export function PacienteFichaClient({
                   </div>
                 )}
 
-                {/* Duracion */}
+                {/* Duración */}
                 {(citaDrawer.servicio?.duracion_min != null ||
                   paciente.tiempo_cita_min != null) && (
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">Duracion</span>
+                    <span className="text-muted-foreground">Duración</span>
                     <span className="font-medium tabular-nums">
                       {citaDrawer.servicio?.duracion_min ??
                         paciente.tiempo_cita_min}{" "}

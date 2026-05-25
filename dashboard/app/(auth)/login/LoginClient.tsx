@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label"
 import { loginAction } from "@/app/actions/auth"
 
 const esquema = z.object({
-  email: z.string().email("Ingresa un email valido"),
-  password: z.string().min(1, "La contrasena es requerida"),
+  email: z.string().email("Ingresa un correo electrónico válido"),
+  password: z.string().min(1, "La contraseña es requerida"),
 })
 
 type Campos = z.infer<typeof esquema>
@@ -45,17 +45,17 @@ export function LoginClient() {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Stethoscope className="h-6 w-6" aria-hidden />
         </div>
-        <h1 className="text-xl font-semibold text-foreground">Clinica Dental</h1>
+        <h1 className="text-xl font-semibold text-foreground">Clínica Dental</h1>
         <p className="text-sm text-muted-foreground">Panel de control</p>
       </div>
 
       {/* Formulario */}
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-base font-medium text-foreground mb-5">Iniciar sesion</h2>
+        <h2 className="text-base font-medium text-foreground mb-5">Iniciar sesión</h2>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email">Correo electronico</Label>
+            <Label htmlFor="email">Correo electrónico</Label>
             <Input
               id="email"
               type="email"
@@ -70,7 +70,7 @@ export function LoginClient() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password">Contrasena</Label>
+            <Label htmlFor="password">Contraseña</Label>
             <Input
               id="password"
               type="password"
@@ -88,10 +88,10 @@ export function LoginClient() {
             {isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" aria-hidden />
-                Iniciando sesion...
+                Iniciando sesión...
               </>
             ) : (
-              "Iniciar sesion"
+              "Iniciar sesión"
             )}
           </Button>
         </form>

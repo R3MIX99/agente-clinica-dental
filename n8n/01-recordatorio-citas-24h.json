@@ -191,7 +191,7 @@
     },
     {
       "parameters": {
-        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.",
+        "content": "WhatsApp: conectar Cloud API aquí.\nUsar channel_user_id como wa_id.",
         "height": 80,
         "width": 240
       },

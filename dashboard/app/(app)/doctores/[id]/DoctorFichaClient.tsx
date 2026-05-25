@@ -85,17 +85,17 @@ interface Props {
 // Constantes
 // ---------------------------------------------------------------------------
 
-// Orden: Lunes … Sabado … Domingo
+// Orden: Lunes … Sábado … Domingo
 const DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 0]
 
 const DIA_NOMBRE: Record<number, string> = {
   0: "Domingo",
   1: "Lunes",
   2: "Martes",
-  3: "Miercoles",
+  3: "Miércoles",
   4: "Jueves",
   5: "Viernes",
-  6: "Sabado",
+  6: "Sábado",
 }
 
 const STATUS_ESTILO: Record<string, string> = {
@@ -186,7 +186,7 @@ const CANAL_ESTILO: Record<string, string> = {
 
 const CANAL_NOMBRE: Record<string, string> = {
   whatsapp: "WhatsApp",
-  phone: "Telefono",
+  phone: "Teléfono",
   email: "Correo",
 }
 
@@ -364,7 +364,7 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
                 {doctor.fecha_ingreso && (
                   <p>
                     <span className="font-medium text-foreground/70">
-                      Fecha de ingreso a la clinica:{" "}
+                      Fecha de ingreso a la clínica:{" "}
                     </span>
                     {formatFechaIngreso(doctor.fecha_ingreso)}
                   </p>
@@ -392,7 +392,7 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
         <TabsList>
           <TabsTrigger value="horarios">Horarios</TabsTrigger>
           <TabsTrigger value="citas">
-            Citas proximas{citas.length > 0 ? ` (${citas.length})` : ""}
+            Citas próximas{citas.length > 0 ? ` (${citas.length})` : ""}
           </TabsTrigger>
           <TabsTrigger value="pacientes">
             Pacientes{pacientes.length > 0 ? ` (${pacientes.length})` : ""}
@@ -467,19 +467,19 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
         </TabsContent>
 
         {/* ---------------------------------------------------------------- */}
-        {/* Tab — Citas proximas                                               */}
+        {/* Tab — Citas próximas                                               */}
         {/* ---------------------------------------------------------------- */}
         <TabsContent value="citas" className="mt-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">
-                Citas proximas asignadas
+                Citas próximas asignadas
               </CardTitle>
             </CardHeader>
             <CardContent>
               {citasAgrupadas.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  Sin citas proximas asignadas a este doctor.
+                  Sin citas próximas asignadas a este doctor.
                 </p>
               ) : (
                 <div className="space-y-6">
@@ -628,7 +628,7 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Correo electronico</Label>
+                <Label>Correo electrónico</Label>
                 <Input
                   type="email"
                   value={formDoctor.email}
@@ -723,7 +723,7 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Dia de la semana</Label>
+              <Label>Día de la semana</Label>
               <Select
                 value={formHorario.dia_semana}
                 onValueChange={(v) =>

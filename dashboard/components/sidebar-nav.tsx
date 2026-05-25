@@ -31,7 +31,7 @@ export function SidebarNav({ rol, doctorId, onNavigate }: { rol: Rol; doctorId?:
   const navItems = rol === "doctor" ? NAV_DOCTOR : NAV_ADMIN_SUPERVISOR
 
   return (
-    <nav aria-label="Navegacion principal">
+    <nav aria-label="Navegación principal">
       <ul className="space-y-1 px-2">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)

@@ -40,7 +40,7 @@ import { ChevronRight, SquarePen } from "lucide-react"
 
 const agenteSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
-  email: z.union([z.string().email("Correo electronico invalido"), z.literal("")]),
+  email: z.union([z.string().email("Correo electrónico inválido"), z.literal("")]),
   role: z.enum(["admin", "recepcion", "odontologo"]),
   activo: z.boolean(),
 })
@@ -70,8 +70,8 @@ interface Props {
 
 const ROL_LABELS: Record<string, string> = {
   admin: "Administrador",
-  recepcion: "Recepcion",
-  odontologo: "Odontologo",
+  recepcion: "Recepción",
+  odontologo: "Odontólogo",
 }
 
 const ROL_ESTILO: Record<string, string> = {
@@ -275,7 +275,7 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {["Nombre", "Correo electronico", "Rol", "Activo", "Acciones"].map((h) => (
+              {["Nombre", "Correo electrónico", "Rol", "Activo", "Acciones"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-medium text-muted-foreground"
@@ -435,7 +435,7 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Correo electronico</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
@@ -460,8 +460,8 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="recepcion">Recepcion</SelectItem>
-                      <SelectItem value="odontologo">Odontologo</SelectItem>
+                      <SelectItem value="recepcion">Recepción</SelectItem>
+                      <SelectItem value="odontologo">Odontólogo</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

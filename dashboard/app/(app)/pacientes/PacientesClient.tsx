@@ -201,7 +201,7 @@ const STATUS_LABELS: Record<string, string> = {
   confirmada: "Confirmada",
   cancelada: "Cancelada",
   completada: "Completada",
-  no_asistio: "No asistio",
+  no_asistio: "No asistió",
 }
 
 const STATUS_CITA_ESTILO: Record<string, string> = {
@@ -743,7 +743,7 @@ export function PacientesClient({
       <div className="relative w-full md:max-w-xs">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
-          placeholder="Buscar por nombre o telefono..."
+          placeholder="Buscar por nombre o teléfono..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="pl-9"
@@ -757,7 +757,7 @@ export function PacientesClient({
         {pacientesFiltrados.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {busqueda
-              ? "Sin resultados para esa busqueda."
+              ? "Sin resultados para esa búsqueda."
               : "Sin pacientes registrados."}
           </p>
         ) : (
@@ -817,7 +817,7 @@ export function PacientesClient({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {["Nombre", "Proxima cita", "Doctor", "Est. pendientes", "Acciones"].map((h) => (
+              {["Nombre", "Próxima cita", "Doctor", "Est. pendientes", "Acciones"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap"
@@ -835,7 +835,7 @@ export function PacientesClient({
                   className="px-4 py-8 text-center text-sm text-muted-foreground"
                 >
                   {busqueda
-                    ? "Sin resultados para esa busqueda."
+                    ? "Sin resultados para esa búsqueda."
                     : "Sin pacientes registrados."}
                 </td>
               </tr>
@@ -980,7 +980,7 @@ export function PacientesClient({
                   <div className="space-y-2 text-sm">
                     {drawerPaciente.telefono && (
                       <div className="flex items-center justify-between gap-4">
-                        <span className="text-muted-foreground">Telefono</span>
+                        <span className="text-muted-foreground">Teléfono</span>
                         <span className="font-medium tabular-nums">
                           {drawerPaciente.telefono}
                         </span>
@@ -1019,7 +1019,7 @@ export function PacientesClient({
                     {drawerPaciente.tiempo_cita_min != null && (
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-muted-foreground">
-                          Duracion de cita
+                          Duración de cita
                         </span>
                         <span className="font-medium tabular-nums">
                           {drawerPaciente.tiempo_cita_min} min
@@ -1050,11 +1050,11 @@ export function PacientesClient({
                 </div>
 
                 {/* -------------------------------------------------------- */}
-                {/* Medicos asignados                                          */}
+                {/* Médicos asignados                                          */}
                 {/* -------------------------------------------------------- */}
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                    Medicos
+                    Médicos
                   </p>
                   {drawerDoctores.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -1148,7 +1148,7 @@ export function PacientesClient({
                               {formatFechaCompleta(cita.fecha_hora)}
                               {proxima && (
                                 <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-                                  proxima
+                                  próxima
                                 </span>
                               )}
                             </p>
@@ -1234,7 +1234,7 @@ export function PacientesClient({
             {/* Telefono y Email */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Telefono</Label>
+                <Label>Teléfono</Label>
                 <Input
                   placeholder="55 1234 5678"
                   value={formPaciente.telefono}
@@ -1282,7 +1282,7 @@ export function PacientesClient({
 
             {/* Tiempo de cita */}
             <div className="space-y-1.5">
-              <Label>Duracion estandar de cita (minutos)</Label>
+              <Label>Duración estándar de cita (minutos)</Label>
               <Input
                 type="number"
                 min="1"
@@ -1298,7 +1298,7 @@ export function PacientesClient({
 
             {/* Canal */}
             <div className="space-y-1.5">
-              <Label>Canal de mensajeria</Label>
+              <Label>Canal de mensajería</Label>
               <Select
                 value={formPaciente.channel}
                 onValueChange={(v) => actualizarCampoPaciente("channel", v)}
@@ -1325,14 +1325,14 @@ export function PacientesClient({
                 className="font-mono text-sm"
               />
               <p className="text-[11px] text-muted-foreground">
-                Requerido para enviar recordatorios y mensajes automaticos.
+                Requerido para enviar recordatorios y mensajes automáticos.
               </p>
             </div>
 
-            {/* Asignacion de doctores */}
+            {/* Asignación de doctores */}
             {doctores.length > 0 && (
               <div className="space-y-3">
-                <Label className="block">Asignacion de doctores</Label>
+                <Label className="block">Asignación de doctores</Label>
                 <div className="space-y-2">
                   <div className="space-y-1.5">
                     <p className="text-xs text-muted-foreground">
@@ -1612,8 +1612,8 @@ export function PacientesClient({
             <DialogTitle>Eliminar paciente</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            Esta accion no se puede deshacer. Si el paciente tiene citas o
-            conversaciones asociadas, no podra eliminarse.
+            Esta acción no se puede deshacer. Si el paciente tiene citas o
+            conversaciones asociadas, no podrá eliminarse.
           </p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEliminarId(null)}>

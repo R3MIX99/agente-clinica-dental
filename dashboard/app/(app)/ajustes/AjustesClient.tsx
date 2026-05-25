@@ -24,7 +24,7 @@ const ajustesSchema = z.object({
   nombre: z.string(),
   direccion: z.string(),
   telefono: z.string(),
-  email: z.union([z.string().email("Correo electronico invalido"), z.literal("")]),
+  email: z.union([z.string().email("Correo electrónico inválido"), z.literal("")]),
   sitio_web: z.string(),
   horario: z.string(),
   formas_pago: z.string(),
@@ -100,7 +100,7 @@ export function AjustesClient({ clinica }: Props) {
   return (
     <div className="p-6 max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Ajustes de la clinica</h1>
+        <h1 className="text-xl font-semibold">Ajustes de la clínica</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Este contenido alimenta las respuestas del asistente de IA.
         </p>
@@ -109,21 +109,21 @@ export function AjustesClient({ clinica }: Props) {
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Informacion general */}
         <div className="rounded-lg border border-border p-6 space-y-4">
-          <h2 className="text-sm font-semibold">Informacion general</h2>
+          <h2 className="text-sm font-semibold">Información general</h2>
 
           {/* Nombre */}
           <div className="space-y-1.5">
-            <Label htmlFor="nombre">Nombre de la clinica</Label>
+            <Label htmlFor="nombre">Nombre de la clínica</Label>
             <Input
               id="nombre"
-              placeholder="Clinica Dental..."
+              placeholder="Clínica Dental..."
               {...register("nombre")}
             />
           </div>
 
           {/* Direccion */}
           <div className="space-y-1.5">
-            <Label htmlFor="direccion">Direccion</Label>
+            <Label htmlFor="direccion">Dirección</Label>
             <Input
               id="direccion"
               placeholder="Calle, numero, colonia, ciudad"
@@ -134,7 +134,7 @@ export function AjustesClient({ clinica }: Props) {
           {/* Telefono y Email */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="telefono">Telefono</Label>
+              <Label htmlFor="telefono">Teléfono</Label>
               <Input
                 id="telefono"
                 placeholder="55 1234 5678"
@@ -142,7 +142,7 @@ export function AjustesClient({ clinica }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email">Correo electronico</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
@@ -167,10 +167,10 @@ export function AjustesClient({ clinica }: Props) {
 
           {/* Horario */}
           <div className="space-y-1.5">
-            <Label htmlFor="horario">Horario de atencion</Label>
+            <Label htmlFor="horario">Horario de atención</Label>
             <Input
               id="horario"
-              placeholder="Lun-Vie 9:00-18:00, Sab 9:00-14:00"
+              placeholder="Lun-Vie 9:00-18:00, Sáb 9:00-14:00"
               {...register("horario")}
             />
           </div>
@@ -180,14 +180,14 @@ export function AjustesClient({ clinica }: Props) {
             <Label htmlFor="formas_pago">Formas de pago</Label>
             <Input
               id="formas_pago"
-              placeholder="Efectivo, tarjeta de credito/debito, transferencia"
+              placeholder="Efectivo, tarjeta de crédito/débito, transferencia"
               {...register("formas_pago")}
             />
           </div>
 
           {/* Facturacion */}
           <div className="space-y-1.5">
-            <Label htmlFor="facturacion">Facturacion</Label>
+            <Label htmlFor="facturacion">Facturación</Label>
             <Input
               id="facturacion"
               placeholder="Factura disponible, RFC requerido al momento de la cita"
@@ -223,7 +223,7 @@ export function AjustesClient({ clinica }: Props) {
 
           {fields.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Sin preguntas frecuentes. Haz clic en "Agregar" para anadir una.
+              Sin preguntas frecuentes. Haz clic en "Agregar" para añadir una.
             </p>
           )}
 
@@ -251,7 +251,7 @@ export function AjustesClient({ clinica }: Props) {
                   <Label htmlFor={`faq-${index}-pregunta`}>Pregunta</Label>
                   <Input
                     id={`faq-${index}-pregunta`}
-                    placeholder="Cual es el horario de atencion?"
+                    placeholder="¿Cuál es el horario de atención?"
                     {...register(`faq.${index}.pregunta`)}
                   />
                   {errors.faq?.[index]?.pregunta?.message && (

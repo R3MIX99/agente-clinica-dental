@@ -332,7 +332,7 @@ function ListaPanel({
       <div className="flex-1 overflow-y-auto">
         {listaActual.length === 0 && (
           <p className="p-4 text-sm text-muted-foreground">
-            {vista === "activas" ? "Sin conversaciones aun." : "La papelera esta vacia."}
+            {vista === "activas" ? "Sin conversaciones aún." : "La papelera está vacía."}
           </p>
         )}
         {vista === "activas"
@@ -346,7 +346,7 @@ function ListaPanel({
                 accionIcon={<Trash2 className="h-3.5 w-3.5" />}
                 onAccion={() => onArchivar(conv.id)}
                 accionDisabled={accionandoId === conv.id}
-                accionTitle="Archivar conversacion"
+                accionTitle="Archivar conversación"
                 accionHoverClass="hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
               />
             ))
@@ -359,7 +359,7 @@ function ListaPanel({
                 accionIcon={<RotateCcw className="h-3.5 w-3.5" />}
                 onAccion={() => onRestaurar(conv.id)}
                 accionDisabled={accionandoId === conv.id}
-                accionTitle="Restaurar conversacion"
+                accionTitle="Restaurar conversación"
                 accionHoverClass="hover:bg-emerald-500/10 hover:text-emerald-600 text-muted-foreground"
                 opaco
               />
@@ -411,7 +411,7 @@ function ChatPanel({
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Selecciona una conversacion para ver el hilo de mensajes.
+          Selecciona una conversación para ver el hilo de mensajes.
         </p>
       </div>
     )
@@ -490,7 +490,7 @@ function ChatPanel({
           </div>
         ) : mensajes.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground pt-8">
-            Sin mensajes en esta conversacion.
+            Sin mensajes en esta conversación.
           </p>
         ) : (
           <div className="space-y-2 pb-2">
@@ -524,20 +524,20 @@ function ChatPanel({
             </Button>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Enter para enviar &middot; Shift+Enter para nueva linea
+            Enter para enviar &middot; Shift+Enter para nueva línea
           </p>
         </div>
       ) : convSeleccionadaEsActiva ? (
         <div className="border-t border-border px-4 py-3 shrink-0 bg-muted/30">
           <p className="text-xs text-muted-foreground text-center">
-            El bot esta manejando esta conversacion. Haz clic en{" "}
+            El bot está manejando esta conversación. Haz clic en{" "}
             <strong>Tomar control</strong> para responder como agente.
           </p>
         </div>
       ) : (
         <div className="border-t border-border px-4 py-3 shrink-0 bg-muted/30">
           <p className="text-xs text-muted-foreground text-center">
-            Esta conversacion esta archivada. Restaurala para poder interactuar con ella.
+            Esta conversación está archivada. Restáurala para poder interactuar con ella.
           </p>
         </div>
       )}
@@ -744,8 +744,8 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
     startTransition(async () => {
       try {
         await tomarControl(selectedId, agenteActual.id)
-        toast.success("Conversacion tomada — modo humano activado")
-      } catch { toast.error("Error al tomar control de la conversacion") }
+        toast.success("Conversación tomada — modo humano activado")
+      } catch { toast.error("Error al tomar control de la conversación") }
     })
   }
 
@@ -754,8 +754,8 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
     startTransition(async () => {
       try {
         await devolverAlBot(selectedId)
-        toast.success("Bot retomando la conversacion...")
-      } catch { toast.error("Error al devolver la conversacion al bot") }
+        toast.success("Bot retomando la conversación...")
+      } catch { toast.error("Error al devolver la conversación al bot") }
     })
   }
 
@@ -794,11 +794,11 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
     setAccionandoId(id)
     try {
       await archivarConversacion(id)
-      toast.success("Conversacion archivada")
+      toast.success("Conversación archivada")
     } catch {
       setConvs((prev) => ordenarPorUltimo([conv, ...prev]))
       setPapeleraConvs((prev) => prev.filter((c) => c.id !== id))
-      toast.error("Error al archivar la conversacion")
+      toast.error("Error al archivar la conversación")
     } finally { setAccionandoId(null) }
   }
 
@@ -829,11 +829,11 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
     setAccionandoId(id)
     try {
       await restaurarConversacion(id)
-      toast.success("Conversacion restaurada")
+      toast.success("Conversación restaurada")
     } catch {
       setPapeleraConvs((prev) => [conv, ...prev])
       setConvs((prev) => prev.filter((c) => c.id !== id))
-      toast.error("Error al restaurar la conversacion")
+      toast.error("Error al restaurar la conversación")
     } finally { setAccionandoId(null) }
   }
 
@@ -932,7 +932,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
       </div>
 
       {/* ================================================================== */}
-      {/* Confirmar archivar conversacion                                      */}
+      {/* Confirmar archivar conversación                                      */}
       {/* ================================================================== */}
       <Dialog
         open={confirmarArchivar !== null}
@@ -940,10 +940,10 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Archivar conversacion</DialogTitle>
+            <DialogTitle>Archivar conversación</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            La conversacion se movera a la papelera. Podras restaurarla desde ahi si lo necesitas.
+            La conversación se moverá a la papelera. Podrás restaurarla desde ahí si lo necesitas.
           </p>
           <DialogFooter>
             <Button
@@ -976,9 +976,9 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
           <p className="text-sm text-muted-foreground">
             Se eliminaran permanentemente{" "}
             <span className="font-medium text-foreground">
-              {papeleraConvs.length} conversacion{papeleraConvs.length === 1 ? "" : "es"}
+              {papeleraConvs.length} conversación{papeleraConvs.length === 1 ? "" : "es"}
             </span>{" "}
-            y todos sus mensajes. Esta accion no se puede deshacer.
+            y todos sus mensajes. Esta acción no se puede deshacer.
           </p>
           <DialogFooter>
             <Button

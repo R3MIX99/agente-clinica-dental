@@ -133,16 +133,16 @@ async function reanudarConBot(conversationId: string) {
         .join("\n\n")
     : ""
 
-  const systemPrompt = `Eres el asistente virtual de ${clinica?.nombre ?? "la clinica"}.
+  const systemPrompt = `Eres el asistente virtual de ${clinica?.nombre ?? "la clínica"}.
 
-Datos de la clinica:
-- Direccion: ${clinica?.direccion ?? ""}
-- Telefono: ${clinica?.telefono ?? ""}
+Datos de la clínica:
+- Dirección: ${clinica?.direccion ?? ""}
+- Teléfono: ${clinica?.telefono ?? ""}
 - Correo: ${clinica?.email ?? ""}
 - Sitio web: ${clinica?.sitio_web ?? ""}
 - Horario: ${clinica?.horario ?? ""}
 - Formas de pago: ${clinica?.formas_pago ?? ""}
-- Facturacion: ${clinica?.facturacion ?? ""}
+- Facturación: ${clinica?.facturacion ?? ""}
 
 Servicios:
 ${serviciosTxt}
@@ -150,12 +150,12 @@ ${serviciosTxt}
 Preguntas frecuentes:
 ${faqTexto}
 
-CONTEXTO DE ESTA SESION: Un agente humano acabo de devolverte el control de la conversacion. El historial puede contener mensajes donde el paciente pidio hablar con una persona — esa solicitud ya fue completamente atendida por el agente. No debes reaccionar a esas solicitudes antiguas.
+CONTEXTO DE ESTA SESIÓN: Un agente humano acaba de devolverte el control de la conversación. El historial puede contener mensajes donde el paciente pidió hablar con una persona — esa solicitud ya fue completamente atendida por el agente. No debes reaccionar a esas solicitudes antiguas.
 
 Instrucciones:
-1. Responde unicamente sobre la clinica, servicios, citas, horarios, contacto, facturacion y formas de pago.
-2. USA tipo "handoff" EXCLUSIVAMENTE si el ultimo mensaje del paciente (el que tienes que responder ahora) contiene una solicitud nueva y explicita de hablar con una persona. Solicitudes de agente en mensajes anteriores del historial deben ignorarse por completo.
-3. Responde en espanol formal, sin emojis. Si el texto tiene opciones, haz una lista con guiones (-).
+1. Responde únicamente sobre la clínica, servicios, citas, horarios, contacto, facturación y formas de pago.
+2. USA tipo "handoff" EXCLUSIVAMENTE si el último mensaje del paciente (el que tienes que responder ahora) contiene una solicitud nueva y explícita de hablar con una persona. Solicitudes de agente en mensajes anteriores del historial deben ignorarse por completo.
+3. Responde en español formal, sin emojis. Si el texto tiene opciones, haz una lista con guiones (-).
 4. Devuelve EXCLUSIVAMENTE un JSON con esta estructura:
    {"tipo": "respuesta" | "handoff", "texto": "tu respuesta"}
 5. No incluyas texto fuera del JSON.
@@ -194,7 +194,7 @@ Instrucciones:
   let parsed: { tipo: string; texto: string } = {
     tipo: "respuesta",
     texto:
-      "En este momento no puedo procesar su solicitud. Por favor llame al telefono de la clinica.",
+      "En este momento no puedo procesar su solicitud. Por favor llame al teléfono de la clínica.",
   }
   try {
     const match = respuesta.match(/\{[\s\S]*\}/)
@@ -231,7 +231,7 @@ Instrucciones:
       parsed = {
         tipo: "respuesta",
         texto:
-          "Estoy aqui para ayudarle. Por favor indiqueme en que puedo asistirle.",
+          "Estoy aquí para ayudarle. Por favor indíqueme en qué puedo asistirle.",
       }
     } else {
       // Handoff legitimo: el paciente lo esta pidiendo de nuevo ahora

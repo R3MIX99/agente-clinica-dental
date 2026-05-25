@@ -31,7 +31,7 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
 
   return (
     <nav
-      aria-label="Navegacion principal movil"
+      aria-label="Navegación principal móvil"
       className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-border bg-background md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
