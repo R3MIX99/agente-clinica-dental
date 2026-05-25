@@ -7,6 +7,8 @@ import {
   agregarNotaClinica,
   actualizarDoctoresFicha,
   agendarCitaFicha,
+  eliminarNotaClinica,
+  eliminarCitaFicha,
 } from "./actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -51,6 +53,7 @@ import {
   FlaskConical,
   Calendar,
   SquarePen,
+  Trash2,
 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
@@ -253,9 +256,11 @@ function buildTimeline(
 function ItemTimeline({
   evento,
   isLast,
+  onEliminar,
 }: {
   evento: EventoTimeline
   isLast: boolean
+  onEliminar?: () => void
 }) {
   const iconoClase = cn(
     "flex h-7 w-7 items-center justify-center rounded-full flex-shrink-0 mt-0.5",
@@ -283,61 +288,76 @@ function ItemTimeline({
 
       {/* Contenido */}
       <div className={cn("flex-1 min-w-0", !isLast && "pb-5")}>
-        <p className="text-[11px] text-muted-foreground mb-0.5">
-          {formatFechaCorta(evento.fecha)}
-        </p>
-
-        {evento.tipo === "cita" && (
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">
-              {evento.data.servicio?.nombre ?? "Cita sin servicio"}
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-muted-foreground mb-0.5">
+              {formatFechaCorta(evento.fecha)}
             </p>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
-                  STATUS_CITA_ESTILO[evento.data.status] ??
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                {STATUS_CITA_LABELS[evento.data.status] ?? evento.data.status}
-              </span>
-              {evento.data.doctor && (
-                <span className="text-xs text-muted-foreground">
-                  {evento.data.doctor.nombre}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
 
-        {evento.tipo === "estudio" && (
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">{evento.data.nombre}</p>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
-                  STATUS_ESTUDIO_ESTILO[evento.data.status] ??
-                    "bg-muted text-muted-foreground"
-                )}
-              >
-                {evento.data.status}
-              </span>
-              {evento.data.descripcion && (
-                <span className="text-xs text-muted-foreground truncate max-w-[240px]">
-                  {evento.data.descripcion}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+            {evento.tipo === "cita" && (
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  {evento.data.servicio?.nombre ?? "Cita sin servicio"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      STATUS_CITA_ESTILO[evento.data.status] ??
+                        "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {STATUS_CITA_LABELS[evento.data.status] ?? evento.data.status}
+                  </span>
+                  {evento.data.doctor && (
+                    <span className="text-xs text-muted-foreground">
+                      {evento.data.doctor.nombre}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {evento.tipo === "nota" && (
-          <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-            {evento.data.contenido}
-          </p>
-        )}
+            {evento.tipo === "estudio" && (
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">{evento.data.nombre}</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      STATUS_ESTUDIO_ESTILO[evento.data.status] ??
+                        "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {evento.data.status}
+                  </span>
+                  {evento.data.descripcion && (
+                    <span className="text-xs text-muted-foreground truncate max-w-[240px]">
+                      {evento.data.descripcion}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {evento.tipo === "nota" && (
+              <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                {evento.data.contenido}
+              </p>
+            )}
+          </div>
+
+          {onEliminar && (
+            <button
+              type="button"
+              onClick={onEliminar}
+              title="Eliminar"
+              className="flex-shrink-0 rounded p-1 text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors mt-0.5"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -387,6 +407,12 @@ export function PacienteFichaClient({
 
   // Drawer — detalle de cita (mobile)
   const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
+
+  // Confirmacion de eliminacion
+  const [confirmarEliminar, setConfirmarEliminar] = useState<{
+    tipo: "nota" | "cita"
+    id: string
+  } | null>(null)
 
   // ---------------------------------------------------------------------------
   // Handlers — agendar cita
@@ -468,6 +494,29 @@ export function PacienteFichaClient({
         router.refresh()
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : "Error al agregar la nota")
+      }
+    })
+  }
+
+  // ---------------------------------------------------------------------------
+  // Handler — eliminar item de trayectoria
+  // ---------------------------------------------------------------------------
+
+  function handleConfirmarEliminar() {
+    if (!confirmarEliminar) return
+    startTransition(async () => {
+      try {
+        if (confirmarEliminar.tipo === "nota") {
+          await eliminarNotaClinica(confirmarEliminar.id, paciente.id)
+          toast.success("Nota eliminada correctamente")
+        } else {
+          await eliminarCitaFicha(confirmarEliminar.id, paciente.id)
+          toast.success("Cita eliminada correctamente")
+        }
+        setConfirmarEliminar(null)
+        router.refresh()
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Error al eliminar")
       }
     })
   }
@@ -908,6 +957,15 @@ export function PacienteFichaClient({
                       key={evento.key}
                       evento={evento}
                       isLast={idx === timeline.length - 1}
+                      onEliminar={
+                        evento.tipo === "nota" || evento.tipo === "cita"
+                          ? () =>
+                              setConfirmarEliminar({
+                                tipo: evento.tipo as "nota" | "cita",
+                                id: evento.data.id,
+                              })
+                          : undefined
+                      }
                     />
                   ))}
                 </div>
@@ -1163,6 +1221,46 @@ export function PacienteFichaClient({
           </>
         )
       })()}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Confirmar eliminacion                                                */}
+      {/* ------------------------------------------------------------------ */}
+      <Dialog
+        open={confirmarEliminar !== null}
+        onOpenChange={(o) => { if (!o) setConfirmarEliminar(null) }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmarEliminar?.tipo === "nota"
+                ? "Eliminar nota clinica"
+                : "Eliminar cita"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {confirmarEliminar?.tipo === "nota"
+              ? "Esta accion eliminara la nota clinica de forma permanente y no se puede deshacer."
+              : "Esta accion eliminara la cita de forma permanente y no se puede deshacer."}
+          </p>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmarEliminar(null)}
+              disabled={isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmarEliminar}
+              disabled={isPending}
+            >
+              {isPending ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ------------------------------------------------------------------ */}
       {/* Drawer — detalle de cita (mobile)                                    */}

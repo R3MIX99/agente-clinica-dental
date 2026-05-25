@@ -111,3 +111,25 @@ export async function agendarCitaFicha(
   revalidatePath("/pacientes")
   revalidatePath("/citas")
 }
+
+export async function eliminarNotaClinica(notaId: string, patientId: string) {
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("clinical_notes")
+    .delete()
+    .eq("id", notaId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/pacientes/${patientId}`)
+}
+
+export async function eliminarCitaFicha(citaId: string, patientId: string) {
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("appointments")
+    .delete()
+    .eq("id", citaId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/pacientes/${patientId}`)
+  revalidatePath("/pacientes")
+  revalidatePath("/citas")
+}
