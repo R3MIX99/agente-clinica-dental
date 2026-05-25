@@ -16,6 +16,13 @@ import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft } from "lucide-react"
 
@@ -552,6 +559,8 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
   const [vista, setVista] = useState<Vista>("activas")
   const [accionandoId, setAccionandoId] = useState<string | null>(null)
   const [vaciando, setVaciando] = useState(false)
+  const [confirmarArchivar, setConfirmarArchivar] = useState<string | null>(null)
+  const [confirmarVaciar, setConfirmarVaciar] = useState(false)
   // Vista movil: "lista" | "chat"
   const [mobileVistaChat, setMobileVistaChat] = useState(false)
 
@@ -771,7 +780,12 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
     } finally { setEnviando(false) }
   }
 
-  const handleArchivar = async (id: string) => {
+  const handleArchivar = (id: string) => {
+    setConfirmarArchivar(id)
+  }
+
+  const ejecutarArchivar = async (id: string) => {
+    setConfirmarArchivar(null)
     const conv = convs.find((c) => c.id === id)
     if (!conv) return
     setConvs((prev) => prev.filter((c) => c.id !== id))
@@ -788,12 +802,13 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
     } finally { setAccionandoId(null) }
   }
 
-  const handleVaciarPapelera = async () => {
+  const handleVaciarPapelera = () => {
     if (papeleraConvs.length === 0) return
-    const ok = window.confirm(
-      `Se eliminaran permanentemente ${papeleraConvs.length} conversacion${papeleraConvs.length === 1 ? "" : "es"} y todos sus mensajes. Esta accion no se puede deshacer.`
-    )
-    if (!ok) return
+    setConfirmarVaciar(true)
+  }
+
+  const ejecutarVaciarPapelera = async () => {
+    setConfirmarVaciar(false)
     setVaciando(true)
     setPapeleraConvs([])
     setSelectedId(null)
@@ -915,6 +930,73 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
           mostrarBotonVolver={false}
         />
       </div>
+
+      {/* ================================================================== */}
+      {/* Confirmar archivar conversacion                                      */}
+      {/* ================================================================== */}
+      <Dialog
+        open={confirmarArchivar !== null}
+        onOpenChange={(o) => { if (!o) setConfirmarArchivar(null) }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Archivar conversacion</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            La conversacion se movera a la papelera. Podras restaurarla desde ahi si lo necesitas.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmarArchivar(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmarArchivar && ejecutarArchivar(confirmarArchivar)}
+            >
+              Archivar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================================================================== */}
+      {/* Confirmar vaciar papelera                                            */}
+      {/* ================================================================== */}
+      <Dialog
+        open={confirmarVaciar}
+        onOpenChange={(o) => { if (!o) setConfirmarVaciar(false) }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Vaciar papelera</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Se eliminaran permanentemente{" "}
+            <span className="font-medium text-foreground">
+              {papeleraConvs.length} conversacion{papeleraConvs.length === 1 ? "" : "es"}
+            </span>{" "}
+            y todos sus mensajes. Esta accion no se puede deshacer.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmarVaciar(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={ejecutarVaciarPapelera}
+              disabled={vaciando}
+            >
+              {vaciando ? "Eliminando..." : "Vaciar papelera"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
