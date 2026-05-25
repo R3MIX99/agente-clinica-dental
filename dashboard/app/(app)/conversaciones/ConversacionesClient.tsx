@@ -270,6 +270,7 @@ interface ListaPanelProps {
   atencionIds: Set<string>
   selectedId: string | null
   agenteActual: Agente | null
+  nombreUsuario: string
   accionandoId: string | null
   vaciando: boolean
   onSelectConv: (id: string) => void
@@ -281,7 +282,7 @@ interface ListaPanelProps {
 
 function ListaPanel({
   vista, convs, papeleraConvs, conteo, atencionIds, selectedId,
-  agenteActual, accionandoId, vaciando,
+  agenteActual, nombreUsuario, accionandoId, vaciando,
   onSelectConv, onSetVista, onArchivar, onRestaurar, onVaciarPapelera,
 }: ListaPanelProps) {
   const listaActual = vista === "activas" ? convs : papeleraConvs
@@ -830,7 +831,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
 
   const listaProps: ListaPanelProps = {
     vista, convs, papeleraConvs, conteo, atencionIds, selectedId,
-    agenteActual, accionandoId, vaciando,
+    agenteActual, nombreUsuario, accionandoId, vaciando,
     onSelectConv: handleSelectConv,
     onSetVista: handleSetVista,
     onArchivar: handleArchivar,
