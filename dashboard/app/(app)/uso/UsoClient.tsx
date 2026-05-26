@@ -155,7 +155,6 @@ function MejorarPlanDialog({
   const [open, setOpen] = useState(false)
 
   function handleContratar(plan: PlanCatalogo) {
-    // S5: aqui se inicia el flujo de pago con Mercado Pago
     toast.info(
       `Para cambiar al plan ${plan.nombre} (${fmt(plan.precio_mensual_mxn)}/mes), contactanos a soporte@dentalIA.mx. El pago en linea estara disponible proximamente.`,
       { duration: 6000 }
@@ -165,102 +164,129 @@ function MejorarPlanDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-3xl w-full">
-        <DialogHeader>
-          <DialogTitle>Elige tu nuevo plan</DialogTitle>
-          <DialogDescription>
+
+      <DialogContent className="w-full max-w-[960px] p-0 overflow-hidden">
+        {/* Encabezado */}
+        <div className="px-8 pt-8 pb-6 border-b border-border">
+          <DialogTitle className="text-xl font-semibold">Elige tu nuevo plan</DialogTitle>
+          <DialogDescription className="mt-1 text-sm">
             Cambia de plan en cualquier momento. El cobro se ajusta al dia del cambio.
           </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          {planes.map((plan) => {
-            const esActual  = plan.id === planActualId
-            const extras    = EXTRAS_PLAN[plan.nombre] ?? { descripcion: "", caracteristicas: [] }
-            const destacado = extras.destacado && !esActual
-
-            return (
-              <div
-                key={plan.id}
-                className={cn(
-                  "relative flex flex-col rounded-xl border p-5 transition-colors",
-                  esActual
-                    ? "border-border bg-muted/40 opacity-70 cursor-default"
-                    : destacado
-                    ? "border-primary bg-primary/5"
-                    : "border-border bg-card hover:border-primary/50"
-                )}
-              >
-                {/* Badge plan mas popular */}
-                {destacado && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground text-xs px-3">
-                      Mas popular
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Badge plan actual */}
-                {esActual && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge variant="secondary" className="text-xs px-3">
-                      Plan actual
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Nombre y precio */}
-                <div className="mb-4">
-                  <p className="text-sm font-semibold text-foreground">{plan.nombre}</p>
-                  <p className="mt-1">
-                    <span className="text-2xl font-bold text-foreground">{fmt(plan.precio_mensual_mxn)}</span>
-                    <span className="text-xs text-muted-foreground"> / mes</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{extras.descripcion}</p>
-                </div>
-
-                {/* Metricas clave */}
-                <div className="mb-4 space-y-1 text-xs text-muted-foreground border-t border-border pt-3">
-                  <p>{plan.max_doctores} doctor{plan.max_doctores === 1 ? "" : "es"}</p>
-                  <p>{plan.max_usuarios} usuario{plan.max_usuarios === 1 ? "" : "s"} admin/supervisor</p>
-                  <p>{fmt(plan.saldo_ia_incluido_mxn)} de saldo IA / mes</p>
-                  <p>{plan.max_recordatorios_mes.toLocaleString("es-MX")} recordatorios / mes</p>
-                </div>
-
-                {/* Caracteristicas */}
-                <ul className="mb-5 flex-1 space-y-1.5">
-                  {extras.caracteristicas.map((c) => (
-                    <li key={c} className="flex items-start gap-2 text-xs text-foreground">
-                      <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Boton */}
-                {esActual ? (
-                  <Button variant="outline" size="sm" disabled className="w-full">
-                    Plan actual
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant={destacado ? "default" : "outline"}
-                    className="w-full"
-                    onClick={() => handleContratar(plan)}
-                  >
-                    Contratar
-                    <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
-                  </Button>
-                )}
-              </div>
-            )
-          })}
         </div>
 
-        <p className="text-xs text-center text-muted-foreground pt-1">
-          Precios en MXN. Sin cargos ocultos. Cancela cuando quieras.
-        </p>
+        {/* Tarjetas de planes */}
+        <div className="px-8 py-6">
+          <div className="grid grid-cols-3 gap-5">
+            {planes.map((plan) => {
+              const esActual  = plan.id === planActualId
+              const extras    = EXTRAS_PLAN[plan.nombre] ?? { descripcion: "", caracteristicas: [] }
+              const destacado = extras.destacado && !esActual
+
+              return (
+                <div
+                  key={plan.id}
+                  className={cn(
+                    "relative flex flex-col rounded-xl border p-6",
+                    esActual
+                      ? "border-border bg-muted/30 select-none"
+                      : destacado
+                      ? "border-primary/70 bg-primary/5 shadow-sm"
+                      : "border-border bg-card hover:border-muted-foreground/40 transition-colors"
+                  )}
+                >
+                  {/* Badge superior */}
+                  {(esActual || destacado) && (
+                    <div className="absolute -top-3 left-6">
+                      {esActual ? (
+                        <Badge variant="secondary" className="text-xs">Plan actual</Badge>
+                      ) : (
+                        <Badge className="bg-primary text-primary-foreground text-xs">Mas popular</Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Nombre */}
+                  <p className={cn(
+                    "text-lg font-bold",
+                    esActual ? "text-muted-foreground" : "text-foreground"
+                  )}>
+                    {plan.nombre}
+                  </p>
+
+                  {/* Precio */}
+                  <div className="mt-2 mb-1 flex items-end gap-1">
+                    <span className={cn(
+                      "text-4xl font-extrabold tracking-tight",
+                      esActual ? "text-muted-foreground" : "text-foreground"
+                    )}>
+                      {fmt(plan.precio_mensual_mxn)}
+                    </span>
+                    <span className="text-sm text-muted-foreground mb-1">/ mes</span>
+                  </div>
+
+                  {/* Descripcion */}
+                  <p className="text-sm text-muted-foreground mb-5 min-h-[40px]">
+                    {extras.descripcion}
+                  </p>
+
+                  {/* Metricas clave */}
+                  <div className="mb-5 rounded-lg bg-muted/50 px-4 py-3 space-y-1.5 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Doctores</span>
+                      <span className="font-medium">{plan.max_doctores}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Usuarios admin</span>
+                      <span className="font-medium">{plan.max_usuarios}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Saldo IA / mes</span>
+                      <span className="font-medium">{fmt(plan.saldo_ia_incluido_mxn)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Recordatorios</span>
+                      <span className="font-medium">{plan.max_recordatorios_mes.toLocaleString("es-MX")}</span>
+                    </div>
+                  </div>
+
+                  {/* Caracteristicas */}
+                  <ul className="flex-1 space-y-2 mb-6">
+                    {extras.caracteristicas.map((c) => (
+                      <li key={c} className="flex items-start gap-2.5 text-sm">
+                        <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+                        <span className={esActual ? "text-muted-foreground" : "text-foreground"}>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Boton */}
+                  {esActual ? (
+                    <Button variant="outline" size="default" disabled className="w-full opacity-60">
+                      Plan actual
+                    </Button>
+                  ) : (
+                    <Button
+                      size="default"
+                      variant={destacado ? "default" : "outline"}
+                      className="w-full"
+                      onClick={() => handleContratar(plan)}
+                    >
+                      Contratar
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Pie */}
+        <div className="px-8 py-4 border-t border-border bg-muted/20">
+          <p className="text-xs text-center text-muted-foreground">
+            Precios en MXN sin IVA. Sin cargos ocultos. Cancela cuando quieras.
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   )
