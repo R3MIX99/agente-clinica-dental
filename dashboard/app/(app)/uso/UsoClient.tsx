@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -114,7 +115,14 @@ export function UsoClient({ uso }: { uso: UsoClinica }) {
                 )}
               </CardDescription>
             </div>
-            <BadgeEstado estado={suscripcion.estado} />
+            <div className="flex items-center gap-2 shrink-0">
+              <BadgeEstado estado={suscripcion.estado} />
+              <Button asChild size="sm" variant="outline">
+                <Link href="/" target="_blank" rel="noopener noreferrer">
+                  Mejorar plan
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>
