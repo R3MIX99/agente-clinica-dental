@@ -36,27 +36,58 @@ export async function registrarCuenta(
         nombre: datos.nombre.trim(),
         rol: "administrador",
       },
-      // Redirigir al callback de confirmacion que apunta al onboarding
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/auth/callback?next=/onboarding`,
     },
   })
 
+  // Clasificar el error de signUp
   if (signUpError) {
-    if (
-      signUpError.message.toLowerCase().includes("already registered") ||
-      signUpError.message.toLowerCase().includes("already exists")
-    ) {
-      return { error: "Ya existe una cuenta con ese correo electronico." }
+    const msg = signUpError.message.toLowerCase()
+    const code = (signUpError as any).code ?? ""
+
+    if (msg.includes("already registered") || msg.includes("already exists")) {
+      return { error: "Ya existe una cuenta con ese correo electronico. Intenta iniciar sesion." }
     }
-    return { error: "Error al crear la cuenta. Intentalo de nuevo." }
+
+    // Rate limit de correos: el usuario YA existe en Auth pero los registros de BD
+    // pueden no haberse creado (si una sesion anterior fallo). Continuamos con el
+    // userId que Supabase devuelve aunque el correo de confirmacion no se haya reenviado.
+    const esRateLimit =
+      code === "over_email_send_rate_limit" ||
+      msg.includes("rate limit") ||
+      msg.includes("only request this after")
+
+    if (esRateLimit && signUpData?.user) {
+      // Seguir adelante — el userId esta disponible; manejar abajo
+    } else if (esRateLimit) {
+      return {
+        error:
+          "Ese correo ya tiene un registro pendiente de confirmacion. Revisa tu bandeja de entrada o espera unos minutos para volver a intentarlo.",
+      }
+    } else {
+      return { error: "Error al crear la cuenta. Intentalo de nuevo." }
+    }
   }
 
-  const userId = signUpData.user?.id
+  const userId = signUpData?.user?.id
   if (!userId) {
     return { error: "Error al crear la cuenta. Intentalo de nuevo." }
   }
 
-  const db = createServerClient() // service_role para operaciones de BD
+  const db = createServerClient() // service_role — bypasses RLS
+
+  // Verificar si el usuario ya tiene clinica_id asignado (registro previo parcial)
+  const { data: perfilExistente } = await db
+    .from("profiles")
+    .select("clinica_id, cuenta_id")
+    .eq("id", userId)
+    .single()
+
+  if (perfilExistente?.clinica_id) {
+    // Los registros de BD ya existen desde un intento anterior —
+    // solo indicar que se requiere confirmacion de correo
+    return { confirmacionPendiente: true }
+  }
 
   // 2. Crear cuenta (empresa)
   const { data: cuenta, error: errCuenta } = await db
@@ -93,7 +124,7 @@ export async function registrarCuenta(
     return { error: "Error al crear la clinica. Intentalo de nuevo." }
   }
 
-  // 4. Actualizar perfil (el trigger ya lo creo, solo completamos los campos de tenant)
+  // 4. Actualizar perfil (el trigger ya lo creo al hacer signUp)
   await db
     .from("profiles")
     .update({
@@ -127,8 +158,8 @@ export async function registrarCuenta(
     fin_periodo: fin.toISOString().split("T")[0],
   } as any)
 
-  // 7. Si hay sesion inmediata (sin confirmacion de correo), establecer cookie y redirigir
-  if (signUpData.session) {
+  // 7. Sesion inmediata (email confirmation desactivado) → cookie + redirect
+  if (signUpData?.session) {
     const cookieStore = await cookies()
     cookieStore.set("clinica_activa", clinica.id, {
       httpOnly: true,
@@ -140,6 +171,6 @@ export async function registrarCuenta(
     redirect("/onboarding")
   }
 
-  // Sin sesion: se requiere confirmacion de correo electronico
+  // Sin sesion: correo de confirmacion pendiente
   return { confirmacionPendiente: true }
 }
