@@ -287,9 +287,11 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          intencion: string | null
           last_message_at: string
           mode: Database["public"]["Enums"]["conversation_mode"]
           patient_id: string | null
+          sentimiento: string | null
           status: Database["public"]["Enums"]["conversation_status"]
         }
         Insert: {
@@ -299,9 +301,11 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          intencion?: string | null
           last_message_at?: string
           mode?: Database["public"]["Enums"]["conversation_mode"]
           patient_id?: string | null
+          sentimiento?: string | null
           status?: Database["public"]["Enums"]["conversation_status"]
         }
         Update: {
@@ -311,9 +315,11 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          intencion?: string | null
           last_message_at?: string
           mode?: Database["public"]["Enums"]["conversation_mode"]
           patient_id?: string | null
+          sentimiento?: string | null
           status?: Database["public"]["Enums"]["conversation_status"]
         }
         Relationships: [
