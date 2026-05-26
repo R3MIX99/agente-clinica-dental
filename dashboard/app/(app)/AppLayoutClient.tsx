@@ -9,15 +9,20 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { AtencionProvider } from "@/lib/atencion-context"
 import { GlobalAtencionListener } from "@/components/global-atencion-listener"
 import type { Rol } from "./layout"
+import type { ClinicaBasica } from "@/components/clinica-selector"
 
 export function AppLayoutClient({
   children,
   rol,
   doctorId,
+  clinicaActual,
+  clinicas,
 }: {
   children: React.ReactNode
   rol: Rol
   doctorId?: string | null
+  clinicaActual: ClinicaBasica
+  clinicas: ClinicaBasica[]
 }) {
   const pathname = usePathname()
 
@@ -28,14 +33,19 @@ export function AppLayoutClient({
 
         {/* Sidebar — solo escritorio */}
         <div className="hidden md:flex">
-          <AppSidebar rol={rol} doctorId={doctorId} />
+          <AppSidebar
+            rol={rol}
+            doctorId={doctorId}
+            clinicaActual={clinicaActual}
+            clinicas={clinicas}
+          />
         </div>
 
         {/* Area principal */}
         <div className="flex flex-1 flex-col overflow-hidden">
 
           {/* Header movil */}
-          <MobileHeader />
+          <MobileHeader clinicaActual={clinicaActual} clinicas={clinicas} />
 
           {/* Topbar escritorio */}
           <header className="hidden md:flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
