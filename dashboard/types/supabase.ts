@@ -225,9 +225,11 @@ export type Database = {
           id: string
           mapa_url: string | null
           nombre: string | null
+          onboarding_completado: boolean
           sitio_web: string | null
           telefono: string | null
           updated_at: string
+          zona_horaria: string
         }
         Insert: {
           activa?: boolean
@@ -242,9 +244,11 @@ export type Database = {
           id?: string
           mapa_url?: string | null
           nombre?: string | null
+          onboarding_completado?: boolean
           sitio_web?: string | null
           telefono?: string | null
           updated_at?: string
+          zona_horaria?: string
         }
         Update: {
           activa?: boolean
@@ -259,9 +263,11 @@ export type Database = {
           id?: string
           mapa_url?: string | null
           nombre?: string | null
+          onboarding_completado?: boolean
           sitio_web?: string | null
           telefono?: string | null
           updated_at?: string
+          zona_horaria?: string
         }
         Relationships: [
           {
