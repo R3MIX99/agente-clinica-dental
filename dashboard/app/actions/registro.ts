@@ -144,10 +144,17 @@ export async function registrarCuenta(
     activa: true,
   } as any)
 
-  // 6. Crear suscripcion en estado de prueba (14 dias)
+  // 6. Crear suscripcion en estado de prueba (14 dias) con saldo de IA incluido del plan
   const inicio = new Date()
   const fin = new Date(inicio)
   fin.setDate(fin.getDate() + 14)
+
+  // Obtener el saldo incluido del plan seleccionado
+  const { data: planSeleccionado } = await db
+    .from("planes")
+    .select("saldo_ia_incluido_mxn")
+    .eq("id", datos.planId)
+    .single()
 
   await db.from("suscripciones").insert({
     cuenta_id: cuenta.id,
@@ -156,6 +163,7 @@ export async function registrarCuenta(
     periodo: "mensual",
     inicio_periodo: inicio.toISOString().split("T")[0],
     fin_periodo: fin.toISOString().split("T")[0],
+    saldo_ia_disponible_mxn: planSeleccionado?.saldo_ia_incluido_mxn ?? 0,
   } as any)
 
   // 7. Sesion inmediata (email confirmation desactivado) → cookie + redirect

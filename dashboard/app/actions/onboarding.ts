@@ -3,6 +3,7 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { createAuthClient } from "@/lib/supabase/server-auth"
 import { resolverClinicaId } from "@/lib/supabase/server-auth"
+import { verificarLimiteDoctores, verificarLimiteUsuarios } from "@/app/actions/uso"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -98,6 +99,19 @@ export async function invitarMiembros(miembros: DatosMiembro[]) {
     .eq("id", clinicaId)
     .single()
   if (!clinica) throw new Error("Clinica no encontrada")
+
+  // Enforcement de limites del plan (validacion servidor)
+  const doctoresNuevos  = miembros.filter((m) => m.rol === "doctor" && m.email.trim())
+  const usuariosNuevos  = miembros.filter((m) => m.rol !== "doctor" && m.email.trim())
+
+  if (doctoresNuevos.length > 0) {
+    const limite = await verificarLimiteDoctores()
+    if (!limite.permitido) throw new Error(limite.mensaje ?? "Limite de doctores alcanzado")
+  }
+  if (usuariosNuevos.length > 0) {
+    const limite = await verificarLimiteUsuarios()
+    if (!limite.permitido) throw new Error(limite.mensaje ?? "Limite de usuarios alcanzado")
+  }
 
   for (const miembro of miembros) {
     const emailLimpio = miembro.email.trim().toLowerCase()

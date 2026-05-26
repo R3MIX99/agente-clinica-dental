@@ -936,6 +936,114 @@ export type Database = {
           },
         ]
       }
+      config_sistema: {
+        Row: {
+          clave: string
+          valor: string
+          descripcion: string | null
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          valor: string
+          descripcion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          valor?: string
+          descripcion?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consumos_ia: {
+        Row: {
+          id: string
+          cuenta_id: string
+          clinica_id: string
+          suscripcion_id: string
+          conversacion_id: string | null
+          modelo: string
+          tokens_entrada: number
+          tokens_salida: number
+          costo_api_usd: number
+          tipo_cambio: number
+          markup: number
+          costo_descontado_mxn: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cuenta_id: string
+          clinica_id: string
+          suscripcion_id: string
+          conversacion_id?: string | null
+          modelo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          costo_api_usd?: number
+          tipo_cambio?: number
+          markup?: number
+          costo_descontado_mxn?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cuenta_id?: string
+          clinica_id?: string
+          suscripcion_id?: string
+          conversacion_id?: string | null
+          modelo?: string
+          tokens_entrada?: number
+          tokens_salida?: number
+          costo_api_usd?: number
+          tipo_cambio?: number
+          markup?: number
+          costo_descontado_mxn?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      recargas_saldo: {
+        Row: {
+          id: string
+          cuenta_id: string
+          clinica_id: string
+          suscripcion_id: string
+          monto_mxn: number
+          estado: string
+          referencia_pago: string | null
+          vigencia_fin: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          cuenta_id: string
+          clinica_id: string
+          suscripcion_id: string
+          monto_mxn: number
+          estado?: string
+          referencia_pago?: string | null
+          vigencia_fin?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          cuenta_id?: string
+          clinica_id?: string
+          suscripcion_id?: string
+          monto_mxn?: number
+          estado?: string
+          referencia_pago?: string | null
+          vigencia_fin?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -943,6 +1051,20 @@ export type Database = {
     Functions: {
       es_superadmin: { Args: never; Returns: boolean }
       usuario_en_clinica: { Args: { p_clinica_id: string }; Returns: boolean }
+      registrar_consumo_ia: {
+        Args: {
+          p_clinica_id: string
+          p_conversacion_id: string | null
+          p_tokens_entrada: number
+          p_tokens_salida: number
+          p_modelo?: string
+        }
+        Returns: Json
+      }
+      ia_disponible: {
+        Args: { p_clinica_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       agent_role: "admin" | "recepcion" | "odontologo"
