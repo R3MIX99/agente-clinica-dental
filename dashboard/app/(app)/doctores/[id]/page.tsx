@@ -16,21 +16,20 @@ export default async function DoctorFichaPage({
 
   const { id } = await params
 
-  // Verificar acceso: si es doctor, solo puede ver su propia ficha
   const { data: perfil } = await authClient
     .from("profiles")
-    .select("rol, doctor_id")
+    .select("rol, doctor_id, clinica_id")
     .eq("id", session.user.id)
     .single()
 
   if (perfil?.rol === "doctor") {
     if (!perfil.doctor_id || perfil.doctor_id !== id) {
-      // Redirigir a su propia ficha o a citas si no tiene ficha vinculada
       if (perfil.doctor_id) redirect(`/doctores/${perfil.doctor_id}`)
       else redirect("/citas")
     }
   }
 
+  const clinicaId = perfil?.clinica_id ?? null
   const db = createServerClient()
   const ahora = new Date().toISOString()
 
@@ -57,13 +56,15 @@ export default async function DoctorFichaPage({
         "id, fecha_hora, status, notas, patients(id, nombre), services(id, nombre, duracion_min)"
       )
       .eq("doctor_id", id)
+      .eq("clinica_id", clinicaId ?? "")
       .gte("fecha_hora", ahora)
       .in("status", ["programada", "confirmada"])
       .order("fecha_hora"),
     db
       .from("patient_doctors")
       .select("orden, patients(id, nombre, telefono, email, channel)")
-      .eq("doctor_id", id),
+      .eq("doctor_id", id)
+      .eq("clinica_id", clinicaId ?? ""),
   ])
 
   if (!doctor) notFound()

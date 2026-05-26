@@ -28,7 +28,7 @@ export async function createAuthClient() {
   )
 }
 
-// Leer el perfil del usuario autenticado actual
+// Leer el perfil del usuario autenticado actual, incluyendo el contexto de inquilino
 export async function getProfile() {
   const supabase = await createAuthClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -36,9 +36,19 @@ export async function getProfile() {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, nombre, rol, doctor_id")
+    .select("id, nombre, rol, doctor_id, clinica_id, cuenta_id")
     .eq("id", user.id)
     .single()
 
   return data
+}
+
+// Obtener el clinica_id activo del perfil o lanzar error si no esta disponible
+// Se usa en Server Actions que necesitan el contexto de inquilino
+export async function resolverClinicaId(): Promise<string> {
+  const perfil = await getProfile()
+  if (!perfil?.clinica_id) {
+    throw new Error("Sin clinica activa. Por favor, contacte al administrador.")
+  }
+  return perfil.clinica_id
 }

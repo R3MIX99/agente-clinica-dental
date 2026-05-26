@@ -10,10 +10,9 @@ export default async function DoctoresPage() {
   const { data: { session } } = await authClient.auth.getSession()
   if (!session?.user) redirect("/login")
 
-  // Si es doctor, redirigir a su propia ficha
   const { data: perfil } = await authClient
     .from("profiles")
-    .select("rol, doctor_id")
+    .select("rol, doctor_id, clinica_id")
     .eq("id", session.user.id)
     .single()
 
@@ -21,14 +20,20 @@ export default async function DoctoresPage() {
     if (perfil.doctor_id) {
       redirect(`/doctores/${perfil.doctor_id}`)
     }
-    // Doctor sin ficha vinculada — redirigir a citas
     redirect("/citas")
+  }
+
+  const clinicaId = perfil?.clinica_id ?? null
+
+  if (!clinicaId) {
+    return <DoctoresClient doctores={[]} />
   }
 
   const db = createServerClient()
   const { data: doctores } = await db
     .from("doctors")
     .select("id, nombre, email, especialidades, fecha_ingreso, created_at")
+    .eq("clinica_id", clinicaId)
     .order("nombre")
 
   return <DoctoresClient doctores={doctores ?? []} />

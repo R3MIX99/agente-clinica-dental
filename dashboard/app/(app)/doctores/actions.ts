@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 // ---------------------------------------------------------------------------
@@ -14,7 +15,6 @@ async function sincronizarEmailDoctor(
 ) {
   if (!nuevoEmail) return
 
-  // Buscar el perfil de usuario vinculado a este doctor
   const { data: perfil } = await db
     .from("profiles")
     .select("id, email")
@@ -23,10 +23,7 @@ async function sincronizarEmailDoctor(
 
   if (!perfil || perfil.email === nuevoEmail) return
 
-  // Actualizar email en profiles
   await db.from("profiles").update({ email: nuevoEmail }).eq("id", perfil.id)
-
-  // Actualizar email en auth (puede requerir verificacion segun configuracion de Supabase)
   await db.auth.admin.updateUserById(perfil.id, { email: nuevoEmail })
 }
 
@@ -38,19 +35,21 @@ export type DatosDoctor = {
 }
 
 export async function crearDoctor(datos: DatosDoctor) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase.from("doctors").insert({
+    clinica_id: clinicaId,
     nombre: datos.nombre.trim(),
     email: datos.email.trim() || null,
     fecha_ingreso: datos.fecha_ingreso || null,
-    especialidades:
-      datos.especialidades.length > 0 ? datos.especialidades : null,
+    especialidades: datos.especialidades.length > 0 ? datos.especialidades : null,
   })
   if (error) throw new Error(error.message)
   revalidatePath("/doctores")
 }
 
 export async function actualizarDoctor(id: string, datos: DatosDoctor) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
 
   const emailFinal = datos.email.trim() || null
@@ -61,13 +60,12 @@ export async function actualizarDoctor(id: string, datos: DatosDoctor) {
       nombre: datos.nombre.trim(),
       email: emailFinal,
       fecha_ingreso: datos.fecha_ingreso || null,
-      especialidades:
-        datos.especialidades.length > 0 ? datos.especialidades : null,
+      especialidades: datos.especialidades.length > 0 ? datos.especialidades : null,
     })
     .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
 
-  // Sincronizar el nuevo correo al usuario vinculado (profiles + auth)
   await sincronizarEmailDoctor(supabase, id, emailFinal)
 
   revalidatePath("/doctores")
@@ -76,8 +74,13 @@ export async function actualizarDoctor(id: string, datos: DatosDoctor) {
 }
 
 export async function eliminarDoctor(id: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
-  const { error } = await supabase.from("doctors").delete().eq("id", id)
+  const { error } = await supabase
+    .from("doctors")
+    .delete()
+    .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) {
     if (error.message.includes("foreign key")) {
       throw new Error(

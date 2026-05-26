@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { sendAgentMessage } from "@/lib/n8n"
 import { revalidatePath } from "next/cache"
 
@@ -21,14 +22,12 @@ export async function tomarControl(conversationId: string, agenteId: string) {
 export async function devolverAlBot(conversationId: string) {
   const supabase = createServerClient()
 
-  // 1. Cambiar modo a bot primero para que el Realtime lo refleje de inmediato
   const { error } = await supabase
     .from("conversations")
     .update({ mode: "bot", assigned_agent_id: null })
     .eq("id", conversationId)
   if (error) throw new Error(error.message)
 
-  // 2. Llamar a Claude con el historial de la conversacion y enviar respuesta
   await reanudarConBot(conversationId)
 
   revalidatePath("/conversaciones")
@@ -44,10 +43,10 @@ async function reanudarConBot(conversationId: string) {
 
   const supabase = createServerClient()
 
-  // Obtener la conversacion con datos del paciente
+  // Obtener la conversacion con datos del paciente y clinica_id
   const { data: conv } = await supabase
     .from("conversations")
-    .select("id, channel, patients(nombre, channel, channel_user_id)")
+    .select("id, channel, clinica_id, patients(nombre, channel, channel_user_id)")
     .eq("id", conversationId)
     .single()
 
@@ -61,9 +60,6 @@ async function reanudarConBot(conversationId: string) {
 
   if (!paciente?.channel_user_id) return
 
-  // Obtener los 30 mensajes MAS RECIENTES como contexto.
-  // Se ordena descendente para que limit() tome los ultimos, luego se invierte
-  // para que Claude los reciba en orden cronologico.
   const { data: mensajesDesc } = await supabase
     .from("messages")
     .select("direction, sender, contenido")
@@ -75,9 +71,6 @@ async function reanudarConBot(conversationId: string) {
 
   if (!mensajes || mensajes.length === 0) return
 
-  // Construir array de mensajes para Claude con roles alternados.
-  // Mensajes entrantes → user; salientes (bot o agente) → assistant.
-  // Se fusionan mensajes consecutivos del mismo rol para cumplir con la API.
   const claudeMessages: Array<{ role: "user" | "assistant"; content: string }> = []
 
   for (const msg of mensajes) {
@@ -91,12 +84,10 @@ async function reanudarConBot(conversationId: string) {
     }
   }
 
-  // Descartar mensajes iniciales de asistente (Claude exige empezar con user)
   while (claudeMessages.length > 0 && claudeMessages[0].role !== "user") {
     claudeMessages.shift()
   }
 
-  // Si el ultimo mensaje no es del usuario, no hay nada que responder
   if (
     claudeMessages.length === 0 ||
     claudeMessages[claudeMessages.length - 1].role !== "user"
@@ -104,10 +95,16 @@ async function reanudarConBot(conversationId: string) {
     return
   }
 
-  // Obtener datos de clinica y servicios para el system prompt
+  // Obtener datos de clinica (tabla clinicas) y servicios filtrados por clinica_id
+  const clinicaId = conv.clinica_id
+
   const [{ data: clinicaData }, { data: serviciosData }] = await Promise.all([
-    supabase.from("clinic_info").select("*").limit(1).single(),
-    supabase.from("services").select("nombre, precio, duracion_min, descripcion").eq("activo", true),
+    supabase.from("clinicas").select("*").eq("id", clinicaId).single(),
+    supabase
+      .from("services")
+      .select("nombre, precio, duracion_min, descripcion")
+      .eq("clinica_id", clinicaId)
+      .eq("activo", true),
   ])
 
   const clinica = clinicaData as Record<string, unknown> | null
@@ -133,16 +130,16 @@ async function reanudarConBot(conversationId: string) {
         .join("\n\n")
     : ""
 
-  const systemPrompt = `Eres el asistente virtual de ${clinica?.nombre ?? "la clínica"}.
+  const systemPrompt = `Eres el asistente virtual de ${clinica?.nombre ?? "la clinica"}.
 
-Datos de la clínica:
-- Dirección: ${clinica?.direccion ?? ""}
-- Teléfono: ${clinica?.telefono ?? ""}
+Datos de la clinica:
+- Direccion: ${clinica?.direccion ?? ""}
+- Telefono: ${clinica?.telefono ?? ""}
 - Correo: ${clinica?.email ?? ""}
 - Sitio web: ${clinica?.sitio_web ?? ""}
 - Horario: ${clinica?.horario ?? ""}
 - Formas de pago: ${clinica?.formas_pago ?? ""}
-- Facturación: ${clinica?.facturacion ?? ""}
+- Facturacion: ${clinica?.facturacion ?? ""}
 
 Servicios:
 ${serviciosTxt}
@@ -150,18 +147,17 @@ ${serviciosTxt}
 Preguntas frecuentes:
 ${faqTexto}
 
-CONTEXTO DE ESTA SESIÓN: Un agente humano acaba de devolverte el control de la conversación. El historial puede contener mensajes donde el paciente pidió hablar con una persona — esa solicitud ya fue completamente atendida por el agente. No debes reaccionar a esas solicitudes antiguas.
+CONTEXTO DE ESTA SESION: Un agente humano acaba de devolverte el control de la conversacion. El historial puede contener mensajes donde el paciente pidio hablar con una persona; esa solicitud ya fue completamente atendida por el agente. No debes reaccionar a esas solicitudes antiguas.
 
 Instrucciones:
-1. Responde únicamente sobre la clínica, servicios, citas, horarios, contacto, facturación y formas de pago.
-2. USA tipo "handoff" EXCLUSIVAMENTE si el último mensaje del paciente (el que tienes que responder ahora) contiene una solicitud nueva y explícita de hablar con una persona. Solicitudes de agente en mensajes anteriores del historial deben ignorarse por completo.
-3. Responde en español formal, sin emojis. Si el texto tiene opciones, haz una lista con guiones (-).
+1. Responde unicamente sobre la clinica, servicios, citas, horarios, contacto, facturacion y formas de pago.
+2. USA tipo "handoff" EXCLUSIVAMENTE si el ultimo mensaje del paciente contiene una solicitud nueva y explicita de hablar con una persona.
+3. Responde en espanol formal, sin emojis. Si el texto tiene opciones, haz una lista con guiones (-).
 4. Devuelve EXCLUSIVAMENTE un JSON con esta estructura:
    {"tipo": "respuesta" | "handoff", "texto": "tu respuesta"}
 5. No incluyas texto fuera del JSON.
 6. No puedes agendar citas directamente; indica llamar, enviar mensaje o escribir al correo.`
 
-  // Llamar a la API de Anthropic
   let respuesta: string
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -190,11 +186,9 @@ Instrucciones:
     throw new Error(`Error al llamar a Claude: ${err instanceof Error ? err.message : String(err)}`)
   }
 
-  // Parsear la respuesta JSON de Claude
   let parsed: { tipo: string; texto: string } = {
     tipo: "respuesta",
-    texto:
-      "En este momento no puedo procesar su solicitud. Por favor llame al teléfono de la clínica.",
+    texto: "En este momento no puedo procesar su solicitud. Por favor llame al telefono de la clinica.",
   }
   try {
     const match = respuesta.match(/\{[\s\S]*\}/)
@@ -204,9 +198,6 @@ Instrucciones:
   }
 
   if (parsed.tipo === "handoff") {
-    // Verificar si el handoff es legitimo: solo contar como nuevo handoff
-    // si el paciente pidio agente en sus mensajes MAS RECIENTES (despues de la
-    // ultima respuesta del agente), no en mensajes anteriores del historial.
     const indicadorUltimoSaliente = [...mensajes]
       .reverse()
       .findIndex((m) => m.direction === "saliente")
@@ -227,21 +218,17 @@ Instrucciones:
       /humano|agente|persona|representante|hablar con/.test(textoNuevo)
 
     if (!handoffExplicito) {
-      // Claude interpreto erroneamente solicitudes antiguas — forzar respuesta normal
       parsed = {
         tipo: "respuesta",
-        texto:
-          "Estoy aquí para ayudarle. Por favor indíqueme en qué puedo asistirle.",
+        texto: "Estoy aqui para ayudarle. Por favor indicame en que puedo asistirle.",
       }
     } else {
-      // Handoff legitimo: el paciente lo esta pidiendo de nuevo ahora
       await supabase
         .from("conversations")
         .update({ mode: "humano", status: "pendiente" })
         .eq("id", conversationId)
 
-      const textoHandoff =
-        "En un momento le atiende un miembro de nuestro equipo."
+      const textoHandoff = "En un momento le atiende un miembro de nuestro equipo."
 
       await Promise.all([
         supabase.from("messages").insert({
@@ -262,7 +249,6 @@ Instrucciones:
     }
   }
 
-  // Respuesta normal: insertar en BD y enviar por Telegram
   await Promise.all([
     supabase.from("messages").insert({
       conversation_id: conversationId,
@@ -297,7 +283,6 @@ export async function obtenerMensajes(conversationId: string) {
 
 export async function obtenerConversacion(conversationId: string) {
   const supabase = createServerClient()
-  // Solo devuelve conversaciones activas (no archivadas)
   const { data } = await supabase
     .from("conversations")
     .select(
@@ -314,12 +299,13 @@ export async function obtenerConversacion(conversationId: string) {
 // ---------------------------------------------------------------------------
 
 export async function vaciarPapelera() {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
 
-  // Obtener los IDs archivados para borrar sus mensajes primero
   const { data: archivadas, error: errSelect } = await supabase
     .from("conversations")
     .select("id")
+    .eq("clinica_id", clinicaId)
     .not("deleted_at", "is", null)
 
   if (errSelect) throw new Error(errSelect.message)
@@ -327,17 +313,16 @@ export async function vaciarPapelera() {
 
   const ids = archivadas.map((c) => c.id)
 
-  // Borrar mensajes (la FK no tiene CASCADE definido)
   const { error: errMsg } = await supabase
     .from("messages")
     .delete()
     .in("conversation_id", ids)
   if (errMsg) throw new Error(errMsg.message)
 
-  // Borrar conversaciones archivadas
   const { error: errConv } = await supabase
     .from("conversations")
     .delete()
+    .eq("clinica_id", clinicaId)
     .not("deleted_at", "is", null)
   if (errConv) throw new Error(errConv.message)
 
@@ -377,7 +362,6 @@ export async function enviarMensajeAlPaciente(params: {
 }) {
   const supabase = createServerClient()
 
-  // 1. Insertar en BD primero para que Realtime dispare antes de que n8n responda
   const { error: errMsg } = await supabase.from("messages").insert({
     conversation_id: params.conversationId,
     direction: "saliente",
@@ -387,7 +371,6 @@ export async function enviarMensajeAlPaciente(params: {
   })
   if (errMsg) throw new Error(errMsg.message)
 
-  // 2. Enviar por Telegram via n8n WF03
   await sendAgentMessage({
     conversationId: params.conversationId,
     channel: params.channel,

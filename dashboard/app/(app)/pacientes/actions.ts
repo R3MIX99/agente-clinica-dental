@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 // ---------------------------------------------------------------------------
@@ -67,10 +68,12 @@ export type DatosCitaRapida = {
 // ---------------------------------------------------------------------------
 
 export async function crearPaciente(datos: DatosPaciente) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("patients")
     .insert({
+      clinica_id: clinicaId,
       nombre: datos.nombre.trim(),
       telefono: datos.telefono.trim() || null,
       email: datos.email.trim() || null,
@@ -88,6 +91,7 @@ export async function crearPaciente(datos: DatosPaciente) {
   if (datos.doctores.length > 0) {
     const { error: errDocs } = await supabase.from("patient_doctors").insert(
       datos.doctores.map((doctorId, idx) => ({
+        clinica_id: clinicaId,
         patient_id: data.id,
         doctor_id: doctorId,
         orden: idx,
@@ -100,6 +104,7 @@ export async function crearPaciente(datos: DatosPaciente) {
 }
 
 export async function actualizarPaciente(id: string, datos: DatosPaciente) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
     .from("patients")
@@ -115,17 +120,20 @@ export async function actualizarPaciente(id: string, datos: DatosPaciente) {
       fecha_ingreso: datos.fecha_ingreso || null,
     })
     .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
 
   const { error: errDel } = await supabase
     .from("patient_doctors")
     .delete()
     .eq("patient_id", id)
+    .eq("clinica_id", clinicaId)
   if (errDel) throw new Error(errDel.message)
 
   if (datos.doctores.length > 0) {
     const { error: errIns } = await supabase.from("patient_doctors").insert(
       datos.doctores.map((doctorId, idx) => ({
+        clinica_id: clinicaId,
         patient_id: id,
         doctor_id: doctorId,
         orden: idx,
@@ -138,8 +146,13 @@ export async function actualizarPaciente(id: string, datos: DatosPaciente) {
 }
 
 export async function eliminarPaciente(id: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
-  const { error } = await supabase.from("patients").delete().eq("id", id)
+  const { error } = await supabase
+    .from("patients")
+    .delete()
+    .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) {
     if (error.message.includes("foreign key")) {
       throw new Error(
@@ -156,8 +169,10 @@ export async function eliminarPaciente(id: string) {
 // ---------------------------------------------------------------------------
 
 export async function agendarCitaPaciente(datos: DatosCitaRapida) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase.from("appointments").insert({
+    clinica_id: clinicaId,
     patient_id: datos.patient_id || null,
     service_id: datos.service_id || null,
     fecha_hora: mexLocalToISO(datos.fecha_hora),

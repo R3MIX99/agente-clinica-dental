@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 export type FaqItem = {
@@ -22,13 +23,8 @@ export type DatosClinica = {
 }
 
 export async function guardarAjustes(datos: DatosClinica) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
-
-  const { data: existing } = await supabase
-    .from("clinic_info")
-    .select("id")
-    .limit(1)
-    .single()
 
   const payload = {
     nombre: datos.nombre || null,
@@ -44,16 +40,11 @@ export async function guardarAjustes(datos: DatosClinica) {
     updated_at: new Date().toISOString(),
   }
 
-  if (existing) {
-    const { error } = await supabase
-      .from("clinic_info")
-      .update(payload)
-      .eq("id", existing.id)
-    if (error) throw new Error(error.message)
-  } else {
-    const { error } = await supabase.from("clinic_info").insert(payload)
-    if (error) throw new Error(error.message)
-  }
+  const { error } = await supabase
+    .from("clinicas")
+    .update(payload)
+    .eq("id", clinicaId)
+  if (error) throw new Error(error.message)
 
   revalidatePath("/ajustes")
 }

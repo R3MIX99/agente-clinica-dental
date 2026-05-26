@@ -1,7 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
-import { createAuthClient } from "@/lib/supabase/server-auth"
+import { createAuthClient, resolverClinicaId } from "@/lib/supabase/server-auth"
 import { sendAgentMessage } from "@/lib/n8n"
 import { revalidatePath } from "next/cache"
 
@@ -9,22 +9,15 @@ import { revalidatePath } from "next/cache"
 // Conversion de hora local Mexico City → UTC
 // ---------------------------------------------------------------------------
 
-// El input datetime-local entrega "YYYY-MM-DDTHH:mm" sin zona horaria.
-// PostgreSQL lo almacenaria como UTC, causando un desplazamiento de 5-6 horas
-// al mostrarlo. Esta funcion trata el string como hora de Mexico City y
-// devuelve el ISO UTC correcto, usando Intl para respetar el horario de verano.
 function mexLocalToISO(localStr: string): string {
-  // Si ya trae zona horaria (Z, +HH:mm, -HH:mm), no tocar.
   if (!localStr || localStr.includes("Z") || /[+-]\d{2}:\d{2}$/.test(localStr)) {
     return localStr
   }
 
-  // Paso 1: tratar el valor como UTC temporal (referencia de calculo).
   const asUTC = new Date(
     localStr.length === 16 ? localStr + ":00Z" : localStr + "Z"
   )
 
-  // Paso 2: obtener las partes de hora que Mexico City muestra en ese instante UTC.
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Mexico_City",
     year: "numeric",
@@ -38,7 +31,6 @@ function mexLocalToISO(localStr: string): string {
   const get = (t: string) =>
     parseInt(parts.find((p) => p.type === t)?.value ?? "0")
 
-  // Paso 3: construir el timestamp "Mexico City como UTC" para medir el offset.
   const mexAsUTC = Date.UTC(
     get("year"),
     get("month") - 1,
@@ -47,10 +39,7 @@ function mexLocalToISO(localStr: string): string {
     get("minute")
   )
 
-  // Paso 4: offset = referencia_UTC - mexico_como_UTC (positivo si MX esta atras de UTC).
   const offsetMs = asUTC.getTime() - mexAsUTC
-
-  // Paso 5: hora UTC real = hora_local_como_UTC + offset.
   return new Date(asUTC.getTime() + offsetMs).toISOString()
 }
 
@@ -58,7 +47,7 @@ function mexLocalToISO(localStr: string): string {
 // Guard de permisos para doctores
 // ---------------------------------------------------------------------------
 
-async function verificarPermisosCita(datos: DatosCita) {
+async function verificarPermisosCita(datos: DatosCita, clinicaId: string) {
   const authClient = await createAuthClient()
   const { data: { session } } = await authClient.auth.getSession()
   if (!session?.user) throw new Error("No autenticado")
@@ -75,17 +64,16 @@ async function verificarPermisosCita(datos: DatosCita) {
   const doctorId = perfil.doctor_id
   if (!doctorId) throw new Error("Tu cuenta no tiene un doctor vinculado")
 
-  // El doctor_id enviado debe ser el propio
   if (datos.doctor_id && datos.doctor_id !== doctorId) {
     throw new Error("No puedes asignar citas a otro doctor")
   }
 
-  // El paciente debe estar asignado al doctor
   if (datos.patient_id) {
     const db = createServerClient()
     const { data: asignacion } = await db
       .from("patient_doctors")
       .select("patient_id")
+      .eq("clinica_id", clinicaId)
       .eq("doctor_id", doctorId)
       .eq("patient_id", datos.patient_id)
       .maybeSingle()
@@ -106,9 +94,11 @@ export type DatosCita = {
 }
 
 export async function crearCita(datos: DatosCita) {
-  await verificarPermisosCita(datos)
+  const clinicaId = await resolverClinicaId()
+  await verificarPermisosCita(datos, clinicaId)
   const supabase = createServerClient()
   const { error } = await supabase.from("appointments").insert({
+    clinica_id: clinicaId,
     patient_id: datos.patient_id || null,
     service_id: datos.service_id || null,
     doctor_id: datos.doctor_id || null,
@@ -122,7 +112,8 @@ export async function crearCita(datos: DatosCita) {
 }
 
 export async function actualizarCita(id: string, datos: DatosCita) {
-  await verificarPermisosCita(datos)
+  const clinicaId = await resolverClinicaId()
+  await verificarPermisosCita(datos, clinicaId)
   const supabase = createServerClient()
   const { error } = await supabase
     .from("appointments")
@@ -136,18 +127,25 @@ export async function actualizarCita(id: string, datos: DatosCita) {
       notas: datos.notas || null,
     })
     .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath("/citas")
 }
 
 export async function eliminarCita(id: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
-  const { error } = await supabase.from("appointments").delete().eq("id", id)
+  const { error } = await supabase
+    .from("appointments")
+    .delete()
+    .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath("/citas")
 }
 
 export async function enviarRecordatorio(citaId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
 
   const { data: cita, error } = await supabase
@@ -156,6 +154,7 @@ export async function enviarRecordatorio(citaId: string) {
       "id, fecha_hora, patients(nombre, channel, channel_user_id), services(nombre)"
     )
     .eq("id", citaId)
+    .eq("clinica_id", clinicaId)
     .single()
 
   if (error || !cita) throw new Error("Cita no encontrada")
@@ -198,6 +197,7 @@ export async function enviarRecordatorio(citaId: string) {
     .from("appointments")
     .update({ recordatorio_enviado_at: new Date().toISOString() })
     .eq("id", citaId)
+    .eq("clinica_id", clinicaId)
   if (errUpd) throw new Error(errUpd.message)
 
   revalidatePath("/citas")

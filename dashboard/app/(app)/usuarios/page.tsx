@@ -7,8 +7,6 @@ import { UsuariosClient } from "./UsuariosClient"
 export const metadata = { title: "Usuarios — Clinica Dental" }
 
 export default async function UsuariosPage() {
-  // getSession() lee el JWT del cookie sin llamada de red al servidor de Auth.
-  // El middleware ya valido el token antes de llegar aqui, por lo que es seguro.
   const authClient = await createAuthClient()
   const { data: { session } } = await authClient.auth.getSession()
 
@@ -16,22 +14,27 @@ export default async function UsuariosPage() {
 
   const db = createServerClient()
 
-  // Los tres queries corren en paralelo: perfil actual + lista de usuarios + doctores
-  const [{ data: perfilData }, { data: perfilesData }, { data: doctoresData }] =
-    await Promise.all([
-      authClient
-        .from("profiles")
-        .select("id, nombre, rol, doctor_id")
-        .eq("id", session.user.id)
-        .single(),
-      db
-        .from("profiles")
-        .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre, email)")
-        .order("nombre"),
-      db.from("doctors").select("id, nombre").order("nombre"),
-    ])
+  const [{ data: perfilData }, { data: doctoresData }] = await Promise.all([
+    authClient
+      .from("profiles")
+      .select("id, nombre, rol, doctor_id, clinica_id")
+      .eq("id", session.user.id)
+      .single(),
+    db.from("doctors").select("id, nombre").order("nombre"),
+  ])
 
   if (!perfilData || perfilData.rol === "doctor") redirect("/conversaciones")
+
+  const clinicaId = perfilData.clinica_id ?? null
+
+  // Listar perfiles de la misma clinica
+  const { data: perfilesData } = clinicaId
+    ? await db
+        .from("profiles")
+        .select("id, nombre, email, rol, activo, doctor_id, doctors(nombre, email)")
+        .eq("clinica_id", clinicaId)
+        .order("nombre")
+    : { data: [] }
 
   const usuarios: PerfilUsuario[] = (perfilesData ?? []).map((p) => {
     const doctorRec = p.doctors as { nombre: string; email: string | null } | null
@@ -47,15 +50,15 @@ export default async function UsuariosPage() {
     }
   })
 
-  const doctores = (doctoresData ?? []).map((d) => ({
-    id: d.id,
-    nombre: d.nombre,
-  }))
+  // Filtrar doctores de la misma clinica
+  const doctores = clinicaId
+    ? (doctoresData ?? [])
+    : []
 
   return (
     <UsuariosClient
       usuarios={usuarios}
-      doctores={doctores}
+      doctores={doctores.map((d) => ({ id: d.id, nombre: d.nombre }))}
       perfilActual={{ id: perfilData.id, rol: perfilData.rol }}
     />
   )

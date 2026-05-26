@@ -12,7 +12,6 @@ export type PerfilUsuario = {
   activo: boolean
   doctor_id: string | null
   doctor_nombre: string | null
-  // Correo del registro en doctors — es el que se muestra para usuarios con rol doctor
   doctor_email: string | null
 }
 
@@ -24,7 +23,6 @@ export type DatosUsuario = {
   doctor_id: string
 }
 
-// Resuelve el nombre que tendra el perfil: si es doctor vinculado, usa el nombre del doctor.
 async function resolverNombrePerfil(
   db: ReturnType<typeof createServiceClient>,
   datos: DatosUsuario
@@ -46,12 +44,15 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
     return { error: "Sin permisos para crear usuarios" }
   }
 
-  const db = createServiceClient()
+  const clinicaId = perfilActual.clinica_id
+  const cuentaId = perfilActual.cuenta_id
+  if (!clinicaId || !cuentaId) {
+    return { error: "Sin clinica activa" }
+  }
 
-  // Si es doctor vinculado, el nombre viene del registro del doctor
+  const db = createServiceClient()
   const nombreFinal = await resolverNombrePerfil(db, datos)
 
-  // Crear cuenta en Supabase Auth (envia invitacion por email)
   const { data: authData, error: authError } = await db.auth.admin.inviteUserByEmail(
     datos.email,
     { data: { nombre: nombreFinal, rol: datos.rol } }
@@ -64,8 +65,9 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
     return { error: authError.message }
   }
 
-  // Actualizar perfil creado por el trigger
   const userId = authData.user.id
+
+  // Actualizar perfil creado por el trigger con clinica_id y cuenta_id
   const { error: profileError } = await db
     .from("profiles")
     .update({
@@ -74,10 +76,27 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
       activo: datos.activo,
       doctor_id: datos.rol === "doctor" && datos.doctor_id ? datos.doctor_id : null,
       email: datos.email,
+      clinica_id: clinicaId,
+      cuenta_id: cuentaId,
     })
     .eq("id", userId)
 
   if (profileError) return { error: profileError.message }
+
+  // Crear membresia para el nuevo usuario
+  const { error: memError } = await db
+    .from("membresias")
+    .insert({
+      user_id: userId,
+      cuenta_id: cuentaId,
+      clinica_id: clinicaId,
+      rol: datos.rol,
+      activa: datos.activo,
+    })
+
+  if (memError && !memError.message.includes("duplicate")) {
+    return { error: memError.message }
+  }
 
   revalidatePath("/usuarios")
   return {}
@@ -94,8 +113,6 @@ export async function editarUsuario(
 
   const db = createServiceClient()
 
-  // Verificar si el objetivo es administrador (supervisores no pueden editar admins)
-  // Se incluye doctor_id para preservarlo al editar (el campo ya no se muestra en el form)
   const { data: objetivo } = await db
     .from("profiles")
     .select("rol, doctor_id")
@@ -106,26 +123,22 @@ export async function editarUsuario(
     return { error: "Un supervisor no puede editar a un administrador" }
   }
 
-  // Supervisores no pueden cambiar su propio rol — se conserva el rol actual
   const rolFinal =
     perfilActual.rol === "supervisor" && id === perfilActual.id
       ? (objetivo?.rol ?? datos.rol)
       : datos.rol
 
-  // El doctor_id se preserva desde la BD; el formulario ya no lo envia
   const doctorIdFinal =
     rolFinal === "doctor"
       ? (datos.doctor_id || objetivo?.doctor_id || null)
       : null
 
-  // Si es doctor vinculado, el nombre viene del registro del doctor
   const nombreFinal = await resolverNombrePerfil(db, {
     ...datos,
     rol: rolFinal,
     doctor_id: doctorIdFinal ?? "",
   })
 
-  // Actualizar perfil — email solo se toca para no-doctores (campo bloqueado en UI)
   const { error: profileError } = rolFinal === "doctor"
     ? await db
         .from("profiles")
@@ -138,7 +151,6 @@ export async function editarUsuario(
 
   if (profileError) return { error: profileError.message }
 
-  // Actualizar metadata en auth; email solo para no-doctores
   const { error: authError } = rolFinal === "doctor"
     ? await db.auth.admin.updateUserById(id, {
         user_metadata: { nombre: nombreFinal, rol: rolFinal },
@@ -150,6 +162,15 @@ export async function editarUsuario(
 
   if (authError) return { error: authError.message }
 
+  // Sincronizar rol en membresia
+  if (perfilActual.clinica_id) {
+    await db
+      .from("membresias")
+      .update({ rol: rolFinal, activa: datos.activo })
+      .eq("user_id", id)
+      .eq("clinica_id", perfilActual.clinica_id)
+  }
+
   revalidatePath("/usuarios")
   return {}
 }
@@ -159,7 +180,6 @@ export async function eliminarUsuario(id: string): Promise<{ error?: string }> {
   if (!perfilActual) return { error: "Sin sesion activa" }
   if (perfilActual.rol === "doctor") return { error: "Sin permisos para eliminar usuarios" }
 
-  // Verificar si el objetivo es administrador (supervisores no pueden borrar admins)
   const db = createServiceClient()
   const { data: objetivo } = await db
     .from("profiles")
@@ -167,14 +187,10 @@ export async function eliminarUsuario(id: string): Promise<{ error?: string }> {
     .eq("id", id)
     .single()
 
-  if (
-    objetivo?.rol === "administrador" &&
-    perfilActual.rol === "supervisor"
-  ) {
+  if (objetivo?.rol === "administrador" && perfilActual.rol === "supervisor") {
     return { error: "Un supervisor no puede eliminar a un administrador" }
   }
 
-  // Impedir que el usuario se elimine a si mismo
   if (id === perfilActual.id) {
     return { error: "No puedes eliminar tu propia cuenta" }
   }

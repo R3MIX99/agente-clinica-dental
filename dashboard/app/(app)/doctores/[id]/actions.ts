@@ -1,12 +1,13 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 export type DatosBloqueHorario = {
-  dia_semana: string   // "0"-"6"
-  hora_inicio: string  // "HH:MM"
-  hora_fin: string     // "HH:MM"
+  dia_semana: string
+  hora_inicio: string
+  hora_fin: string
 }
 
 export async function agregarBloqueHorario(
@@ -20,8 +21,10 @@ export async function agregarBloqueHorario(
   if (datos.hora_fin <= datos.hora_inicio)
     throw new Error("La hora de fin debe ser posterior a la de inicio")
 
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase.from("doctor_schedules").insert({
+    clinica_id: clinicaId,
     doctor_id: doctorId,
     dia_semana: dia,
     hora_inicio: datos.hora_inicio,
@@ -35,11 +38,13 @@ export async function eliminarBloqueHorario(
   scheduleId: string,
   doctorId: string
 ) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
     .from("doctor_schedules")
     .delete()
     .eq("id", scheduleId)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath(`/doctores/${doctorId}`)
 }

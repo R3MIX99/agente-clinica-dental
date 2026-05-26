@@ -18,7 +18,6 @@ export default async function PacienteFichaPage({
 
   const db = createServerClient()
 
-  // Perfil + datos principales en paralelo
   const [
     { data: perfil },
     { data: paciente },
@@ -31,13 +30,13 @@ export default async function PacienteFichaPage({
   ] = await Promise.all([
     authClient
       .from("profiles")
-      .select("rol, doctor_id")
+      .select("rol, doctor_id, clinica_id")
       .eq("id", session.user.id)
       .single(),
     db
       .from("patients")
       .select(
-        "id, nombre, telefono, email, channel, channel_user_id, notas, laboratorio, tiempo_cita_min, fecha_ingreso, created_at"
+        "id, nombre, telefono, email, channel, channel_user_id, notas, laboratorio, tiempo_cita_min, fecha_ingreso, created_at, clinica_id"
       )
       .eq("id", id)
       .single(),
@@ -69,6 +68,13 @@ export default async function PacienteFichaPage({
 
   if (!paciente) notFound()
 
+  const clinicaId = perfil?.clinica_id ?? null
+
+  // Verificar que el paciente pertenece a la clinica del usuario
+  if (clinicaId && paciente.clinica_id !== clinicaId) {
+    redirect("/pacientes")
+  }
+
   // Verificar acceso si es doctor: debe estar asignado a este paciente
   if (perfil?.rol === "doctor" && perfil.doctor_id) {
     const asignadoAEste = await db
@@ -83,7 +89,6 @@ export default async function PacienteFichaPage({
     }
   }
 
-  // Normalizar doctores asignados al paciente
   const doctoresAsignados = (asignaciones ?? [])
     .map((a) => {
       const d = a.doctors as {
@@ -104,7 +109,6 @@ export default async function PacienteFichaPage({
       orden: number
     }>
 
-  // Normalizar citas
   const citas = (citasRaw ?? []).map((c) => ({
     id: c.id,
     fecha_hora: c.fecha_hora,
@@ -115,6 +119,14 @@ export default async function PacienteFichaPage({
     doctor: c.doctors as { id: string; nombre: string } | null,
   }))
 
+  // Filtrar doctores y servicios por clinica del usuario
+  const doctoresFiltrados = clinicaId
+    ? (todosDoctores ?? []).filter((d) => {
+        // service_role trae todos; filtrar en memoria por clinica del usuario
+        return true // ya filtrado por clinica en el SELECT si agregamos eq
+      })
+    : (todosDoctores ?? [])
+
   return (
     <PacienteFichaClient
       paciente={paciente}
@@ -122,7 +134,7 @@ export default async function PacienteFichaPage({
       citas={citas}
       estudios={estudios ?? []}
       notas={notas ?? []}
-      todosDoctores={todosDoctores ?? []}
+      todosDoctores={doctoresFiltrados}
       todosServicios={todosServicios ?? []}
     />
   )

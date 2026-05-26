@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 // ---------------------------------------------------------------------------
@@ -53,8 +54,10 @@ export type DatosCitaFicha = {
 
 export async function agregarNotaClinica(patientId: string, contenido: string) {
   if (!contenido.trim()) throw new Error("El contenido de la nota no puede estar vacio")
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase.from("clinical_notes").insert({
+    clinica_id: clinicaId,
     patient_id: patientId,
     contenido: contenido.trim(),
   })
@@ -66,16 +69,19 @@ export async function actualizarDoctoresFicha(
   patientId: string,
   doctores: string[]
 ) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error: errDel } = await supabase
     .from("patient_doctors")
     .delete()
     .eq("patient_id", patientId)
+    .eq("clinica_id", clinicaId)
   if (errDel) throw new Error(errDel.message)
 
   if (doctores.length > 0) {
     const { error: errIns } = await supabase.from("patient_doctors").insert(
       doctores.map((doctorId, idx) => ({
+        clinica_id: clinicaId,
         patient_id: patientId,
         doctor_id: doctorId,
         orden: idx,
@@ -92,8 +98,10 @@ export async function agendarCitaFicha(
   patientId: string,
   datos: DatosCitaFicha
 ) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase.from("appointments").insert({
+    clinica_id: clinicaId,
     patient_id: patientId,
     service_id: datos.service_id || null,
     fecha_hora: mexLocalToISO(datos.fecha_hora),
@@ -113,21 +121,25 @@ export async function agendarCitaFicha(
 }
 
 export async function eliminarNotaClinica(notaId: string, patientId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
     .from("clinical_notes")
     .delete()
     .eq("id", notaId)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath(`/pacientes/${patientId}`)
 }
 
 export async function eliminarCitaFicha(citaId: string, patientId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
     .from("appointments")
     .delete()
     .eq("id", citaId)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath(`/pacientes/${patientId}`)
   revalidatePath("/pacientes")

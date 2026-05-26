@@ -10,21 +10,50 @@ export default async function ConversacionesPage() {
 
   const [
     { data: { session } },
+    { data: perfil },
+  ] = await Promise.all([
+    authClient.auth.getSession(),
+    authClient.from("profiles").select("clinica_id").maybeSingle(),
+  ])
+
+  // clinica_id del perfil del usuario autenticado
+  const userId = session?.user?.id
+  const { data: perfilCompleto } = userId
+    ? await authClient.from("profiles").select("clinica_id").eq("id", userId).single()
+    : { data: null }
+
+  const clinicaId = perfilCompleto?.clinica_id ?? null
+
+  if (!clinicaId) {
+    const nombreUsuario: string = session?.user?.user_metadata?.nombre ?? ""
+    return (
+      <ConversacionesClient
+        conversaciones={[]}
+        agentes={[]}
+        papelera={[]}
+        nombreUsuario={nombreUsuario}
+        agenteActual={null}
+      />
+    )
+  }
+
+  const [
     { data: conversaciones },
     { data: agentes },
     { data: papelera },
   ] = await Promise.all([
-    authClient.auth.getSession(),
     supabase
       .from("conversations")
       .select(
         "id, channel, mode, status, last_message_at, assigned_agent_id, patients(id, nombre, channel, channel_user_id), agents(nombre)"
       )
+      .eq("clinica_id", clinicaId)
       .is("deleted_at", null)
       .order("last_message_at", { ascending: false }),
     supabase
       .from("agents")
       .select("id, nombre, role")
+      .eq("clinica_id", clinicaId)
       .eq("activo", true)
       .order("nombre"),
     supabase
@@ -32,16 +61,12 @@ export default async function ConversacionesPage() {
       .select(
         "id, channel, mode, status, last_message_at, assigned_agent_id, patients(id, nombre, channel, channel_user_id), agents(nombre)"
       )
+      .eq("clinica_id", clinicaId)
       .not("deleted_at", "is", null)
       .order("deleted_at", { ascending: false }),
   ])
 
-  // Nombre del usuario actual (del JWT — sin llamada extra a la BD)
-  const nombreUsuario: string =
-    session?.user?.user_metadata?.nombre ?? ""
-
-  // Buscar el registro de agente que corresponde al usuario logueado (por nombre).
-  // Si no hay coincidencia, cae al primer agente disponible como respaldo.
+  const nombreUsuario: string = session?.user?.user_metadata?.nombre ?? ""
   const listaAgentes = agentes ?? []
   const agenteActual =
     (nombreUsuario

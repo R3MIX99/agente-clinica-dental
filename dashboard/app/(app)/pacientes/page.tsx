@@ -13,9 +13,21 @@ export default async function PacientesPage() {
   const db = createServerClient()
   const ahora = new Date().toISOString()
 
-  // Perfil en paralelo con el resto de los datos
+  const { data: perfil } = await authClient
+    .from("profiles")
+    .select("rol, doctor_id, clinica_id")
+    .eq("id", session.user.id)
+    .single()
+
+  const clinicaId = perfil?.clinica_id ?? null
+  const esDoctor = perfil?.rol === "doctor"
+  const doctorId = perfil?.doctor_id ?? null
+
+  if (!clinicaId) {
+    return <PacientesClient pacientes={[]} servicios={[]} doctores={[]} />
+  }
+
   const [
-    { data: perfil },
     { data: pacientesRaw },
     { data: citasFuturas },
     { data: asignaciones },
@@ -23,37 +35,31 @@ export default async function PacientesPage() {
     { data: servicios },
     { data: doctores },
   ] = await Promise.all([
-    authClient
-      .from("profiles")
-      .select("rol, doctor_id")
-      .eq("id", session.user.id)
-      .single(),
     db
       .from("patients")
       .select(
         "id, nombre, telefono, email, channel, channel_user_id, notas, created_at, laboratorio, tiempo_cita_min, fecha_ingreso"
       )
+      .eq("clinica_id", clinicaId)
       .order("nombre"),
     db
       .from("appointments")
       .select("id, patient_id, fecha_hora, services(nombre)")
+      .eq("clinica_id", clinicaId)
       .gte("fecha_hora", ahora)
       .in("status", ["programada", "confirmada"])
       .order("fecha_hora"),
     db
       .from("patient_doctors")
       .select("patient_id, doctor_id, orden, doctors(id, nombre)")
+      .eq("clinica_id", clinicaId)
       .order("patient_id")
       .order("orden"),
-    db.from("studies").select("patient_id").eq("status", "pendiente"),
-    db.from("services").select("id, nombre, precio").eq("activo", true).order("nombre"),
-    db.from("doctors").select("id, nombre").order("nombre"),
+    db.from("studies").select("patient_id").eq("clinica_id", clinicaId).eq("status", "pendiente"),
+    db.from("services").select("id, nombre, precio").eq("clinica_id", clinicaId).eq("activo", true).order("nombre"),
+    db.from("doctors").select("id, nombre").eq("clinica_id", clinicaId).order("nombre"),
   ])
 
-  const esDoctor = perfil?.rol === "doctor"
-  const doctorId = perfil?.doctor_id ?? null
-
-  // Si es doctor: filtrar solo sus pacientes asignados
   const idsPermitidos: Set<string> | null =
     esDoctor && doctorId
       ? new Set(
@@ -63,7 +69,6 @@ export default async function PacientesPage() {
         )
       : null
 
-  // Mapa: patient_id → proxima cita futura
   const proximaCitaMap = new Map<
     string,
     { fecha_hora: string; servicio_nombre: string | null }
@@ -80,7 +85,6 @@ export default async function PacientesPage() {
     }
   }
 
-  // Mapa: patient_id → doctores ordenados
   const doctorAsignMap = new Map<
     string,
     Array<{ id: string; nombre: string; orden: number }>
@@ -94,7 +98,6 @@ export default async function PacientesPage() {
     doctorAsignMap.set(asig.patient_id, lista)
   }
 
-  // Mapa: patient_id → cantidad de estudios pendientes
   const estudiosPendMap = new Map<string, number>()
   for (const e of estudios ?? []) {
     if (idsPermitidos && !idsPermitidos.has(e.patient_id)) continue
