@@ -206,6 +206,44 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
 }
 
 // ---------------------------------------------------------------------------
+// obtenerPlanes — lista de planes activos para el dialog de mejora
+// ---------------------------------------------------------------------------
+
+export type PlanCatalogo = {
+  id: string
+  nombre: string
+  precio_mensual_mxn: number
+  precio_anual_mxn: number
+  saldo_ia_incluido_mxn: number
+  max_doctores: number
+  max_usuarios: number
+  max_clinicas: number
+  max_recordatorios_mes: number
+}
+
+export async function obtenerPlanes(): Promise<PlanCatalogo[]> {
+  const db = createServerClient()
+  const { data } = await db
+    .from("planes")
+    .select(
+      "id, nombre, precio_mensual_mxn, precio_anual_mxn, saldo_ia_incluido_mxn, max_doctores, max_usuarios, max_clinicas, max_recordatorios_mes"
+    )
+    .eq("activo", true)
+    .order("precio_mensual_mxn")
+  return (data ?? []).map((p) => ({
+    id:                    p.id,
+    nombre:                p.nombre,
+    precio_mensual_mxn:    Number(p.precio_mensual_mxn),
+    precio_anual_mxn:      Number(p.precio_anual_mxn),
+    saldo_ia_incluido_mxn: Number(p.saldo_ia_incluido_mxn),
+    max_doctores:          Number(p.max_doctores),
+    max_usuarios:          Number(p.max_usuarios),
+    max_clinicas:          Number(p.max_clinicas),
+    max_recordatorios_mes: Number(p.max_recordatorios_mes),
+  }))
+}
+
+// ---------------------------------------------------------------------------
 // Enforcement: verificar limites antes de agregar doctores o usuarios
 // ---------------------------------------------------------------------------
 

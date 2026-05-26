@@ -1,10 +1,10 @@
-import { obtenerUsoClinica } from "@/app/actions/uso"
+import { obtenerUsoClinica, obtenerPlanes } from "@/app/actions/uso"
 import { UsoClient } from "./UsoClient"
 
 export const metadata = { title: "Uso y plan" }
 
 export default async function UsoPage() {
-  const uso = await obtenerUsoClinica()
+  const [uso, planes] = await Promise.all([obtenerUsoClinica(), obtenerPlanes()])
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -15,7 +15,7 @@ export default async function UsoPage() {
         </p>
       </div>
 
-      <UsoClient uso={uso} />
+      <UsoClient uso={uso} planes={planes} />
     </div>
   )
 }
