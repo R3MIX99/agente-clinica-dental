@@ -8,8 +8,10 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AtencionProvider } from "@/lib/atencion-context"
 import { GlobalAtencionListener } from "@/components/global-atencion-listener"
+import { SuspendidaScreen } from "./SuspendidaScreen"
 import type { Rol } from "./layout"
 import type { ClinicaBasica } from "@/components/clinica-selector"
+import type { EstadoSuscripcion } from "@/app/actions/facturacion"
 
 export function AppLayoutClient({
   children,
@@ -17,12 +19,14 @@ export function AppLayoutClient({
   doctorId,
   clinicaActual,
   clinicas,
+  estadoSuscripcion = "prueba",
 }: {
   children: React.ReactNode
   rol: Rol
   doctorId?: string | null
   clinicaActual: ClinicaBasica
   clinicas: ClinicaBasica[]
+  estadoSuscripcion?: EstadoSuscripcion
 }) {
   const pathname = usePathname()
 
@@ -67,7 +71,9 @@ export function AppLayoutClient({
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 className="h-full"
               >
-                {children}
+                <SuspendidaScreen estado={estadoSuscripcion}>
+                  {children}
+                </SuspendidaScreen>
               </motion.div>
             </AnimatePresence>
           </main>

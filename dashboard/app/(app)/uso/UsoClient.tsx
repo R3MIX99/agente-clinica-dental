@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
 import { Check, ArrowRight } from "lucide-react"
+import { iniciarCheckout } from "@/app/actions/facturacion"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -153,12 +154,17 @@ function MejorarPlanDialog({
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const [cargando, startTransition] = useTransition()
 
   function handleContratar(plan: PlanCatalogo) {
-    toast.info(
-      `Para cambiar al plan ${plan.nombre} (${fmt(plan.precio_mensual_mxn)}/mes), contactanos a soporte@dentalIA.mx. El pago en linea estara disponible proximamente.`,
-      { duration: 6000 }
-    )
+    startTransition(async () => {
+      try {
+        const { url } = await iniciarCheckout(plan.id)
+        window.location.href = url
+      } catch {
+        toast.error("No se pudo iniciar el pago. Intentalo de nuevo.")
+      }
+    })
   }
 
   return (
@@ -269,10 +275,12 @@ function MejorarPlanDialog({
                       size="default"
                       variant={destacado ? "default" : "outline"}
                       className="w-full"
+                      disabled={cargando}
                       onClick={() => handleContratar(plan)}
                     >
-                      Contratar
-                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                      {cargando ? "Redirigiendo..." : (
+                        <>Contratar<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></>
+                      )}
                     </Button>
                   )}
                 </div>

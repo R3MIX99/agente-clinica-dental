@@ -3,6 +3,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { AppLayoutClient } from "./AppLayoutClient"
 import type { ClinicaBasica } from "@/components/clinica-selector"
+import type { EstadoSuscripcion } from "@/app/actions/facturacion"
 
 export type Rol = "administrador" | "supervisor" | "doctor"
 export type { ClinicaBasica }
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let clinicaActual: ClinicaBasica = { id: "", nombre: "Clinica Dental" }
   let rol: Rol = "supervisor"
   let doctorId: string | null = null
+  let estadoSuscripcion: EstadoSuscripcion = "prueba"
 
   if (user) {
     const db = createServerClient()
@@ -62,6 +64,41 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .single()
       doctorId = data?.doctor_id ?? null
     }
+
+    // Estado de la suscripcion para control de acceso
+    if (clinicaActual.id) {
+      const { data: clinicaRow } = await db
+        .from("clinicas")
+        .select("cuenta_id")
+        .eq("id", clinicaActual.id)
+        .maybeSingle()
+
+      if (clinicaRow?.cuenta_id) {
+        const { data: sus } = await db
+          .from("suscripciones")
+          .select("id, estado, periodo_gracia_fin")
+          .eq("cuenta_id", clinicaRow.cuenta_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (sus) {
+          let estado = (sus.estado ?? "prueba") as EstadoSuscripcion
+
+          // Si el periodo de gracia expiro, suspender en la base y usar el estado actualizado
+          const graciaFin = (sus as any).periodo_gracia_fin as string | null
+          if (estado === "pago_pendiente" && graciaFin && new Date(graciaFin) < new Date()) {
+            await db
+              .from("suscripciones")
+              .update({ estado: "suspendida" } as any)
+              .eq("id", sus.id)
+            estado = "suspendida"
+          }
+
+          estadoSuscripcion = estado
+        }
+      }
+    }
   }
 
   return (
@@ -70,6 +107,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       doctorId={doctorId}
       clinicaActual={clinicaActual}
       clinicas={clinicas}
+      estadoSuscripcion={estadoSuscripcion}
     >
       {children}
     </AppLayoutClient>

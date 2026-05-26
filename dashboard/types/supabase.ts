@@ -840,6 +840,42 @@ export type Database = {
           },
         ]
       }
+      historial_pagos: {
+        Row: {
+          concepto: string | null
+          cuenta_id: string
+          created_at: string
+          id: string
+          mp_payment_id: string | null
+          mp_preapproval_id: string | null
+          monto_mxn: number | null
+          status: string
+          suscripcion_id: string
+        }
+        Insert: {
+          concepto?: string | null
+          cuenta_id: string
+          created_at?: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preapproval_id?: string | null
+          monto_mxn?: number | null
+          status: string
+          suscripcion_id: string
+        }
+        Update: {
+          concepto?: string | null
+          cuenta_id?: string
+          created_at?: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preapproval_id?: string | null
+          monto_mxn?: number | null
+          status?: string
+          suscripcion_id?: string
+        }
+        Relationships: []
+      }
       suscripciones: {
         Row: {
           created_at: string
@@ -848,8 +884,12 @@ export type Database = {
           fin_periodo: string | null
           id: string
           inicio_periodo: string | null
+          mp_last_payment_status: string | null
+          mp_next_payment_date: string | null
+          mp_payer_email: string | null
           mp_subscription_id: string | null
           periodo: string
+          periodo_gracia_fin: string | null
           plan_id: string
           recordatorios_enviados: number
           saldo_ia_disponible_mxn: number
@@ -861,8 +901,12 @@ export type Database = {
           fin_periodo?: string | null
           id?: string
           inicio_periodo?: string | null
+          mp_last_payment_status?: string | null
+          mp_next_payment_date?: string | null
+          mp_payer_email?: string | null
           mp_subscription_id?: string | null
           periodo?: string
+          periodo_gracia_fin?: string | null
           plan_id: string
           recordatorios_enviados?: number
           saldo_ia_disponible_mxn?: number
@@ -874,8 +918,12 @@ export type Database = {
           fin_periodo?: string | null
           id?: string
           inicio_periodo?: string | null
+          mp_last_payment_status?: string | null
+          mp_next_payment_date?: string | null
+          mp_payer_email?: string | null
           mp_subscription_id?: string | null
           periodo?: string
+          periodo_gracia_fin?: string | null
           plan_id?: string
           recordatorios_enviados?: number
           saldo_ia_disponible_mxn?: number
