@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, ArrowRight, CreditCard, AlertTriangle, Clock, CheckCircle2, XCircle } from "lucide-react"
+import {
+  Check, ArrowRight, CreditCard, AlertTriangle, Clock,
+  CheckCircle2, XCircle, Plus, Minus, ChevronDown, ChevronUp,
+} from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +19,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { iniciarCheckout, cancelarSuscripcion, type DatosFacturacion, type EstadoSuscripcion } from "@/app/actions/facturacion"
+import {
+  iniciarCheckout,
+  cancelarSuscripcion,
+  cambiarPlan,
+  type DatosFacturacion,
+  type EstadoSuscripcion,
+} from "@/app/actions/facturacion"
+import { contratarAddon, quitarAddon, type AddonCatalogo, type AddonContratado } from "@/app/actions/addons"
 import type { PlanCatalogo } from "@/app/actions/uso"
 
 // ---------------------------------------------------------------------------
@@ -95,7 +105,7 @@ function IconoPago({ status }: { status: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Dialog de seleccion de plan para checkout
+// Dialog de seleccion de plan (para activar suscripcion o regularizar pago)
 // ---------------------------------------------------------------------------
 
 function SeleccionarPlanDialog({
@@ -114,7 +124,6 @@ function SeleccionarPlanDialog({
     startTransition(async () => {
       try {
         const { url } = await iniciarCheckout(plan.id)
-        // Redirigir al checkout de Mercado Pago
         window.location.href = url
       } catch (e) {
         toast.error("No se pudo iniciar el pago. Intentalo de nuevo.")
@@ -194,6 +203,131 @@ function SeleccionarPlanDialog({
 }
 
 // ---------------------------------------------------------------------------
+// Dialog de cambio de plan (solo para suscripciones activas)
+// ---------------------------------------------------------------------------
+
+function CambiarPlanDialog({
+  planes,
+  planActualId,
+  planActualPrecio,
+}: {
+  planes: PlanCatalogo[]
+  planActualId: string
+  planActualPrecio: number
+}) {
+  const [open, setOpen]             = useState(false)
+  const [cargando, startTransition] = useTransition()
+
+  function handleCambiar(plan: PlanCatalogo) {
+    startTransition(async () => {
+      try {
+        const resultado = await cambiarPlan(plan.id)
+
+        if (!resultado.ok) {
+          toast.error(resultado.mensaje)
+          return
+        }
+
+        if (resultado.requiereCheckout) {
+          // Upgrade: ir al checkout
+          const { url } = await iniciarCheckout(plan.id)
+          window.location.href = url
+          return
+        }
+
+        // Downgrade programado
+        toast.success(resultado.mensaje)
+        setOpen(false)
+      } catch (e) {
+        toast.error("No se pudo cambiar el plan. Intentalo de nuevo.")
+        console.error(e)
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          Cambiar plan
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden">
+        <div className="px-8 pt-7 pb-5 border-b border-border">
+          <DialogTitle className="text-lg font-semibold">Cambiar plan</DialogTitle>
+          <DialogDescription className="mt-1 text-sm">
+            El upgrade aplica inmediatamente. El downgrade aplica al inicio del proximo periodo.
+          </DialogDescription>
+        </div>
+
+        <div className="px-8 py-6">
+          <div className="grid grid-cols-3 gap-5">
+            {planes.map((plan) => {
+              const esActual  = plan.id === planActualId
+              const esUpgrade = plan.precio_mensual_mxn > planActualPrecio
+              const extras    = EXTRAS_PLAN[plan.nombre] ?? { descripcion: "", caracteristicas: [] }
+
+              return (
+                <div
+                  key={plan.id}
+                  className={cn(
+                    "relative flex flex-col rounded-xl border p-5",
+                    esActual ? "border-border bg-muted/30" : "border-border bg-card"
+                  )}
+                >
+                  {esActual && (
+                    <div className="absolute -top-3 left-5">
+                      <Badge variant="secondary" className="text-xs">Plan actual</Badge>
+                    </div>
+                  )}
+                  {!esActual && esUpgrade && (
+                    <div className="absolute -top-3 left-5">
+                      <Badge className="text-xs bg-green-600 text-white hover:bg-green-600">Upgrade</Badge>
+                    </div>
+                  )}
+                  <p className="text-base font-bold text-foreground">{plan.nombre}</p>
+                  <div className="mt-1 mb-3 flex items-end gap-1">
+                    <span className="text-3xl font-extrabold">{fmt(plan.precio_mensual_mxn)}</span>
+                    <span className="text-sm text-muted-foreground mb-1">/ mes</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{extras.descripcion}</p>
+                  <ul className="flex-1 space-y-1.5 mb-4 text-sm">
+                    <li className="text-muted-foreground">{plan.max_doctores} doctor{plan.max_doctores !== 1 ? "es" : ""}</li>
+                    <li className="text-muted-foreground">{plan.max_usuarios} usuario{plan.max_usuarios !== 1 ? "s" : ""} admin</li>
+                    <li className="text-muted-foreground">{plan.max_recordatorios_mes.toLocaleString("es-MX")} recordatorios/mes</li>
+                  </ul>
+                  <Button
+                    size="sm"
+                    variant={esActual ? "outline" : esUpgrade ? "default" : "secondary"}
+                    className="w-full"
+                    disabled={esActual || cargando}
+                    onClick={() => !esActual && handleCambiar(plan)}
+                  >
+                    {esActual
+                      ? "Plan actual"
+                      : cargando
+                      ? "Procesando..."
+                      : esUpgrade
+                      ? "Subir a este plan"
+                      : "Bajar a este plan"}
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="px-8 py-4 border-t border-border bg-muted/20">
+          <p className="text-xs text-center text-muted-foreground">
+            Los upgrades requieren completar el pago en Mercado Pago. Los downgrades aplican al siguiente ciclo de cobro.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Dialog de confirmacion de cancelacion
 // ---------------------------------------------------------------------------
 
@@ -233,18 +367,224 @@ function CancelarDialog({ onConfirmar }: { onConfirmar: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
+// Seccion de add-ons
+// ---------------------------------------------------------------------------
+
+function AddonsSection({
+  catalogo,
+  contratados,
+  totalAddons,
+  limiteEfectivoDoctores,
+  limiteEfectivoUsuarios,
+  limiteEfectivoRecordatorios,
+  planMaxDoctores,
+  planMaxUsuarios,
+  planMaxRecordatorios,
+  estadoSuscripcion,
+  onRefresh,
+}: {
+  catalogo: AddonCatalogo[]
+  contratados: AddonContratado[]
+  totalAddons: number
+  limiteEfectivoDoctores: number
+  limiteEfectivoUsuarios: number
+  limiteEfectivoRecordatorios: number
+  planMaxDoctores: number
+  planMaxUsuarios: number
+  planMaxRecordatorios: number
+  estadoSuscripcion: EstadoSuscripcion
+  onRefresh: () => void
+}) {
+  const [cargandoId, setCargandoId] = useState<string | null>(null)
+  const [expandido, setExpandido]   = useState(false)
+
+  const puedeModificar = ["prueba", "activa"].includes(estadoSuscripcion)
+
+  async function handleContratar(addon: AddonCatalogo) {
+    setCargandoId(addon.id)
+    try {
+      const res = await contratarAddon(addon.id)
+      if (res.ok) {
+        toast.success(res.mensaje)
+        onRefresh()
+      } else {
+        toast.error(res.mensaje)
+      }
+    } catch {
+      toast.error("Error al contratar el add-on. Intentalo de nuevo.")
+    } finally {
+      setCargandoId(null)
+    }
+  }
+
+  async function handleQuitar(sa: AddonContratado) {
+    setCargandoId(sa.id)
+    try {
+      const res = await quitarAddon(sa.id)
+      if (res.ok) {
+        toast.success(res.mensaje)
+        onRefresh()
+      } else {
+        toast.error(res.mensaje)
+      }
+    } catch {
+      toast.error("Error al quitar el add-on. Intentalo de nuevo.")
+    } finally {
+      setCargandoId(null)
+    }
+  }
+
+  // Mapa de contratados por addon_id
+  const contratadoMap: Record<string, AddonContratado> = {}
+  for (const c of contratados) contratadoMap[c.addon_id] = c
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <button
+          type="button"
+          className="flex items-start justify-between gap-4 w-full text-left"
+          onClick={() => setExpandido((v) => !v)}
+        >
+          <div>
+            <CardTitle className="text-base">Add-ons</CardTitle>
+            <CardDescription className="mt-0.5">
+              Amplia los limites de tu plan sin cambiar de nivel.
+              {totalAddons > 0 && (
+                <span className="ml-2 font-medium text-foreground">+{fmt(totalAddons)}/mes</span>
+              )}
+            </CardDescription>
+          </div>
+          {expandido
+            ? <ChevronUp className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
+            : <ChevronDown className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />}
+        </button>
+      </CardHeader>
+
+      {expandido && (
+        <CardContent className="space-y-4">
+          {/* Limites efectivos */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Doctores</p>
+              <p className="text-lg font-bold">{limiteEfectivoDoctores}</p>
+              <p className="text-[11px] text-muted-foreground">{planMaxDoctores} plan + {limiteEfectivoDoctores - planMaxDoctores} add-ons</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Usuarios admin</p>
+              <p className="text-lg font-bold">{limiteEfectivoUsuarios}</p>
+              <p className="text-[11px] text-muted-foreground">{planMaxUsuarios} plan + {limiteEfectivoUsuarios - planMaxUsuarios} add-ons</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Recordatorios</p>
+              <p className="text-lg font-bold">{limiteEfectivoRecordatorios.toLocaleString("es-MX")}</p>
+              <p className="text-[11px] text-muted-foreground">{planMaxRecordatorios.toLocaleString("es-MX")} plan + {(limiteEfectivoRecordatorios - planMaxRecordatorios).toLocaleString("es-MX")} add-ons</p>
+            </div>
+          </div>
+
+          {/* Catalogo de add-ons */}
+          <div className="divide-y divide-border">
+            {catalogo.map((addon) => {
+              const contratado = contratadoMap[addon.id]
+              const cantidad   = contratado?.cantidad ?? 0
+              const cargando   = cargandoId === addon.id || cargandoId === contratado?.id
+
+              return (
+                <div key={addon.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{addon.nombre}</p>
+                    <p className="text-xs text-muted-foreground">{addon.descripcion}</p>
+                    {contratado?.prorrateo_mxn != null && cantidad > 0 && (
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        Prorrateo de periodo actual: {fmt(contratado.prorrateo_mxn * cantidad)} (informativo)
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold tabular-nums shrink-0">{fmt(addon.precio_mensual_mxn)}/mes</p>
+                  {puedeModificar ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {cantidad > 0 && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={cargando}
+                          onClick={() => contratado && handleQuitar(contratado)}
+                          title="Quitar uno"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {cantidad > 0 && (
+                        <span className="text-sm font-medium w-5 text-center">{cantidad}</span>
+                      )}
+                      <Button
+                        variant={cantidad > 0 ? "outline" : "default"}
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={cargando}
+                        onClick={() => handleContratar(addon)}
+                        title="Agregar uno"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      {cantidad > 0 ? `x${cantidad}` : "No activo"}
+                    </Badge>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {!puedeModificar && (
+            <p className="text-xs text-muted-foreground text-center">
+              Activa tu suscripcion para contratar add-ons.
+            </p>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // FacturacionClient — componente principal
 // ---------------------------------------------------------------------------
 
 export function FacturacionClient({
   datos,
   planes,
+  catalogo,
+  contratados,
+  totalAddons,
+  limiteEfectivoDoctores,
+  limiteEfectivoUsuarios,
+  limiteEfectivoRecordatorios,
 }: {
   datos: DatosFacturacion
   planes: PlanCatalogo[]
+  catalogo: AddonCatalogo[]
+  contratados: AddonContratado[]
+  totalAddons: number
+  limiteEfectivoDoctores: number
+  limiteEfectivoUsuarios: number
+  limiteEfectivoRecordatorios: number
 }) {
   const { plan, suscripcion, historial } = datos
   const [cargando, startTransition] = useTransition()
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Estado local de add-ons (para refresh sin reload de pagina)
+  const [addonsLocales, setAddonsLocales] = useState({ contratados, totalAddons })
+
+  function handleRefreshAddons() {
+    // En produccion el refresco completo viene del RSC parent;
+    // aqui solo forzamos un re-render ligero para feedback inmediato.
+    setRefreshKey((k) => k + 1)
+  }
 
   function handleCancelar() {
     startTransition(async () => {
@@ -259,8 +599,11 @@ export function FacturacionClient({
 
   const puedeContratar = ["prueba", "pago_pendiente", "vencida", "suspendida", "cancelada"].includes(suscripcion.estado)
   const puedeActivar   = suscripcion.estado === "activa"
+  const puedeCambiarPlan = suscripcion.estado === "activa" || suscripcion.estado === "prueba"
   const enGracia       = suscripcion.estado === "pago_pendiente" && !!suscripcion.periodo_gracia_fin
   const enPrueba       = suscripcion.estado === "prueba"
+
+  const totalMensual = plan.precio_mensual_mxn + totalAddons
 
   return (
     <div className="space-y-6">
@@ -319,6 +662,9 @@ export function FacturacionClient({
               <CardTitle className="text-base">Plan {plan.nombre}</CardTitle>
               <CardDescription className="mt-0.5">
                 {fmt(plan.precio_mensual_mxn)} / mes
+                {totalAddons > 0 && (
+                  <> + {fmt(totalAddons)} en add-ons = <strong>{fmt(totalMensual)}/mes</strong></>
+                )}
                 {suscripcion.inicio_periodo && (
                   <> &middot; Periodo {fmtFecha(suscripcion.inicio_periodo)} — {fmtFecha(suscripcion.fin_periodo)}</>
                 )}
@@ -341,7 +687,7 @@ export function FacturacionClient({
             <div>
               <p className="text-muted-foreground text-xs mb-0.5">ID de suscripcion</p>
               <p className="font-mono text-xs text-muted-foreground truncate">
-                {suscripcion.mp_subscription_id ? suscripcion.mp_subscription_id.slice(0, 20) + "…" : "—"}
+                {suscripcion.mp_subscription_id ? suscripcion.mp_subscription_id.slice(0, 20) + "..." : "—"}
               </p>
             </div>
           </div>
@@ -361,11 +707,18 @@ export function FacturacionClient({
               </SeleccionarPlanDialog>
             )}
 
+            {puedeCambiarPlan && !puedeContratar && (
+              <CambiarPlanDialog
+                planes={planes}
+                planActualId={plan.id}
+                planActualPrecio={plan.precio_mensual_mxn}
+              />
+            )}
+
             {puedeActivar && (
               <CancelarDialog onConfirmar={handleCancelar} />
             )}
 
-            {/* Solo mostrar el link a MP cuando hay una suscripcion activa real */}
             {suscripcion.estado === "activa" && suscripcion.mp_subscription_id && (
               <Button variant="ghost" size="sm" asChild>
                 <a
@@ -380,6 +733,22 @@ export function FacturacionClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* --- Add-ons --- */}
+      <AddonsSection
+        key={refreshKey}
+        catalogo={catalogo}
+        contratados={addonsLocales.contratados}
+        totalAddons={addonsLocales.totalAddons}
+        limiteEfectivoDoctores={limiteEfectivoDoctores}
+        limiteEfectivoUsuarios={limiteEfectivoUsuarios}
+        limiteEfectivoRecordatorios={limiteEfectivoRecordatorios}
+        planMaxDoctores={plan.precio_mensual_mxn > 0 ? planes.find(p => p.id === plan.id)?.max_doctores ?? 0 : 0}
+        planMaxUsuarios={plan.precio_mensual_mxn > 0 ? planes.find(p => p.id === plan.id)?.max_usuarios ?? 0 : 0}
+        planMaxRecordatorios={plan.precio_mensual_mxn > 0 ? planes.find(p => p.id === plan.id)?.max_recordatorios_mes ?? 0 : 0}
+        estadoSuscripcion={suscripcion.estado}
+        onRefresh={handleRefreshAddons}
+      />
 
       {/* --- Historial de pagos --- */}
       <Card>

@@ -371,6 +371,120 @@ export async function cancelarSuscripcion(): Promise<{ ok: boolean; mensaje: str
 }
 
 // ---------------------------------------------------------------------------
+// cambiarPlan — upgrade o downgrade con logica de prorrateo
+// ---------------------------------------------------------------------------
+
+export async function cambiarPlan(planIdNuevo: string): Promise<{ ok: boolean; mensaje: string; requiereCheckout?: boolean }> {
+  const { cuentaId } = await resolverCuentaId()
+  const db = createServerClient()
+
+  const sus = await resolverSuscripcionActual(cuentaId)
+  if (!sus) return { ok: false, mensaje: "Suscripcion no encontrada." }
+
+  const planActualId = sus.plan_id
+  if (planActualId === planIdNuevo) return { ok: false, mensaje: "Ya tienes este plan." }
+
+  // Datos de ambos planes
+  const { data: planNuevo } = await db
+    .from("planes")
+    .select("id, nombre, precio_mensual_mxn, max_doctores, max_usuarios, saldo_ia_incluido_mxn")
+    .eq("id", planIdNuevo)
+    .single()
+
+  if (!planNuevo) return { ok: false, mensaje: "Plan no encontrado." }
+
+  const { data: planActual } = await db
+    .from("planes")
+    .select("precio_mensual_mxn")
+    .eq("id", planActualId)
+    .single()
+
+  const precioActual = Number(planActual?.precio_mensual_mxn ?? 0)
+  const precioNuevo  = Number(planNuevo.precio_mensual_mxn)
+  const esUpgrade    = precioNuevo > precioActual
+
+  // Estado "prueba": solo actualizar plan directamente, sin MP
+  if (sus.estado === "prueba") {
+    await db
+      .from("suscripciones")
+      .update({ plan_id: planIdNuevo } as any)
+      .eq("id", sus.id)
+    return { ok: true, mensaje: `Plan cambiado a ${planNuevo.nombre}.` }
+  }
+
+  const mpId = (sus as any).mp_subscription_id as string | null
+
+  if (esUpgrade) {
+    // Upgrade: activar inmediatamente y enviar al checkout para el nuevo monto
+    // El usuario debe completar el checkout con el nuevo precio.
+    // Guardamos plan_siguiente_id como "upgrade pendiente" y devolvemos flag.
+    await db
+      .from("suscripciones")
+      .update({ plan_siguiente_id: planIdNuevo } as any)
+      .eq("id", sus.id)
+    // El caller iniciara iniciarCheckout con planIdNuevo
+    return { ok: true, mensaje: "upgrade", requiereCheckout: true }
+  }
+
+  // Downgrade: programar para el siguiente ciclo
+  // Validar que el numero actual de doctores no exceda el nuevo limite
+  const { data: clinica } = await db
+    .from("clinicas")
+    .select("id")
+    .eq("cuenta_id", cuentaId)
+    .single()
+
+  if (clinica) {
+    const { count: doctoresActivos } = await db
+      .from("membresias")
+      .select("id", { count: "exact", head: true })
+      .eq("clinica_id", clinica.id)
+      .eq("rol", "doctor")
+      .eq("activa", true)
+
+    if ((doctoresActivos ?? 0) > Number(planNuevo.max_doctores)) {
+      return {
+        ok: false,
+        mensaje: `El plan ${planNuevo.nombre} permite hasta ${planNuevo.max_doctores} doctor(es). Actualmente tienes ${doctoresActivos} activos. Desactiva doctores antes de bajar de plan.`,
+      }
+    }
+  }
+
+  await db
+    .from("suscripciones")
+    .update({ plan_siguiente_id: planIdNuevo } as any)
+    .eq("id", sus.id)
+
+  // Actualizar monto en MP para el siguiente ciclo
+  if (mpId) {
+    try {
+      // Sumar add-ons activos al nuevo precio del plan
+      const { data: addonsActivos } = await (db as any)
+        .from("suscripcion_addons")
+        .select("cantidad, addons(precio_mensual_mxn)")
+        .eq("suscripcion_id", sus.id)
+        .eq("activo", true)
+
+      const addonTotal = ((addonsActivos ?? []) as Array<{ cantidad: number; addons: { precio_mensual_mxn: string | number } | null }>)
+        .reduce((sum, a) => sum + Number(a.addons?.precio_mensual_mxn ?? 0) * (a.cantidad ?? 1), 0)
+
+      await mpPut(
+        `/preapproval/${mpId}`,
+        { auto_recurring: { transaction_amount: precioNuevo + addonTotal } },
+        `downgrade-${sus.id}-${planIdNuevo}`,
+      )
+    } catch {
+      // No bloquear si falla en MP
+    }
+  }
+
+  return {
+    ok: true,
+    mensaje: `Tu plan cambiara a ${planNuevo.nombre} al inicio del proximo periodo. Hasta entonces conservas los limites actuales.`,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // verificarGraciaSuscripcion — llamado por el layout para aplicar suspension
 // ---------------------------------------------------------------------------
 

@@ -876,6 +876,96 @@ export type Database = {
         }
         Relationships: []
       }
+      addons: {
+        Row: {
+          activo: boolean
+          clave: string
+          created_at: string
+          descripcion: string
+          id: string
+          incremento_doctores: number
+          incremento_recordatorios: number
+          incremento_usuarios: number
+          nombre: string
+          precio_mensual_mxn: number
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          clave: string
+          created_at?: string
+          descripcion?: string
+          id?: string
+          incremento_doctores?: number
+          incremento_recordatorios?: number
+          incremento_usuarios?: number
+          nombre: string
+          precio_mensual_mxn: number
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          clave?: string
+          created_at?: string
+          descripcion?: string
+          id?: string
+          incremento_doctores?: number
+          incremento_recordatorios?: number
+          incremento_usuarios?: number
+          nombre?: string
+          precio_mensual_mxn?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
+      suscripcion_addons: {
+        Row: {
+          activo: boolean
+          addon_id: string
+          cantidad: number
+          created_at: string
+          fecha_contratacion: string
+          id: string
+          prorrateo_mxn: number | null
+          suscripcion_id: string
+        }
+        Insert: {
+          activo?: boolean
+          addon_id: string
+          cantidad?: number
+          created_at?: string
+          fecha_contratacion?: string
+          id?: string
+          prorrateo_mxn?: number | null
+          suscripcion_id: string
+        }
+        Update: {
+          activo?: boolean
+          addon_id?: string
+          cantidad?: number
+          created_at?: string
+          fecha_contratacion?: string
+          id?: string
+          prorrateo_mxn?: number | null
+          suscripcion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suscripcion_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suscripcion_addons_suscripcion_id_fkey"
+            columns: ["suscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "suscripciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suscripciones: {
         Row: {
           created_at: string
@@ -891,6 +981,7 @@ export type Database = {
           periodo: string
           periodo_gracia_fin: string | null
           plan_id: string
+          plan_siguiente_id: string | null
           recordatorios_enviados: number
           saldo_ia_disponible_mxn: number
         }
@@ -908,6 +999,7 @@ export type Database = {
           periodo?: string
           periodo_gracia_fin?: string | null
           plan_id: string
+          plan_siguiente_id?: string | null
           recordatorios_enviados?: number
           saldo_ia_disponible_mxn?: number
         }
@@ -925,6 +1017,7 @@ export type Database = {
           periodo?: string
           periodo_gracia_fin?: string | null
           plan_id?: string
+          plan_siguiente_id?: string | null
           recordatorios_enviados?: number
           saldo_ia_disponible_mxn?: number
         }
@@ -939,6 +1032,13 @@ export type Database = {
           {
             foreignKeyName: "suscripciones_plan_id_fkey"
             columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suscripciones_plan_siguiente_id_fkey"
+            columns: ["plan_siguiente_id"]
             isOneToOne: false
             referencedRelation: "planes"
             referencedColumns: ["id"]

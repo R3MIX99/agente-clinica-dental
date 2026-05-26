@@ -254,6 +254,33 @@ export type ResultadoVerificacion = {
   mensaje?: string
 }
 
+/** Calcula los limites efectivos sumando add-ons activos al maximo del plan */
+async function calcularLimitesEfectivos(
+  susId: string,
+  planMaxDoctores: number,
+  planMaxUsuarios: number,
+  db: ReturnType<typeof createServerClient>,
+): Promise<{ maxDoctores: number; maxUsuarios: number }> {
+  const { data: addonsActivos } = await (db as any)
+    .from("suscripcion_addons")
+    .select("cantidad, addons(tipo, incremento_doctores, incremento_usuarios)")
+    .eq("suscripcion_id", susId)
+    .eq("activo", true)
+
+  let extraDoctores = 0
+  let extraUsuarios = 0
+
+  for (const a of (addonsActivos ?? []) as Array<{ cantidad: number; addons: { tipo: string; incremento_doctores: number; incremento_usuarios: number } | null }>) {
+    extraDoctores += Number(a.addons?.incremento_doctores ?? 0) * (a.cantidad ?? 1)
+    extraUsuarios += Number(a.addons?.incremento_usuarios ?? 0) * (a.cantidad ?? 1)
+  }
+
+  return {
+    maxDoctores: planMaxDoctores + extraDoctores,
+    maxUsuarios: planMaxUsuarios + extraUsuarios,
+  }
+}
+
 export async function verificarLimiteDoctores(): Promise<ResultadoVerificacion> {
   const clinicaId = await resolverClinicaId()
   const db = createServerClient()
@@ -266,14 +293,17 @@ export async function verificarLimiteDoctores(): Promise<ResultadoVerificacion> 
 
   const { data: sus } = await db
     .from("suscripciones")
-    .select("planes(max_doctores)")
+    .select("id, planes(max_doctores)")
     .eq("cuenta_id", clinicaRow?.cuenta_id ?? "")
     .in("estado", ["activa", "prueba"])
     .order("created_at", { ascending: false })
     .limit(1)
     .single()
 
-  const maxDoctores = Number((sus?.planes as any)?.max_doctores ?? 0)
+  const planMaxDoctores = Number((sus?.planes as any)?.max_doctores ?? 0)
+  const { maxDoctores } = sus?.id
+    ? await calcularLimitesEfectivos(sus.id, planMaxDoctores, 0, db)
+    : { maxDoctores: planMaxDoctores }
 
   const { count } = await db
     .from("membresias")
@@ -291,7 +321,7 @@ export async function verificarLimiteDoctores(): Promise<ResultadoVerificacion> 
     maximo: maxDoctores,
     mensaje: permitido
       ? undefined
-      : `Tu plan permite hasta ${maxDoctores} doctor${maxDoctores === 1 ? "" : "es"}. Actualmente tienes ${actual}. Sube de plan para agregar mas.`,
+      : `Tu plan permite hasta ${maxDoctores} doctor${maxDoctores === 1 ? "" : "es"} (incluyendo add-ons). Actualmente tienes ${actual}. Contrata el add-on "Doctor adicional" o sube de plan.`,
   }
 }
 
@@ -307,14 +337,17 @@ export async function verificarLimiteUsuarios(): Promise<ResultadoVerificacion> 
 
   const { data: sus } = await db
     .from("suscripciones")
-    .select("planes(max_usuarios)")
+    .select("id, planes(max_usuarios)")
     .eq("cuenta_id", clinicaRow?.cuenta_id ?? "")
     .in("estado", ["activa", "prueba"])
     .order("created_at", { ascending: false })
     .limit(1)
     .single()
 
-  const maxUsuarios = Number((sus?.planes as any)?.max_usuarios ?? 0)
+  const planMaxUsuarios = Number((sus?.planes as any)?.max_usuarios ?? 0)
+  const { maxUsuarios } = sus?.id
+    ? await calcularLimitesEfectivos(sus.id, 0, planMaxUsuarios, db)
+    : { maxUsuarios: planMaxUsuarios }
 
   const { count } = await db
     .from("membresias")
@@ -332,6 +365,6 @@ export async function verificarLimiteUsuarios(): Promise<ResultadoVerificacion> 
     maximo: maxUsuarios,
     mensaje: permitido
       ? undefined
-      : `Tu plan permite hasta ${maxUsuarios} usuario${maxUsuarios === 1 ? "" : "s"} no-doctor. Actualmente tienes ${actual}. Sube de plan para agregar mas.`,
+      : `Tu plan permite hasta ${maxUsuarios} usuario${maxUsuarios === 1 ? "" : "s"} no-doctor (incluyendo add-ons). Actualmente tienes ${actual}. Contrata el add-on "Usuario adicional" o sube de plan.`,
   }
 }
