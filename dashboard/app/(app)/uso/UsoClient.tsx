@@ -165,10 +165,10 @@ function MejorarPlanDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="w-full max-w-[960px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden">
         {/* Encabezado */}
-        <div className="px-8 pt-8 pb-6 border-b border-border">
-          <DialogTitle className="text-xl font-semibold">Elige tu nuevo plan</DialogTitle>
+        <div className="px-8 pt-7 pb-5 border-b border-border">
+          <DialogTitle className="text-lg font-semibold">Elige tu nuevo plan</DialogTitle>
           <DialogDescription className="mt-1 text-sm">
             Cambia de plan en cualquier momento. El cobro se ajusta al dia del cambio.
           </DialogDescription>
