@@ -257,12 +257,30 @@ export function FacturacionClient({
     })
   }
 
-  const puedeContratar   = ["prueba", "pago_pendiente", "vencida", "suspendida", "cancelada"].includes(suscripcion.estado)
-  const puedeActivar     = suscripcion.estado === "activa"
-  const enGracia         = suscripcion.estado === "pago_pendiente" && !!suscripcion.periodo_gracia_fin
+  const puedeContratar = ["prueba", "pago_pendiente", "vencida", "suspendida", "cancelada"].includes(suscripcion.estado)
+  const puedeActivar   = suscripcion.estado === "activa"
+  const enGracia       = suscripcion.estado === "pago_pendiente" && !!suscripcion.periodo_gracia_fin
+  const enPrueba       = suscripcion.estado === "prueba"
 
   return (
     <div className="space-y-6">
+
+      {/* --- Aviso de periodo de prueba --- */}
+      {enPrueba && (
+        <div className="flex items-start gap-3 rounded-lg border border-blue-400/40 bg-blue-50 dark:bg-blue-950/20 p-4">
+          <CreditCard className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+              Estas en periodo de prueba hasta el {suscripcion.fin_periodo
+                ? new Date(suscripcion.fin_periodo + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" })
+                : "—"}
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Activa tu suscripcion antes de que termine para no perder el acceso.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* --- Aviso de estado critico --- */}
       {(suscripcion.estado === "suspendida" || suscripcion.estado === "cancelada") && (
@@ -334,7 +352,11 @@ export function FacturacionClient({
               <SeleccionarPlanDialog planes={planes} planActualId={plan.id}>
                 <Button size="sm" disabled={cargando}>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  {suscripcion.estado === "cancelada" ? "Contratar plan" : "Regularizar pago"}
+                  {suscripcion.estado === "prueba"
+                    ? "Activar suscripcion"
+                    : suscripcion.estado === "cancelada"
+                    ? "Contratar plan"
+                    : "Regularizar pago"}
                 </Button>
               </SeleccionarPlanDialog>
             )}
@@ -343,12 +365,9 @@ export function FacturacionClient({
               <CancelarDialog onConfirmar={handleCancelar} />
             )}
 
-            {suscripcion.mp_subscription_id && (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-              >
+            {/* Solo mostrar el link a MP cuando hay una suscripcion activa real */}
+            {suscripcion.estado === "activa" && suscripcion.mp_subscription_id && (
+              <Button variant="ghost" size="sm" asChild>
                 <a
                   href="https://www.mercadopago.com.mx/subscriptions"
                   target="_blank"

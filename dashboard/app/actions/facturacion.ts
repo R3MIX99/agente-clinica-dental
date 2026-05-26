@@ -181,8 +181,10 @@ export async function iniciarCheckout(planId: string): Promise<{ url: string }> 
   const preapproval = await mpPost<MpPreapproval>(
     "/preapproval",
     {
-      reason:             `Plan ${plan.nombre} - Agente Dental`,
-      external_reference: `cuenta_${cuentaId}`,
+      reason: `Plan ${plan.nombre} - Agente Dental`,
+      // Incluir el planId en external_reference para recuperarlo en confirmarCheckout
+      // sin modificar el plan activo hasta que el pago sea exitoso
+      external_reference: `cuenta_${cuentaId}_plan_${planId}`,
       payer_email:        email,
       auto_recurring: {
         frequency:          1,
@@ -196,13 +198,13 @@ export async function iniciarCheckout(planId: string): Promise<{ url: string }> 
     `checkout-${cuentaId}-${planId}`
   )
 
-  // Guardar el nuevo preapproval ID y actualizar el plan
+  // Solo guardamos el ID del preapproval y el correo.
+  // El plan_id NO cambia aqui — solo cambia cuando el pago se confirma como exitoso.
   await db
     .from("suscripciones")
     .update({
       mp_subscription_id: preapproval.id,
       mp_payer_email:     email,
-      plan_id:            planId,
     } as any)
     .eq("id", sus.id)
 
@@ -227,46 +229,65 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
     .maybeSingle()
 
   if (!sus) {
-    return { estado: "pago_pendiente", mensaje: "No se encontro la suscripcion asociada al pago." }
+    return {
+      estado: "prueba",
+      mensaje: "No se encontro la suscripcion asociada. Ve a Facturacion para reintentar.",
+    }
   }
+
+  const estadoActual = sus.estado as EstadoSuscripcion
 
   // Consultar estado del preapproval en MP
   let preapproval: MpPreapproval
   try {
     preapproval = await mpGet<MpPreapproval>(`/preapproval/${preapprovalId}`)
   } catch {
-    return { estado: sus.estado as EstadoSuscripcion, mensaje: "No se pudo verificar el estado del pago. Intenta en unos momentos." }
+    return {
+      estado: estadoActual,
+      mensaje: "No se pudo verificar el estado del pago. Intenta de nuevo en unos momentos.",
+    }
   }
 
-  // Mapear estado de MP a nuestro estado
-  const mapaEstado: Record<string, EstadoSuscripcion> = {
-    authorized: "activa",
-    paused:     "suspendida",
-    cancelled:  "cancelada",
-    pending:    "pago_pendiente",
-  }
-  const nuevoEstado: EstadoSuscripcion = mapaEstado[preapproval.status] ?? "pago_pendiente"
+  // -------------------------------------------------------------------------
+  // Regla critica: el plan y el estado SOLO cambian si el pago fue autorizado.
+  // Si el usuario regreso sin pagar (pending) o cancelo, la suscripcion
+  // se queda exactamente como estaba — sin penalizacion.
+  // -------------------------------------------------------------------------
 
-  // Calcular inicio y fin de periodo
-  const hoy   = new Date()
-  const fin   = new Date(hoy)
-  fin.setMonth(fin.getMonth() + 1)
+  if (preapproval.status === "authorized") {
+    // Pago exitoso: activar y cambiar al plan solicitado
+    const hoy = new Date()
+    const fin  = new Date(hoy)
+    fin.setMonth(fin.getMonth() + 1)
 
-  await db
-    .from("suscripciones")
-    .update({
-      estado:                nuevoEstado,
-      mp_payer_email:        preapproval.payer_email,
-      mp_next_payment_date:  preapproval.next_payment_date?.slice(0, 10) ?? null,
-      mp_last_payment_status: preapproval.status,
-      inicio_periodo:        hoy.toISOString().slice(0, 10),
-      fin_periodo:           fin.toISOString().slice(0, 10),
-      periodo_gracia_fin:    null,
-    } as any)
-    .eq("id", sus.id)
+    // Obtener el plan_id desde external_reference ("cuenta_{id}_plan_{planId}")
+    const partes       = (preapproval.external_reference ?? "").split("_plan_")
+    const planIdNuevo  = partes.length > 1 ? partes[partes.length - 1] : sus.plan_id
 
-  // Registrar en historial
-  if (nuevoEstado === "activa") {
+    // Obtener saldo del nuevo plan
+    const { data: planData } = await db
+      .from("planes")
+      .select("saldo_ia_incluido_mxn")
+      .eq("id", planIdNuevo)
+      .maybeSingle()
+
+    const saldoNuevo = planData ? Number(planData.saldo_ia_incluido_mxn) : undefined
+
+    await db
+      .from("suscripciones")
+      .update({
+        estado:                 "activa",
+        plan_id:                planIdNuevo,
+        mp_payer_email:         preapproval.payer_email,
+        mp_next_payment_date:   preapproval.next_payment_date?.slice(0, 10) ?? null,
+        mp_last_payment_status: "authorized",
+        inicio_periodo:         hoy.toISOString().slice(0, 10),
+        fin_periodo:            fin.toISOString().slice(0, 10),
+        periodo_gracia_fin:     null,
+        ...(saldoNuevo !== undefined ? { saldo_ia_disponible_mxn: saldoNuevo } : {}),
+      } as any)
+      .eq("id", sus.id)
+
     await db.from("historial_pagos" as any).insert({
       suscripcion_id:    sus.id,
       cuenta_id:         sus.cuenta_id,
@@ -274,18 +295,38 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
       status:            "authorized",
       concepto:          "Suscripcion activada",
     })
+
+    return {
+      estado: "activa",
+      mensaje: "Suscripcion activada correctamente. Ya puedes usar todas las funciones de tu plan.",
+    }
   }
 
-  const mensajes: Record<EstadoSuscripcion, string> = {
-    activa:        "Suscripcion activada correctamente. Ya puedes usar todas las funciones de tu plan.",
-    pago_pendiente:"El pago esta pendiente de autorizacion. Revisa tu cuenta de Mercado Pago.",
-    suspendida:    "La suscripcion ha sido suspendida.",
-    cancelada:     "La suscripcion fue cancelada.",
-    prueba:        "Continuas en periodo de prueba.",
-    vencida:       "La suscripcion ha vencido.",
+  if (preapproval.status === "pending") {
+    // El usuario salio sin pagar — no cambiamos nada, solo informamos
+    return {
+      estado: estadoActual,
+      mensaje: "El pago no fue completado. Puedes intentarlo de nuevo cuando quieras.",
+    }
   }
 
-  return { estado: nuevoEstado, mensaje: mensajes[nuevoEstado] }
+  if (preapproval.status === "cancelled") {
+    // Preapproval cancelado — solo actualizamos si ya estaba activa (no si era prueba)
+    if (estadoActual === "activa") {
+      await db
+        .from("suscripciones")
+        .update({ estado: "cancelada", mp_last_payment_status: "cancelled" } as any)
+        .eq("id", sus.id)
+      return { estado: "cancelada", mensaje: "La suscripcion fue cancelada." }
+    }
+    return { estado: estadoActual, mensaje: "El intento de pago fue cancelado. Tu suscripcion no cambio." }
+  }
+
+  // Cualquier otro estado de MP (paused, etc.) — no tocar nada
+  return {
+    estado: estadoActual,
+    mensaje: "Estado de pago no definitivo. Verifica en tu panel de Mercado Pago.",
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -65,39 +65,69 @@ async function procesarPreapproval(preapprovalId: string): Promise<void> {
   // Buscar la suscripcion por el ID del preapproval de MP
   const { data: sus } = await db
     .from("suscripciones")
-    .select("id, cuenta_id, estado")
+    .select("id, cuenta_id, estado, plan_id")
     .eq("mp_subscription_id" as any, preapprovalId)
     .maybeSingle()
 
   if (!sus) return
 
-  const mapaEstado: Record<string, string> = {
-    authorized: "activa",
-    paused:     "suspendida",
-    cancelled:  "cancelada",
-    pending:    "pago_pendiente",
+  const estadoActual = sus.estado as string
+
+  // Solo procesamos transiciones definitivas; "pending" no toca nada
+  if (preapproval.status === "pending") return
+
+  if (preapproval.status === "authorized") {
+    // Pago confirmado: activar y aplicar el plan del external_reference
+    const partes      = (preapproval.external_reference ?? "").split("_plan_")
+    const planIdNuevo = partes.length > 1 ? partes[partes.length - 1] : sus.plan_id
+
+    const { data: planData } = await db
+      .from("planes")
+      .select("saldo_ia_incluido_mxn")
+      .eq("id", planIdNuevo)
+      .maybeSingle()
+    const saldoNuevo = planData ? Number(planData.saldo_ia_incluido_mxn) : undefined
+
+    const hoy = new Date()
+    const fin  = new Date(hoy)
+    fin.setMonth(fin.getMonth() + 1)
+
+    await db
+      .from("suscripciones")
+      .update({
+        estado:                 "activa",
+        plan_id:                planIdNuevo,
+        mp_last_payment_status: "authorized",
+        mp_next_payment_date:   preapproval.next_payment_date?.slice(0, 10) ?? null,
+        periodo_gracia_fin:     null,
+        inicio_periodo:         hoy.toISOString().slice(0, 10),
+        fin_periodo:            fin.toISOString().slice(0, 10),
+        ...(saldoNuevo !== undefined ? { saldo_ia_disponible_mxn: saldoNuevo } : {}),
+      } as any)
+      .eq("id", sus.id)
+
+  } else if (preapproval.status === "paused" || preapproval.status === "cancelled") {
+    // Solo suspender/cancelar si ya estaba activa (no afectar cuentas en prueba)
+    if (estadoActual === "activa") {
+      const nuevoEstado = preapproval.status === "paused" ? "suspendida" : "cancelada"
+      await db
+        .from("suscripciones")
+        .update({
+          estado:                 nuevoEstado,
+          mp_last_payment_status: preapproval.status,
+          mp_next_payment_date:   null,
+        } as any)
+        .eq("id", sus.id)
+    }
   }
 
-  const nuevoEstado = mapaEstado[preapproval.status] ?? sus.estado
-
-  await db
-    .from("suscripciones")
-    .update({
-      estado:                 nuevoEstado,
-      mp_last_payment_status: preapproval.status,
-      mp_next_payment_date:   preapproval.next_payment_date?.slice(0, 10) ?? null,
-      // Si se activa, limpiar el periodo de gracia
-      ...(nuevoEstado === "activa" ? { periodo_gracia_fin: null } : {}),
-    } as any)
-    .eq("id", sus.id)
-
-  // Registrar en historial
+  // Registrar en historial siempre
   await db.from("historial_pagos" as any).insert({
     suscripcion_id:    sus.id,
     cuenta_id:         sus.cuenta_id,
     mp_preapproval_id: preapprovalId,
     status:            preapproval.status,
-    concepto:          `Suscripcion → ${nuevoEstado}`,
+    concepto:          `Suscripcion webhook: ${preapproval.status}`,
   })
 }
 
