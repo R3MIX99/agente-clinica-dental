@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { isRedirectError } from "next/dist/client/components/redirect-error"
 import Link from "next/link"
 import { Stethoscope, Loader2, Plus, Trash2, ChevronRight, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
@@ -168,7 +169,9 @@ export function OnboardingWizard({
           await invitarMiembros(miembros.filter((m) => m.email.trim()))
         }
         await completarOnboarding()
-      } catch {
+      } catch (e) {
+        // redirect() lanza un error especial que Next.js maneja internamente — no es un error real
+        if (isRedirectError(e)) throw e
         toast.error("Error al finalizar la configuracion. Intentalo de nuevo.")
       }
     })
