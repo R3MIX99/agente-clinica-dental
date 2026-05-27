@@ -64,7 +64,7 @@ async function resolverContexto() {
     .from("suscripciones")
     .select(`
       id, estado, plan_id, inicio_periodo, fin_periodo, mp_subscription_id,
-      planes(precio_mensual_mxn, max_doctores, max_usuarios, max_recordatorios_mes)
+      planes!plan_id(precio_mensual_mxn, max_doctores, max_usuarios, max_recordatorios_mes)
     `)
     .eq("cuenta_id", cuentaId)
     .order("created_at", { ascending: false })
@@ -78,7 +78,7 @@ async function resolverContexto() {
 async function calcularTotalMensual(susId: string, db: ReturnType<typeof createServerClient>): Promise<number> {
   const { data: susRow } = await db
     .from("suscripciones")
-    .select("plan_id, planes(precio_mensual_mxn)")
+    .select("plan_id, planes!plan_id(precio_mensual_mxn)")
     .eq("id", susId)
     .single()
 

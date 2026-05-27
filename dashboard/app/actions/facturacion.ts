@@ -67,7 +67,7 @@ async function resolverSuscripcionActual(cuentaId: string) {
       id, estado, periodo, inicio_periodo, fin_periodo,
       mp_subscription_id, mp_payer_email, mp_next_payment_date,
       mp_last_payment_status, periodo_gracia_fin, plan_id,
-      planes(id, nombre, precio_mensual_mxn)
+      planes!plan_id(id, nombre, precio_mensual_mxn)
     `)
     .eq("cuenta_id", cuentaId)
     .order("created_at", { ascending: false })

@@ -79,7 +79,7 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
     .select(`
       id, estado, periodo, inicio_periodo, fin_periodo,
       saldo_ia_disponible_mxn, recordatorios_enviados,
-      planes (
+      planes!plan_id (
         id, nombre, precio_mensual_mxn, saldo_ia_incluido_mxn,
         max_doctores, max_usuarios, max_recordatorios_mes
       )
@@ -293,7 +293,7 @@ export async function verificarLimiteDoctores(): Promise<ResultadoVerificacion> 
 
   const { data: sus } = await db
     .from("suscripciones")
-    .select("id, planes(max_doctores)")
+    .select("id, planes!plan_id(max_doctores)")
     .eq("cuenta_id", clinicaRow?.cuenta_id ?? "")
     .in("estado", ["activa", "prueba"])
     .order("created_at", { ascending: false })
@@ -337,7 +337,7 @@ export async function verificarLimiteUsuarios(): Promise<ResultadoVerificacion> 
 
   const { data: sus } = await db
     .from("suscripciones")
-    .select("id, planes(max_usuarios)")
+    .select("id, planes!plan_id(max_usuarios)")
     .eq("cuenta_id", clinicaRow?.cuenta_id ?? "")
     .in("estado", ["activa", "prueba"])
     .order("created_at", { ascending: false })
