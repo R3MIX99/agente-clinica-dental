@@ -1,5 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { createAuthClient } from "@/lib/supabase/server-auth"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { ConversacionesClient } from "./ConversacionesClient"
 
 export const metadata = { title: "Conversaciones — Clinica Dental" }
@@ -8,24 +9,21 @@ export default async function ConversacionesPage() {
   const authClient = await createAuthClient()
   const supabase = createServerClient()
 
-  const [
-    { data: { session } },
-    { data: perfil },
-  ] = await Promise.all([
-    authClient.auth.getSession(),
-    authClient.from("profiles").select("clinica_id").maybeSingle(),
-  ])
+  const { data: { session } } = await authClient.auth.getSession()
+  const nombreUsuario: string = session?.user?.user_metadata?.nombre ?? ""
 
-  // clinica_id del perfil del usuario autenticado
-  const userId = session?.user?.id
-  const { data: perfilCompleto } = userId
-    ? await authClient.from("profiles").select("clinica_id").eq("id", userId).single()
-    : { data: null }
-
-  const clinicaId = perfilCompleto?.clinica_id ?? null
+  // Resolver clinica activa con la misma logica que el resto del sistema:
+  // 1. Cookie "clinica_activa" validada contra membresias
+  // 2. Primera membresia activa
+  // 3. profiles.clinica_id como fallback
+  let clinicaId: string | null = null
+  try {
+    clinicaId = await resolverClinicaId()
+  } catch {
+    // Sin clinica activa — se muestra pantalla vacia
+  }
 
   if (!clinicaId) {
-    const nombreUsuario: string = session?.user?.user_metadata?.nombre ?? ""
     return (
       <ConversacionesClient
         conversaciones={[]}
@@ -66,7 +64,6 @@ export default async function ConversacionesPage() {
       .order("deleted_at", { ascending: false }),
   ])
 
-  const nombreUsuario: string = session?.user?.user_metadata?.nombre ?? ""
   const listaAgentes = agentes ?? []
   const agenteActual =
     (nombreUsuario
