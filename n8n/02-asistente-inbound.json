@@ -50,7 +50,7 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id }) }}"
+        "body": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id, clinica_id: '00000000-0000-0000-0000-000000000002' }) }}"
       },
       "id": "node-upsert-paciente",
       "name": "Upsert paciente",
@@ -146,7 +146,7 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify({ patient_id: $json.paciente_id, channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
+        "body": "={{ JSON.stringify({ patient_id: $json.paciente_id, clinica_id: '00000000-0000-0000-0000-000000000002', channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
       },
       "id": "node-crear-conv",
       "name": "Crear nueva conversacion",
