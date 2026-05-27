@@ -143,7 +143,7 @@ function MensajeBurbuja({ mensaje }: { mensaje: Mensaje }) {
         className={cn(
           "rounded-2xl px-3 py-2 max-w-[75%] text-sm leading-relaxed",
           esEntrante
-            ? "bg-muted text-foreground rounded-tl-sm"
+            ? "bg-secondary text-secondary-foreground rounded-tl-sm"
             : mensaje.sender === "bot"
             ? "bg-blue-500 text-white rounded-tr-sm"
             : "bg-emerald-600 text-white rounded-tr-sm"
