@@ -235,7 +235,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/clinic_info",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/clinicas",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
@@ -245,6 +245,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
+            { "name": "id", "value": "eq.00000000-0000-0000-0000-000000000002" },
             { "name": "select", "value": "nombre,direccion,telefono,email,sitio_web,horario,formas_pago,facturacion,faq" },
             { "name": "limit", "value": "1" }
           ]
@@ -275,8 +276,9 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "select", "value": "nombre,descripcion,precio,duracion_min" },
-            { "name": "activo", "value": "=eq.true" }
+            { "name": "clinica_id", "value": "eq.00000000-0000-0000-0000-000000000002" },
+            { "name": "activo", "value": "eq.true" },
+            { "name": "select", "value": "nombre,descripcion,precio,duracion_min" }
           ]
         }
       },

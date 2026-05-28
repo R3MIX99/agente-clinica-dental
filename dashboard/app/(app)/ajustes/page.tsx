@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation"
 import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
+import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { AjustesClient } from "./AjustesClient"
+import type { CanalTelegramPublico } from "./actions"
 
 export const metadata = { title: "Ajustes — Clinica Dental" }
 
@@ -10,36 +12,63 @@ export default async function AjustesPage() {
   const { data: { session } } = await authClient.auth.getSession()
   if (!session?.user) redirect("/login")
 
-  // Obtener clinica_id del perfil del usuario
-  const { data: perfil } = await authClient
-    .from("profiles")
-    .select("clinica_id")
-    .eq("id", session.user.id)
-    .single()
-
-  const clinicaId = perfil?.clinica_id
-
-  type FaqItem = { pregunta: string; respuesta: string }
+  let clinicaId: string | null = null
+  try {
+    clinicaId = await resolverClinicaId()
+  } catch {
+    // Sin clinica activa
+  }
 
   if (!clinicaId) {
-    return <AjustesClient clinica={null} />
+    return <AjustesClient clinica={null} servicios={[]} canalTelegram={null} />
   }
 
   const db = createServerClient()
-  const { data } = await db
-    .from("clinicas")
-    .select(
-      "nombre, direccion, telefono, email, sitio_web, horario, formas_pago, facturacion, mapa_url, faq"
-    )
-    .eq("id", clinicaId)
-    .single()
 
-  const clinica = data
+  const [clinicaRes, serviciosRes, canalRes] = await Promise.all([
+    db
+      .from("clinicas")
+      .select(
+        "nombre, logo_url, direccion, telefono, email, sitio_web, horario, formas_pago, facturacion, mapa_url, faq"
+      )
+      .eq("id", clinicaId)
+      .single(),
+    db
+      .from("services")
+      .select("id, nombre, descripcion, precio, duracion_min, activo")
+      .eq("clinica_id", clinicaId)
+      .order("nombre"),
+    db
+      .from("clinic_channels")
+      .select("id, canal, activo, config, webhook_url, updated_at")
+      .eq("clinica_id", clinicaId)
+      .eq("canal", "telegram")
+      .maybeSingle(),
+  ])
+
+  type FaqItem = { pregunta: string; respuesta: string }
+
+  const clinica = clinicaRes.data
+    ? { ...clinicaRes.data, faq: clinicaRes.data.faq as FaqItem[] | null }
+    : null
+
+  // Sanitizar canal: el config con el token nunca llega al cliente
+  const canalData = canalRes.data
+  const canalTelegram: CanalTelegramPublico = canalData
     ? {
-        ...data,
-        faq: data.faq as FaqItem[] | null,
+        id:          canalData.id,
+        activo:      canalData.activo,
+        webhook_url: canalData.webhook_url ?? null,
+        tiene_token: !!(canalData.config as Record<string, unknown>)?.bot_token,
+        updated_at:  canalData.updated_at,
       }
     : null
 
-  return <AjustesClient clinica={clinica} />
+  return (
+    <AjustesClient
+      clinica={clinica}
+      servicios={serviciosRes.data ?? []}
+      canalTelegram={canalTelegram}
+    />
+  )
 }

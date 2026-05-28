@@ -211,6 +211,47 @@ export type Database = {
           },
         ]
       }
+      clinic_channels: {
+        Row: {
+          activo: boolean
+          canal: Database["public"]["Enums"]["channel_type"]
+          clinica_id: string
+          config: Json
+          created_at: string
+          id: string
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          activo?: boolean
+          canal: Database["public"]["Enums"]["channel_type"]
+          clinica_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          activo?: boolean
+          canal?: Database["public"]["Enums"]["channel_type"]
+          clinica_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_channels_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinicas: {
         Row: {
           activa: boolean
@@ -223,6 +264,7 @@ export type Database = {
           formas_pago: string | null
           horario: string | null
           id: string
+          logo_url: string | null
           mapa_url: string | null
           nombre: string | null
           onboarding_completado: boolean
@@ -242,6 +284,7 @@ export type Database = {
           formas_pago?: string | null
           horario?: string | null
           id?: string
+          logo_url?: string | null
           mapa_url?: string | null
           nombre?: string | null
           onboarding_completado?: boolean
@@ -261,6 +304,7 @@ export type Database = {
           formas_pago?: string | null
           horario?: string | null
           id?: string
+          logo_url?: string | null
           mapa_url?: string | null
           nombre?: string | null
           onboarding_completado?: boolean
