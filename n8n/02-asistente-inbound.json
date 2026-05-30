@@ -21,13 +21,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const msg = $input.first().json.message;\nconst chatId = String(msg.chat.id);\nconst texto = msg.text || '';\nconst nombre = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ') || 'Paciente';\nreturn [{ json: { chat_id: chatId, texto_entrante: texto, nombre_paciente: nombre } }];\n"
+        "jsCode": "// ============================================================\n// CONFIGURACION POR CLINICA\n// Al importar este workflow, reemplaza el UUID de abajo\n// con el ID real de la clinica en Supabase.\n// Tambien asegura que la credencial Telegram apunta al bot\n// correcto para esta clinica.\n// ============================================================\nconst clinica_id = 'REEMPLAZAR_CON_UUID_DE_CLINICA';\n\nconst msg = $input.first().json.message;\nconst chatId = String(msg.chat.id);\nconst texto = msg.text || '';\nconst nombre = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ') || 'Paciente';\n\nreturn [{ json: { chat_id: chatId, texto_entrante: texto, nombre_paciente: nombre, clinica_id } }];\n"
       },
       "id": "node-extraer",
       "name": "Extraer datos del mensaje",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [480, 300]
     },
     {
       "parameters": {
@@ -50,13 +50,13 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id, clinica_id: '00000000-0000-0000-0000-000000000002' }) }}"
+        "body": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id, clinica_id: $json.clinica_id }) }}"
       },
       "id": "node-upsert-paciente",
       "name": "Upsert paciente",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300],
+      "position": [720, 300],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -66,13 +66,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const paciente = $input.first().json;\nconst arr = Array.isArray(paciente) ? paciente : [paciente];\nconst p = arr[0];\nconst datos = $('Extraer datos del mensaje').first().json;\nreturn [{ json: { paciente_id: p.id, chat_id: datos.chat_id, texto_entrante: datos.texto_entrante, nombre_paciente: p.nombre } }];\n"
+        "jsCode": "const paciente = $input.first().json;\nconst arr = Array.isArray(paciente) ? paciente : [paciente];\nconst p = arr[0];\nconst datos = $('Extraer datos del mensaje').first().json;\nreturn [{ json: { paciente_id: p.id, chat_id: datos.chat_id, texto_entrante: datos.texto_entrante, nombre_paciente: p.nombre, clinica_id: datos.clinica_id } }];\n"
       },
       "id": "node-extraer-paciente",
       "name": "Extraer id del paciente",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300]
+      "position": [960, 300]
     },
     {
       "parameters": {
@@ -90,6 +90,7 @@
         "queryParameters": {
           "parameters": [
             { "name": "patient_id", "value": "eq.{{ $json.paciente_id }}" },
+            { "name": "clinica_id", "value": "eq.{{ $json.clinica_id }}" },
             { "name": "status", "value": "neq.cerrada" },
             { "name": "order", "value": "created_at.desc" },
             { "name": "limit", "value": "1" }
@@ -100,7 +101,7 @@
       "name": "Buscar conversacion abierta",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 300],
+      "position": [1200, 300],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -116,7 +117,7 @@
       "name": "Resolver conversacion",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 300]
+      "position": [1440, 300]
     },
     {
       "parameters": {
@@ -129,7 +130,7 @@
       "name": "Es nueva conversacion?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1560, 300]
+      "position": [1680, 300]
     },
     {
       "parameters": {
@@ -146,13 +147,13 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify({ patient_id: $json.paciente_id, clinica_id: '00000000-0000-0000-0000-000000000002', channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
+        "body": "={{ JSON.stringify({ patient_id: $json.paciente_id, clinica_id: $json.clinica_id, channel: 'telegram', mode: 'bot', status: 'abierta' }) }}"
       },
       "id": "node-crear-conv",
       "name": "Crear nueva conversacion",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 200],
+      "position": [1920, 180],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -168,7 +169,7 @@
       "name": "Asignar id conversacion",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 200]
+      "position": [2160, 180]
     },
     {
       "parameters": {
@@ -191,7 +192,7 @@
       "name": "Insertar mensaje entrante",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 300],
+      "position": [2400, 300],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -210,19 +211,7 @@
       "name": "Modo bot?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2440, 300]
-    },
-    {
-      "parameters": {
-        "content": "La conversación está en modo humano.\nEl agente responde desde el dashboard (Workflow 3).\nEl bot no interviene.",
-        "height": 90,
-        "width": 260
-      },
-      "id": "node-sticky-humano",
-      "name": "Nota modo humano",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [2660, 420]
+      "position": [2640, 300]
     },
     {
       "parameters": {},
@@ -230,7 +219,124 @@
       "name": "Esperar agente humano",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [2660, 300]
+      "position": [2880, 480]
+    },
+    {
+      "parameters": {
+        "content": "La conversacion esta en modo humano.\nEl agente responde desde el dashboard (Workflow 3).\nEl bot no interviene.",
+        "height": 90,
+        "width": 260
+      },
+      "id": "node-sticky-humano",
+      "name": "Nota modo humano",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2880, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/rpc/ia_disponible",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ p_clinica_id: $('Asignar id conversacion').first().json.clinica_id }) }}"
+      },
+      "id": "node-verificar-saldo",
+      "name": "Verificar saldo IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2880, 160],
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "id": "c-saldo", "leftValue": "={{ $json.disponible }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-saldo",
+      "name": "Saldo IA disponible?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3120, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sin saldo: derivar a humano e informar al paciente\nconst ctx = $('Asignar id conversacion').first().json;\nreturn [{ json: { ...ctx, tipo_respuesta: 'handoff', texto_respuesta: 'En este momento el asistente automatico no esta disponible. Un agente de la clinica le atendera en breve. Disculpe los inconvenientes.' } }];\n"
+      },
+      "id": "node-handoff-saldo",
+      "name": "Handoff por saldo agotado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3360, 60]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "eq.{{ $json.conversacion_id }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ mode: 'humano', status: 'pendiente', intencion: 'saldo_ia_agotado' }) }}"
+      },
+      "id": "node-conv-saldo-humano",
+      "name": "Cambiar conv a humano (saldo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3600, 60],
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Handoff por saldo agotado').first().json.chat_id }}",
+        "text": "={{ $('Handoff por saldo agotado').first().json.texto_respuesta }}",
+        "additionalFields": {}
+      },
+      "id": "node-tg-saldo-agotado",
+      "name": "Telegram: aviso saldo agotado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3840, 60],
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-telegram",
+          "name": "Telegram Bot — Clinica Dental"
+        }
+      }
     },
     {
       "parameters": {
@@ -245,7 +351,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "id", "value": "eq.00000000-0000-0000-0000-000000000002" },
+            { "name": "id", "value": "eq.{{ $('Asignar id conversacion').first().json.clinica_id }}" },
             { "name": "select", "value": "nombre,direccion,telefono,email,sitio_web,horario,formas_pago,facturacion,faq" },
             { "name": "limit", "value": "1" }
           ]
@@ -255,7 +361,7 @@
       "name": "Leer datos de la clinica",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2660, 160],
+      "position": [3360, 240],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -276,7 +382,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "clinica_id", "value": "eq.00000000-0000-0000-0000-000000000002" },
+            { "name": "clinica_id", "value": "eq.{{ $('Asignar id conversacion').first().json.clinica_id }}" },
             { "name": "activo", "value": "eq.true" },
             { "name": "select", "value": "nombre,descripcion,precio,duracion_min" }
           ]
@@ -286,7 +392,7 @@
       "name": "Leer servicios activos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2660, 260],
+      "position": [3600, 240],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -296,13 +402,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const ctx = $('Asignar id conversacion').first().json;\nconst clinicaArr = $('Leer datos de la clinica').first().json;\nconst serviciosArr = $('Leer servicios activos').first().json;\n\nconst clinica = Array.isArray(clinicaArr) ? clinicaArr[0] : clinicaArr;\nconst servicios = Array.isArray(serviciosArr) ? serviciosArr : [];\n\nconst faqTexto = Array.isArray(clinica.faq)\n  ? clinica.faq.map(f => `P: ${f.pregunta}\\nR: ${f.respuesta}`).join('\\n\\n')\n  : '';\n\nconst serviciosTxt = servicios\n  .map(s => `- ${s.nombre}: $${Number(s.precio).toLocaleString('es-MX')} MXN (${s.duracion_min} min). ${s.descripcion || ''}`)\n  .join('\\n');\n\nconst systemPrompt = `Eres el asistente virtual de ${clinica.nombre}.\\n\\nDatos de la clínica:\\n- Dirección: ${clinica.direccion}\\n- Teléfono: ${clinica.telefono}\\n- Correo: ${clinica.email}\\n- Sitio web: ${clinica.sitio_web}\\n- Horario: ${clinica.horario}\\n- Formas de pago: ${clinica.formas_pago}\\n- Facturación: ${clinica.facturacion}\\n\\nServicios:\\n${serviciosTxt}\\n\\nPreguntas frecuentes:\\n${faqTexto}\\n\\nInstrucciones:\\n1. Responde únicamente sobre la clínica, servicios, citas, horarios, contacto, facturación y formas de pago.\\n2. Si el paciente pide hablar con una persona, se queja o pregunta algo fuera de alcance, usa tipo handoff.\\n3. Responde en español formal, sin emojis.\\n4. Devuelve EXCLUSIVAMENTE un JSON con esta estructura:\\n   {\"tipo\": \"respuesta\" | \"handoff\", \"texto\": \"tu respuesta\"}\\n5. No incluyas texto fuera del JSON.`;\n\nreturn [{ json: { ...ctx, system_prompt: systemPrompt } }];\n"
+        "jsCode": "const ctx = $('Asignar id conversacion').first().json;\nconst clinicaArr = $('Leer datos de la clinica').first().json;\nconst serviciosArr = $('Leer servicios activos').first().json;\n\nconst clinica = Array.isArray(clinicaArr) ? clinicaArr[0] : clinicaArr;\nconst servicios = Array.isArray(serviciosArr) ? serviciosArr : [];\n\nconst faqTexto = Array.isArray(clinica.faq)\n  ? clinica.faq.map(f => `P: ${f.pregunta}\\nR: ${f.respuesta}`).join('\\n\\n')\n  : '';\n\nconst serviciosTxt = servicios\n  .map(s => `- ${s.nombre}: $${Number(s.precio).toLocaleString('es-MX')} MXN (${s.duracion_min} min). ${s.descripcion || ''}`)\n  .join('\\n');\n\nconst systemPrompt = `Eres el asistente virtual de ${clinica.nombre}.\\n\\nDatos de la clinica:\\n- Direccion: ${clinica.direccion}\\n- Telefono: ${clinica.telefono}\\n- Correo: ${clinica.email}\\n- Sitio web: ${clinica.sitio_web}\\n- Horario: ${clinica.horario}\\n- Formas de pago: ${clinica.formas_pago}\\n- Facturacion: ${clinica.facturacion}\\n\\nServicios:\\n${serviciosTxt}\\n\\nPreguntas frecuentes:\\n${faqTexto}\\n\\nInstrucciones:\\n1. Responde unicamente sobre la clinica, servicios, citas, horarios, contacto, facturacion y formas de pago.\\n2. Si el paciente pide hablar con una persona, se queja o pregunta algo fuera de alcance, usa tipo handoff.\\n3. Responde en espanol formal, sin emojis.\\n4. Devuelve EXCLUSIVAMENTE un JSON con esta estructura exacta (sin texto fuera del JSON):\\n   {\\\"tipo\\\": \\\"respuesta\\\" | \\\"handoff\\\", \\\"texto\\\": \\\"tu respuesta\\\", \\\"intencion\\\": \\\"consulta_precio | agenda_cita | consulta_horario | consulta_contacto | faq | queja | otro\\\", \\\"sentimiento\\\": \\\"positivo | neutral | negativo\\\"}`;\n\nreturn [{ json: { ...ctx, system_prompt: systemPrompt } }];\n"
       },
       "id": "node-prompt",
       "name": "Construir system prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2880, 200]
+      "position": [3840, 240]
     },
     {
       "parameters": {
@@ -325,7 +431,7 @@
       "name": "Claude API (Haiku)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3100, 200],
+      "position": [4080, 240],
       "credentials": {
         "httpHeaderAuth": {
           "id": "cred-anthropic-header",
@@ -335,26 +441,43 @@
     },
     {
       "parameters": {
-        "jsCode": "const ctx = $('Construir system prompt').first().json;\nconst resp = $input.first().json;\n\n// Nodo nativo (Simplify Output ON) devuelve resp.text\n// HTTP Request / Simplify OFF devuelve resp.content[0].text\nconst txt = resp.text || resp.content?.[0]?.text || '';\n\nlet parsed = { tipo: 'respuesta', texto: 'En este momento no puedo procesar su solicitud. Por favor llame al teléfono de la clínica.' };\ntry {\n  const match = txt.match(/\\{[\\s\\S]*\\}/);\n  if (match) parsed = JSON.parse(match[0]);\n} catch (_) {}\n\nreturn [{ json: { ...ctx, tipo_respuesta: parsed.tipo, texto_respuesta: parsed.texto } }];\n"
+        "jsCode": "const ctx = $('Construir system prompt').first().json;\nconst resp = $input.first().json;\n\nconst txt = resp.text || resp.content?.[0]?.text || '';\nconst tokensEntrada = resp.usage?.input_tokens || 0;\nconst tokensSalida  = resp.usage?.output_tokens || 0;\n\nlet parsed = { tipo: 'respuesta', texto: 'En este momento no puedo procesar su solicitud. Por favor llame al telefono de la clinica.', intencion: 'error', sentimiento: 'neutral' };\ntry {\n  const match = txt.match(/\\{[\\s\\S]*\\}/);\n  if (match) parsed = JSON.parse(match[0]);\n} catch (_) {}\n\nreturn [{ json: { ...ctx, tipo_respuesta: parsed.tipo, texto_respuesta: parsed.texto, intencion: parsed.intencion || 'otro', sentimiento: parsed.sentimiento || 'neutral', tokens_entrada: tokensEntrada, tokens_salida: tokensSalida } }];\n"
       },
       "id": "node-parsear",
       "name": "Parsear respuesta de Claude",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3320, 200]
+      "position": [4320, 240]
     },
     {
       "parameters": {
-        "conditions": {
-          "conditions": [{ "id": "c-hoff", "leftValue": "={{ $json.tipo_respuesta }}", "rightValue": "handoff", "operator": { "type": "string", "operation": "equals" } }],
-          "combinator": "and"
-        }
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/rpc/registrar_consumo_ia",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ p_clinica_id: $json.clinica_id, p_conversacion_id: $json.conversacion_id, p_tokens_entrada: $json.tokens_entrada, p_tokens_salida: $json.tokens_salida, p_modelo: 'claude-haiku-4-5-20251001' }) }}",
+        "options": { "ignore4xxStatusCode": true }
       },
-      "id": "node-if-handoff",
-      "name": "Es handoff?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [3540, 200]
+      "id": "node-registrar-consumo",
+      "name": "Registrar consumo IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4560, 240],
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
     },
     {
       "parameters": {
@@ -371,7 +494,56 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "id", "value": "eq.{{ $json.conversacion_id }}" }
+            { "name": "id", "value": "eq.{{ $('Parsear respuesta de Claude').first().json.conversacion_id }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ intencion: $('Parsear respuesta de Claude').first().json.intencion, sentimiento: $('Parsear respuesta de Claude').first().json.sentimiento }) }}",
+        "options": { "ignore4xxStatusCode": true }
+      },
+      "id": "node-actualizar-analitica",
+      "name": "Actualizar analitica conversacion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4800, 240],
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "id": "c-hoff", "leftValue": "={{ $('Parsear respuesta de Claude').first().json.tipo_respuesta }}", "rightValue": "handoff", "operator": { "type": "string", "operation": "equals" } }],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-handoff",
+      "name": "Es handoff?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [5040, 240]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "eq.{{ $('Parsear respuesta de Claude').first().json.conversacion_id }}" }
           ]
         },
         "sendBody": true,
@@ -382,7 +554,7 @@
       "name": "Cambiar conv a modo humano",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3760, 120],
+      "position": [5280, 120],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -402,7 +574,7 @@
       "name": "Telegram: aviso handoff",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [3760, 240],
+      "position": [5280, 300],
       "credentials": {
         "telegramApi": {
           "id": "cred-telegram",
@@ -414,15 +586,15 @@
       "parameters": {
         "resource": "message",
         "operation": "sendMessage",
-        "chatId": "={{ $json.chat_id }}",
-        "text": "={{ $json.texto_respuesta }}",
+        "chatId": "={{ $('Parsear respuesta de Claude').first().json.chat_id }}",
+        "text": "={{ $('Parsear respuesta de Claude').first().json.texto_respuesta }}",
         "additionalFields": {}
       },
       "id": "node-tg-respuesta",
       "name": "Telegram: respuesta del asistente",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [3760, 360],
+      "position": [5280, 420],
       "credentials": {
         "telegramApi": {
           "id": "cred-telegram",
@@ -451,7 +623,7 @@
       "name": "Insertar mensaje del bot",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3980, 360],
+      "position": [5520, 420],
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -461,7 +633,7 @@
     },
     {
       "parameters": {
-        "content": "WhatsApp: conectar Cloud API aquí.",
+        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.",
         "height": 60,
         "width": 220
       },
@@ -469,7 +641,7 @@
       "name": "Nota WhatsApp",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [240, 480]
+      "position": [240, 520]
     }
   ],
   "connections": {
@@ -508,9 +680,24 @@
     },
     "Modo bot?": {
       "main": [
-        [{ "node": "Leer datos de la clinica", "type": "main", "index": 0 }],
+        [{ "node": "Verificar saldo IA", "type": "main", "index": 0 }],
         [{ "node": "Esperar agente humano", "type": "main", "index": 0 }]
       ]
+    },
+    "Verificar saldo IA": {
+      "main": [[{ "node": "Saldo IA disponible?", "type": "main", "index": 0 }]]
+    },
+    "Saldo IA disponible?": {
+      "main": [
+        [{ "node": "Leer datos de la clinica", "type": "main", "index": 0 }],
+        [{ "node": "Handoff por saldo agotado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Handoff por saldo agotado": {
+      "main": [[{ "node": "Cambiar conv a humano (saldo)", "type": "main", "index": 0 }]]
+    },
+    "Cambiar conv a humano (saldo)": {
+      "main": [[{ "node": "Telegram: aviso saldo agotado", "type": "main", "index": 0 }]]
     },
     "Leer datos de la clinica": {
       "main": [[{ "node": "Leer servicios activos", "type": "main", "index": 0 }]]
@@ -525,6 +712,12 @@
       "main": [[{ "node": "Parsear respuesta de Claude", "type": "main", "index": 0 }]]
     },
     "Parsear respuesta de Claude": {
+      "main": [[{ "node": "Registrar consumo IA", "type": "main", "index": 0 }]]
+    },
+    "Registrar consumo IA": {
+      "main": [[{ "node": "Actualizar analitica conversacion", "type": "main", "index": 0 }]]
+    },
+    "Actualizar analitica conversacion": {
       "main": [[{ "node": "Es handoff?", "type": "main", "index": 0 }]]
     },
     "Es handoff?": {
@@ -548,7 +741,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "02-v6",
+  "versionId": "02-v7-multitenant",
   "triggerCount": 0,
   "tags": []
 }

@@ -17,13 +17,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// IMPORTANTE: cambia este valor por tu secreto real y usa el mismo en el dashboard (.env.local N8N_SHARED_SECRET)\nconst SECRETO = 'CAMBIA_ESTE_SECRETO_POR_UNO_SEGURO';\n\nconst body = $input.first().json.body || {};\nconst headers = $input.first().json.headers || {};\nconst secretRecibido = headers['x-shared-secret'] || headers['X-Shared-Secret'] || '';\n\nreturn [{\n  json: {\n    es_valido: secretRecibido === SECRETO,\n    conversacion_id: body.conversationId || '',\n    channel: body.channel || 'telegram',\n    channel_user_id: body.channelUserId || '',\n    texto: body.texto || '',\n    agente_id: body.agenteId || ''\n  }\n}];\n"
+        "jsCode": "// IMPORTANTE: define N8N_SHARED_SECRET en las variables de entorno de n8n.\n// El dashboard lee el mismo secreto desde la variable de entorno N8N_SHARED_SECRET.\n// NUNCA escribas el secreto en este archivo.\nconst SECRETO = $env.N8N_SHARED_SECRET || '';\n\nconst body    = $input.first().json.body || {};\nconst headers = $input.first().json.headers || {};\nconst secretRecibido = headers['x-shared-secret'] || headers['X-Shared-Secret'] || '';\n\n// El dashboard debe enviar siempre clinicaId para el aislamiento\nreturn [{\n  json: {\n    es_valido:        SECRETO !== '' && secretRecibido === SECRETO,\n    conversacion_id:  body.conversationId || '',\n    clinica_id:       body.clinicaId || '',\n    channel:          body.channel || 'telegram',\n    channel_user_id:  body.channelUserId || '',\n    texto:            body.texto || '',\n    agente_id:        body.agenteId || ''\n  }\n}];\n"
       },
       "id": "node-validar",
       "name": "Validar secreto y extraer body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [480, 300]
     },
     {
       "parameters": {
@@ -36,7 +36,7 @@
       "name": "Secreto valido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [720, 300]
     },
     {
       "parameters": {
@@ -48,7 +48,117 @@
       "name": "Responder 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [900, 420]
+      "position": [960, 480]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "eq.{{ $json.conversacion_id }}" },
+            { "name": "clinica_id", "value": "eq.{{ $json.clinica_id }}" },
+            { "name": "select", "value": "id,clinica_id,mode,status" },
+            { "name": "limit", "value": "1" }
+          ]
+        }
+      },
+      "id": "node-verificar-conv",
+      "name": "Verificar conversacion pertenece a clinica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 180],
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const convArr = $input.first().json;\nconst arr = Array.isArray(convArr) ? convArr : [convArr];\nconst conv = arr[0];\nconst ctx = $('Validar secreto y extraer body').first().json;\n// La conversacion debe existir y pertenecer a esta clinica\nconst esValida = conv && conv.id && conv.clinica_id === ctx.clinica_id;\nreturn [{ json: { ...ctx, conv_valida: esValida } }];\n"
+      },
+      "id": "node-chequear-conv",
+      "name": "Verificar aislamiento de clinica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [{ "id": "c-conv", "leftValue": "={{ $json.conv_valida }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-conv",
+      "name": "Conversacion valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1440, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Conversacion no encontrada o no pertenece a esta clinica\" }",
+        "options": { "responseCode": 403 }
+      },
+      "id": "node-403",
+      "name": "Responder 403",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1680, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/clinic_channels",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "clinica_id", "value": "eq.{{ $json.clinica_id }}" },
+            { "name": "canal", "value": "eq.{{ $json.channel }}" },
+            { "name": "activo", "value": "eq.true" },
+            { "name": "select", "value": "config" },
+            { "name": "limit", "value": "1" }
+          ]
+        }
+      },
+      "id": "node-obtener-canal",
+      "name": "Obtener canal de la clinica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1680, 120],
+      "credentials": {
+        "supabaseApi": {
+          "id": "cred-supabase",
+          "name": "Supabase — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const canalArr = $input.first().json;\nconst arr = Array.isArray(canalArr) ? canalArr : [canalArr];\nconst canal = arr[0];\nconst ctx = $('Verificar aislamiento de clinica').first().json;\nconst botToken = canal?.config?.bot_token || null;\nreturn [{ json: { ...ctx, bot_token: botToken, tiene_canal: botToken !== null } }];\n"
+      },
+      "id": "node-extraer-token",
+      "name": "Extraer bot token de la clinica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 120]
     },
     {
       "parameters": {
@@ -78,27 +188,23 @@
       "name": "Switch por canal",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [900, 260]
+      "position": [2160, 120]
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $json.channel_user_id }}",
-        "text": "={{ $json.texto }}",
-        "additionalFields": {}
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.bot_token }}/sendMessage",
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.channel_user_id, text: $json.texto }) }}"
       },
       "id": "node-tg-send",
       "name": "Telegram: enviar mensaje del agente",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [1120, 160],
-      "credentials": {
-        "telegramApi": {
-          "id": "cred-telegram",
-          "name": "Telegram Bot — Clinica Dental"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2400, 60],
+      "continueOnFail": true
     },
     {
       "parameters": {},
@@ -106,19 +212,7 @@
       "name": "WhatsApp (pendiente)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1120, 300]
-    },
-    {
-      "parameters": {
-        "content": "WhatsApp: conectar Cloud API aquí.\nUsar channel_user_id como wa_id.",
-        "height": 70,
-        "width": 220
-      },
-      "id": "node-sticky-wa",
-      "name": "Nota WhatsApp",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [1120, 400]
+      "position": [2400, 200]
     },
     {
       "parameters": {
@@ -135,13 +229,14 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify({ conversation_id: $('Validar secreto y extraer body').first().json.conversacion_id, direction: 'saliente', sender: 'agente', contenido: $('Validar secreto y extraer body').first().json.texto, metadata: JSON.stringify({ agente_id: $('Validar secreto y extraer body').first().json.agente_id }) }) }}"
+        "body": "={{ JSON.stringify({ conversation_id: $('Extraer bot token de la clinica').first().json.conversacion_id, clinica_id: $('Extraer bot token de la clinica').first().json.clinica_id, direction: 'saliente', sender: 'agente', contenido: $('Extraer bot token de la clinica').first().json.texto, metadata: JSON.stringify({ agente_id: $('Extraer bot token de la clinica').first().json.agente_id }) }) }}"
       },
       "id": "node-insertar-msg",
       "name": "Insertar mensaje del agente",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 200],
+      "position": [2640, 60],
+      "continueOnFail": true,
       "credentials": {
         "supabaseApi": {
           "id": "cred-supabase",
@@ -159,7 +254,43 @@
       "name": "Responder 200 OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1560, 200]
+      "position": [2880, 60]
+    },
+    {
+      "parameters": {
+        "content": "El secreto compartido se lee de la variable de entorno\nN8N_SHARED_SECRET — nunca esta en este JSON.\nConfigurar en: Settings > Variables de entorno.",
+        "height": 80,
+        "width": 320
+      },
+      "id": "node-sticky-secreto",
+      "name": "Nota secreto compartido",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 480]
+    },
+    {
+      "parameters": {
+        "content": "Aislamiento: se verifica que la conversacion\npertenezca a la clinicaId enviada en el body.\nSin este check, un agente podria responder\nen conversaciones de otra clinica.",
+        "height": 100,
+        "width": 300
+      },
+      "id": "node-sticky-aislamiento",
+      "name": "Nota aislamiento",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [960, 560]
+    },
+    {
+      "parameters": {
+        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.\nEl bot_token no aplica para WhatsApp.",
+        "height": 80,
+        "width": 260
+      },
+      "id": "node-sticky-wa",
+      "name": "Nota WhatsApp",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2400, 360]
     }
   ],
   "connections": {
@@ -171,9 +302,27 @@
     },
     "Secreto valido?": {
       "main": [
-        [{ "node": "Switch por canal", "type": "main", "index": 0 }],
+        [{ "node": "Verificar conversacion pertenece a clinica", "type": "main", "index": 0 }],
         [{ "node": "Responder 401", "type": "main", "index": 0 }]
       ]
+    },
+    "Verificar conversacion pertenece a clinica": {
+      "main": [[{ "node": "Verificar aislamiento de clinica", "type": "main", "index": 0 }]]
+    },
+    "Verificar aislamiento de clinica": {
+      "main": [[{ "node": "Conversacion valida?", "type": "main", "index": 0 }]]
+    },
+    "Conversacion valida?": {
+      "main": [
+        [{ "node": "Obtener canal de la clinica", "type": "main", "index": 0 }],
+        [{ "node": "Responder 403", "type": "main", "index": 0 }]
+      ]
+    },
+    "Obtener canal de la clinica": {
+      "main": [[{ "node": "Extraer bot token de la clinica", "type": "main", "index": 0 }]]
+    },
+    "Extraer bot token de la clinica": {
+      "main": [[{ "node": "Switch por canal", "type": "main", "index": 0 }]]
     },
     "Switch por canal": {
       "main": [
@@ -182,9 +331,12 @@
       ]
     },
     "Telegram: enviar mensaje del agente": {
-      "main": [[{ "node": "Responder 200 OK", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Insertar mensaje del agente", "type": "main", "index": 0 }]]
     },
     "WhatsApp (pendiente)": {
+      "main": [[{ "node": "Insertar mensaje del agente", "type": "main", "index": 0 }]]
+    },
+    "Insertar mensaje del agente": {
       "main": [[{ "node": "Responder 200 OK", "type": "main", "index": 0 }]]
     }
   },
@@ -196,7 +348,7 @@
   "staticData": null,
   "meta": { "templateCredsSetupCompleted": false },
   "pinData": {},
-  "versionId": "03-v5",
+  "versionId": "03-v6-multitenant",
   "triggerCount": 0,
   "tags": []
 }

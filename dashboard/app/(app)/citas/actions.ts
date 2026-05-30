@@ -187,6 +187,7 @@ export async function enviarRecordatorio(citaId: string) {
 
   await sendAgentMessage({
     conversationId: citaId,
+    clinicaId,
     channel: paciente.channel as "telegram" | "whatsapp",
     channelUserId: paciente.channel_user_id,
     texto,

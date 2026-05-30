@@ -1,5 +1,6 @@
 export interface SendAgentMessagePayload {
   conversationId: string
+  clinicaId: string
   channel: "telegram" | "whatsapp"
   channelUserId: string
   texto: string

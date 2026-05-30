@@ -239,6 +239,7 @@ Instrucciones:
         }),
         sendAgentMessage({
           conversationId,
+          clinicaId: conv.clinica_id ?? "",
           channel: paciente.channel as "telegram" | "whatsapp",
           channelUserId: paciente.channel_user_id,
           texto: textoHandoff,
@@ -258,6 +259,7 @@ Instrucciones:
     }),
     sendAgentMessage({
       conversationId,
+      clinicaId: conv.clinica_id ?? "",
       channel: paciente.channel as "telegram" | "whatsapp",
       channelUserId: paciente.channel_user_id,
       texto: parsed.texto,
@@ -360,6 +362,7 @@ export async function enviarMensajeAlPaciente(params: {
   texto: string
   agenteId: string
 }) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
 
   const { error: errMsg } = await supabase.from("messages").insert({
@@ -373,6 +376,7 @@ export async function enviarMensajeAlPaciente(params: {
 
   await sendAgentMessage({
     conversationId: params.conversationId,
+    clinicaId,
     channel: params.channel,
     channelUserId: params.channelUserId,
     texto: params.texto,
