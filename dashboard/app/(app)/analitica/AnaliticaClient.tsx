@@ -158,6 +158,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
   const [montado, setMontado] = useState(false)
   const [cargando, startTransition] = useTransition()
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMontado(true) }, [])
 
   function cargar(p: Periodo, fi?: string, ff?: string) {

@@ -525,7 +525,7 @@ function FaqTab({ faqInicial }: { faqInicial: FaqItem[] }) {
       {fields.length === 0 && (
         <div className="rounded-lg border border-dashed border-border py-10 text-center">
           <p className="text-sm text-muted-foreground">
-            Sin preguntas frecuentes. Haz clic en "Agregar" para anadir una.
+            Sin preguntas frecuentes. Haz clic en &quot;Agregar&quot; para anadir una.
           </p>
         </div>
       )}

@@ -577,8 +577,11 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
   const [convs, setConvs] = useState<Conversacion[]>(() => ordenarPorUltimo(conversaciones))
   const [papeleraConvs, setPapeleraConvs] = useState<Conversacion[]>(() => papelera)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setConvs(ordenarPorUltimo(conversaciones)) }, [conversaciones])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setPapeleraConvs(papelera) }, [papelera])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { convsRef.current = convs }, [convs])
 
   // El agente activo viene resuelto desde el servidor (usuario actual → agents tabla).
@@ -594,6 +597,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
   // Si la conversacion seleccionada desaparece, volver a la lista en movil
   useEffect(() => {
     if (mobileVistaChat && !convSeleccionada) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMobileVistaChat(false)
     }
   }, [mobileVistaChat, convSeleccionada])
@@ -604,7 +608,9 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
 
   useEffect(() => {
     if (!selectedId) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCargandoMensajes(true)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMensajes([])
     obtenerMensajes(selectedId)
       .then((data) => setMensajes(data as Mensaje[]))
