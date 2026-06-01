@@ -387,9 +387,9 @@ function ServiciosTab({ serviciosIniciales }: { serviciosIniciales: Servicio[] }
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  ${Number(s.precio).toLocaleString("es-MX")} MXN
-                  {s.duracion_min ? ` · ${s.duracion_min} min` : ""}
-                  {s.descripcion ? ` · ${s.descripcion}` : ""}
+                  {s.duracion_min ? `${s.duracion_min} min` : ""}
+                  {s.duracion_min && s.descripcion ? " · " : ""}
+                  {s.descripcion ?? ""}
                 </p>
               </div>
 
@@ -434,14 +434,7 @@ function ServiciosTab({ serviciosIniciales }: { serviciosIniciales: Servicio[] }
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="s-precio">Precio (MXN)</Label>
-                <Input id="s-precio" type="number" min="0" step="0.01" placeholder="1500" {...register("precio")} />
-                {errors.precio && (
-                  <p className="text-xs text-red-500">{errors.precio.message}</p>
-                )}
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="s-duracion">Duracion (min)</Label>
                 <Input id="s-duracion" type="number" min="0" step="5" placeholder="60" {...register("duracion_min")} />

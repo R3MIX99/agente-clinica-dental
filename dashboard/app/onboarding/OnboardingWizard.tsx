@@ -24,7 +24,7 @@ import {
 // ---------------------------------------------------------------------------
 
 type Horario = { dia: string; activo: boolean; apertura: string; cierre: string }
-type Servicio = { nombre: string; precio: string; duracion_min: string }
+type Servicio = { nombre: string; precio: string; duracion_min: string; }
 type Miembro = { nombre: string; email: string; rol: "doctor" | "supervisor" }
 
 const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
@@ -33,7 +33,7 @@ const PASO_TOTAL = 5
 const PASOS = [
   { titulo: "Datos de la clinica", descripcion: "Completa la informacion de contacto de tu clinica." },
   { titulo: "Horarios de atencion", descripcion: "Configura los dias y horarios en que atiendes." },
-  { titulo: "Servicios y precios", descripcion: "Agrega los primeros servicios que ofreces." },
+  { titulo: "Servicios", descripcion: "Agrega los primeros servicios que ofreces." },
   { titulo: "FAQ del asistente", descripcion: "Define las preguntas frecuentes que el agente sabra responder." },
   { titulo: "Invitar equipo", descripcion: "Agrega doctores y colaboradores a tu clinica." },
 ]
@@ -81,7 +81,7 @@ export function OnboardingWizard({
   const [servicios, setServicios] = useState<Servicio[]>(
     serviciosIniciales.length > 0
       ? serviciosIniciales
-      : [{ nombre: "Consulta general", precio: "350", duracion_min: "30" }]
+      : [{ nombre: "Consulta general", precio: "0", duracion_min: "30" }]
   )
 
   // ---- Estado paso 4 ----
@@ -357,33 +357,21 @@ export function OnboardingWizard({
               {paso === 3 && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-                    <span className="col-span-5">Servicio</span>
-                    <span className="col-span-3">Precio MXN</span>
+                    <span className="col-span-8">Servicio</span>
                     <span className="col-span-3">Duracion min</span>
                     <span className="col-span-1" />
                   </div>
                   {servicios.map((s, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2 items-center">
                       <Input
-                        className="col-span-5 h-8 text-sm"
+                        className="col-span-8 h-8 text-sm"
                         value={s.nombre}
                         onChange={(e) => {
                           const copia = [...servicios]
                           copia[i] = { ...copia[i], nombre: e.target.value }
                           setServicios(copia)
                         }}
-                        placeholder="Nombre"
-                      />
-                      <Input
-                        className="col-span-3 h-8 text-sm"
-                        type="number"
-                        value={s.precio}
-                        onChange={(e) => {
-                          const copia = [...servicios]
-                          copia[i] = { ...copia[i], precio: e.target.value }
-                          setServicios(copia)
-                        }}
-                        placeholder="350"
+                        placeholder="Nombre del servicio"
                       />
                       <Input
                         className="col-span-3 h-8 text-sm"
@@ -411,7 +399,7 @@ export function OnboardingWizard({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setServicios([...servicios, { nombre: "", precio: "", duracion_min: "30" }])}
+                      onClick={() => setServicios([...servicios, { nombre: "", precio: "0", duracion_min: "30" }])}
                     >
                       <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
                       Agregar servicio
