@@ -71,7 +71,7 @@
           "conditions": [
             {
               "id": "c-hoff",
-              "leftValue": "={{ $json.tipo_respuesta }}",
+              "leftValue": "={{ $('Parsear respuesta de Claude').first().json.tipo_respuesta }}",
               "rightValue": "handoff",
               "operator": {
                 "type": "string",
