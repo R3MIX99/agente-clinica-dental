@@ -563,7 +563,7 @@
             {
               "keyName": "id",
               "condition": "eq",
-              "keyValue": "={{ $json.conversacion_id }}"
+              "keyValue": "={{ $('Parsear respuesta de Claude').first().json.conversacion_id }}"
             }
           ]
         },
