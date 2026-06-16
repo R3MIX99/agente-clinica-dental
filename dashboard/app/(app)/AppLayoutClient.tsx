@@ -60,8 +60,7 @@ export function AppLayoutClient({
           </header>
 
           {/* Contenido con animacion de ruta */}
-          {/* En movil reserva 64px (h-16 de la barra) + 16px de respiro + safe-area */}
-          <main className="flex-1 overflow-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+          <main className="flex-1 overflow-auto">
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}
@@ -76,6 +75,12 @@ export function AppLayoutClient({
                 </SuspendidaScreen>
               </motion.div>
             </AnimatePresence>
+            {/* Spacer movil — reserva alto de la barra inferior + safe-area */}
+            <div
+              aria-hidden="true"
+              className="md:hidden shrink-0"
+              style={{ height: "calc(5rem + env(safe-area-inset-bottom))" }}
+            />
           </main>
         </div>
       </div>
