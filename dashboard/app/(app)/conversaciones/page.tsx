@@ -31,6 +31,7 @@ export default async function ConversacionesPage() {
         papelera={[]}
         nombreUsuario={nombreUsuario}
         agenteActual={null}
+        botUrl={null}
       />
     )
   }
@@ -39,6 +40,7 @@ export default async function ConversacionesPage() {
     { data: conversaciones },
     { data: agentes },
     { data: papelera },
+    { data: canal },
   ] = await Promise.all([
     supabase
       .from("conversations")
@@ -62,6 +64,12 @@ export default async function ConversacionesPage() {
       .eq("clinica_id", clinicaId)
       .not("deleted_at", "is", null)
       .order("deleted_at", { ascending: false }),
+    supabase
+      .from("clinic_channels")
+      .select("config")
+      .eq("clinica_id", clinicaId)
+      .eq("canal", "telegram")
+      .maybeSingle(),
   ])
 
   const listaAgentes = agentes ?? []
@@ -70,6 +78,9 @@ export default async function ConversacionesPage() {
       ? listaAgentes.find((a) => a.nombre === nombreUsuario)
       : undefined) ?? listaAgentes[0] ?? null
 
+  const botUrl =
+    ((canal?.config as Record<string, unknown> | undefined)?.bot_url as string | undefined) ?? null
+
   return (
     <ConversacionesClient
       conversaciones={conversaciones ?? []}
@@ -77,6 +88,7 @@ export default async function ConversacionesPage() {
       papelera={papelera ?? []}
       nombreUsuario={nombreUsuario}
       agenteActual={agenteActual}
+      botUrl={botUrl}
     />
   )
 }

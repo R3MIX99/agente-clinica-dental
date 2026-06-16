@@ -19,12 +19,13 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft } from "lucide-react"
+import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft, QrCode } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos locales
@@ -73,6 +74,7 @@ interface Props {
   papelera: Conversacion[]
   nombreUsuario: string
   agenteActual: Agente | null
+  botUrl: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -280,17 +282,19 @@ interface ListaPanelProps {
   nombreUsuario: string
   accionandoId: string | null
   vaciando: boolean
+  botUrl: string | null
   onSelectConv: (id: string) => void
   onSetVista: (v: Vista) => void
   onArchivar: (id: string) => void
   onRestaurar: (id: string) => void
+  onMostrarQR: () => void
   onVaciarPapelera: () => void
 }
 
 function ListaPanel({
   vista, convs, papeleraConvs, conteo, atencionIds, selectedId,
-  agenteActual, nombreUsuario, accionandoId, vaciando,
-  onSelectConv, onSetVista, onArchivar, onRestaurar, onVaciarPapelera,
+  agenteActual, nombreUsuario, accionandoId, vaciando, botUrl,
+  onSelectConv, onSetVista, onArchivar, onRestaurar, onVaciarPapelera, onMostrarQR,
 }: ListaPanelProps) {
   const listaActual = vista === "activas" ? convs : papeleraConvs
 
@@ -303,6 +307,15 @@ function ListaPanel({
         </h1>
         <span className="text-xs text-muted-foreground tabular-nums">{conteo}</span>
         <div className="ml-auto flex items-center gap-1">
+          {botUrl && (
+            <button
+              onClick={onMostrarQR}
+              title="Codigo QR del bot de Telegram"
+              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            >
+              <QrCode className="h-4 w-4" />
+            </button>
+          )}
           {vista === "papelera" && papeleraConvs.length > 0 && (
             <button
               onClick={onVaciarPapelera}
@@ -549,7 +562,7 @@ function ChatPanel({
 // Componente principal
 // ---------------------------------------------------------------------------
 
-export function ConversacionesClient({ conversaciones, agentes, papelera, nombreUsuario, agenteActual: agenteActualProp }: Props) {
+export function ConversacionesClient({ conversaciones, agentes, papelera, nombreUsuario, agenteActual: agenteActualProp, botUrl }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [cargandoMensajes, setCargandoMensajes] = useState(false)
@@ -561,6 +574,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
   const [vaciando, setVaciando] = useState(false)
   const [confirmarArchivar, setConfirmarArchivar] = useState<string | null>(null)
   const [confirmarVaciar, setConfirmarVaciar] = useState(false)
+  const [qrAbierto, setQrAbierto] = useState(false)
   // Vista movil: "lista" | "chat"
   const [mobileVistaChat, setMobileVistaChat] = useState(false)
 
@@ -852,12 +866,13 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
 
   const listaProps: ListaPanelProps = {
     vista, convs, papeleraConvs, conteo, atencionIds, selectedId,
-    agenteActual, nombreUsuario, accionandoId, vaciando,
+    agenteActual, nombreUsuario, accionandoId, vaciando, botUrl,
     onSelectConv: handleSelectConv,
     onSetVista: handleSetVista,
     onArchivar: handleArchivar,
     onRestaurar: handleRestaurar,
     onVaciarPapelera: handleVaciarPapelera,
+    onMostrarQR: () => setQrAbierto(true),
   }
 
   const chatPropsBase = {
@@ -1001,6 +1016,47 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
               {vaciando ? "Eliminando..." : "Vaciar papelera"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal del codigo QR del bot de Telegram */}
+      <Dialog open={qrAbierto} onOpenChange={setQrAbierto}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Codigo QR del bot</DialogTitle>
+            <DialogDescription>
+              Comparte este codigo con los pacientes. Al escanearlo se abrira la
+              conversacion con el bot de Telegram de la clinica.
+            </DialogDescription>
+          </DialogHeader>
+          {botUrl ? (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className="rounded-xl border border-border bg-white p-4">
+                {/* Codigo QR generado por API publica de qrserver.com */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=${encodeURIComponent(botUrl)}`}
+                  alt={`Codigo QR para ${botUrl}`}
+                  width={320}
+                  height={320}
+                  className="block"
+                />
+              </div>
+              <a
+                href={botUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-sm text-primary hover:underline break-all text-center"
+              >
+                {botUrl}
+              </a>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aun no has configurado la URL publica del bot. Ve a Ajustes -&gt;
+              Canal para agregarla.
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </div>

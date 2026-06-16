@@ -584,6 +584,7 @@ const canalSchema = z.object({
   activo:      z.boolean(),
   bot_token:   z.string(),
   webhook_url: z.string(),
+  bot_url:     z.string(),
 })
 
 type CanalForm = z.infer<typeof canalSchema>
@@ -600,6 +601,7 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
       activo:      canalTelegram?.activo ?? false,
       bot_token:   "",
       webhook_url: canalTelegram?.webhook_url ?? "",
+      bot_url:     canalTelegram?.bot_url ?? "",
     },
   })
 
@@ -611,6 +613,7 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
       activo:      datos.activo,
       bot_token:   datos.bot_token || undefined,
       webhook_url: datos.webhook_url || undefined,
+      bot_url:     datos.bot_url,
     })
     if (result.ok) {
       toast.success("Canal de Telegram configurado")
@@ -658,6 +661,19 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
           />
           <p className="text-xs text-muted-foreground">
             Obtenlo en @BotFather de Telegram. Se almacena de forma segura en el servidor y nunca se muestra completo.
+          </p>
+        </div>
+
+        {/* URL publica del bot */}
+        <div className="space-y-1.5">
+          <Label htmlFor="bot_url">URL publica del bot (para QR)</Label>
+          <Input
+            id="bot_url"
+            placeholder="https://t.me/clinica_bot"
+            {...register("bot_url")}
+          />
+          <p className="text-xs text-muted-foreground">
+            Enlace publico al bot de Telegram. Se usa para generar el codigo QR que los pacientes escanean para iniciar conversacion.
           </p>
         </div>
 

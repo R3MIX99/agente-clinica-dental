@@ -38,6 +38,7 @@ export type CanalTelegramPublico = {
   id: string
   activo: boolean
   webhook_url: string | null
+  bot_url: string | null
   tiene_token: boolean
   updated_at: string
 } | null
@@ -197,6 +198,7 @@ export async function guardarCanal(datos: {
   activo: boolean
   bot_token?: string
   webhook_url?: string
+  bot_url?: string
 }): Promise<{ ok: boolean; mensaje: string }> {
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
@@ -215,6 +217,12 @@ export async function guardarCanal(datos: {
   const configNuevo: Record<string, unknown> = { ...configActual }
   if (datos.bot_token && datos.bot_token.trim()) {
     configNuevo.bot_token = datos.bot_token.trim()
+  }
+  // Actualizar URL publica del bot (se permite vaciar)
+  if (datos.bot_url !== undefined) {
+    const url = datos.bot_url.trim()
+    if (url) configNuevo.bot_url = url
+    else delete configNuevo.bot_url
   }
 
   const payload = {

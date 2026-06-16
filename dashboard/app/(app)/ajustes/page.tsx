@@ -54,12 +54,14 @@ export default async function AjustesPage() {
 
   // Sanitizar canal: el config con el token nunca llega al cliente
   const canalData = canalRes.data
+  const configData = (canalData?.config as Record<string, unknown>) ?? {}
   const canalTelegram: CanalTelegramPublico = canalData
     ? {
         id:          canalData.id,
         activo:      canalData.activo,
         webhook_url: canalData.webhook_url ?? null,
-        tiene_token: !!(canalData.config as Record<string, unknown>)?.bot_token,
+        bot_url:     (configData.bot_url as string | undefined) ?? null,
+        tiene_token: !!configData.bot_token,
         updated_at:  canalData.updated_at,
       }
     : null
