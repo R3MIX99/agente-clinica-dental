@@ -1021,7 +1021,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
 
       {/* Modal del codigo QR del bot de Telegram */}
       <Dialog open={qrAbierto} onOpenChange={setQrAbierto}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-[320px] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Codigo QR del bot</DialogTitle>
             <DialogDescription>
@@ -1031,7 +1031,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
           </DialogHeader>
           {botUrl ? (
             <div className="flex flex-col items-center gap-3 py-2">
-              <div className="rounded-xl border border-border bg-white p-4">
+              <div className="rounded-xl border border-border bg-white p-3 sm:p-4">
                 {/* Codigo QR generado por API publica de qrserver.com */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -1039,14 +1039,14 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
                   alt={`Codigo QR para ${botUrl}`}
                   width={320}
                   height={320}
-                  className="block"
+                  className="block h-auto w-[200px] sm:w-[260px]"
                 />
               </div>
               <a
                 href={botUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-sm text-primary hover:underline break-all text-center"
+                className="text-xs sm:text-sm text-primary hover:underline break-all text-center"
               >
                 {botUrl}
               </a>
