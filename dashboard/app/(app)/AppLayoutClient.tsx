@@ -30,6 +30,11 @@ export function AppLayoutClient({
 }) {
   const pathname = usePathname()
 
+  // Rutas "fullscreen" con scroll interno propio (chat-like).
+  // Necesitan h-full para que su layout interno funcione.
+  // El resto usa min-h-full + spacer al final para no quedar tapado por la barra inferior.
+  const esRutaFullscreen = pathname.startsWith("/conversaciones")
+
   return (
     <AtencionProvider>
       <GlobalAtencionListener />
@@ -60,7 +65,7 @@ export function AppLayoutClient({
           </header>
 
           {/* Contenido con animacion de ruta */}
-          <main className="flex-1 overflow-auto">
+          <main className={esRutaFullscreen ? "flex-1 overflow-hidden" : "flex-1 overflow-auto"}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}
@@ -68,19 +73,21 @@ export function AppLayoutClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
-                className="min-h-full"
+                className={esRutaFullscreen ? "h-full" : "min-h-full"}
               >
                 <SuspendidaScreen estado={estadoSuscripcion}>
                   {children}
                 </SuspendidaScreen>
               </motion.div>
             </AnimatePresence>
-            {/* Spacer movil — reserva alto de la barra inferior */}
-            <div
-              aria-hidden="true"
-              className="md:hidden shrink-0"
-              style={{ height: "120px" }}
-            />
+            {/* Spacer movil para rutas con scroll — reserva alto de la barra inferior */}
+            {!esRutaFullscreen && (
+              <div
+                aria-hidden="true"
+                className="md:hidden shrink-0"
+                style={{ height: "120px" }}
+              />
+            )}
           </main>
         </div>
       </div>
