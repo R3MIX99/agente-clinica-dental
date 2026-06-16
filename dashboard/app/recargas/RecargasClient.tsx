@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { logoutAction } from "@/app/actions/auth"
-import { recargarSaldo, type ClinicaSaldo, type RecargaHistorial } from "./actions"
+import { recargarSaldo, type ClinicaSaldo, type RecargaHistorial, type ResumenMes } from "./actions"
 
 // ---------------------------------------------------------------------------
 // Schema del formulario de recarga
@@ -52,6 +52,19 @@ function fmtMXN(n: number) {
     currency: "MXN",
     minimumFractionDigits: 2,
   })
+}
+
+function fmtUSD(n: number) {
+  return n.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  })
+}
+
+function nombreMesActual(): string {
+  return new Date().toLocaleString("es-MX", { month: "long", year: "numeric" })
 }
 
 function fmtFecha(iso: string) {
@@ -192,9 +205,11 @@ function DialogRecarga({
 export function RecargasClient({
   clinicas,
   historial,
+  resumen,
 }: {
   clinicas: ClinicaSaldo[]
   historial: RecargaHistorial[]
+  resumen: ResumenMes
 }) {
   const [clinicaSeleccionada, setClinicaSeleccionada] = useState<ClinicaSaldo | null>(null)
   const [logoutPending, startLogout] = useTransition()
@@ -202,6 +217,13 @@ export function RecargasClient({
   function handleLogout() {
     startLogout(async () => { await logoutAction() })
   }
+
+  // Margen = lo cobrado al cliente menos lo que costo la API (convertido a MXN)
+  const costoApiMxn = resumen.consumido_api_usd * resumen.tipo_cambio_promedio
+  const margen_mxn  = resumen.cobrado_mxn - costoApiMxn
+  const margen_pct  = resumen.cobrado_mxn > 0
+    ? (margen_mxn / resumen.cobrado_mxn) * 100
+    : 0
 
   return (
     <div className="space-y-6">
@@ -213,6 +235,73 @@ export function RecargasClient({
             : <><LogOut className="h-4 w-4 mr-2" />Cerrar sesion</>}
         </Button>
       </div>
+
+      {/* Resumen del mes */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base capitalize">
+            Resumen de {nombreMesActual()}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+          {/* Consumido en Anthropic (USD) */}
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+              Anthropic API
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {fmtUSD(resumen.consumido_api_usd)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {resumen.llamadas_api.toLocaleString("es-MX")} llamadas a la API
+            </p>
+          </div>
+
+          {/* Cobrado al cliente (MXN) */}
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+              Cobrado al cliente
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {fmtMXN(resumen.cobrado_mxn)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Descontado del saldo IA con markup
+            </p>
+          </div>
+
+          {/* Total recargado */}
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+              Recargado este mes
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {fmtMXN(resumen.recargado_mes_mxn)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {resumen.recargas_mes} recarga{resumen.recargas_mes === 1 ? "" : "s"} registrada{resumen.recargas_mes === 1 ? "" : "s"}
+            </p>
+          </div>
+
+          {/* Margen estimado */}
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+              Margen estimado
+            </p>
+            <p className={`text-2xl font-bold ${margen_mxn >= 0 ? "text-green-600" : "text-destructive"}`}>
+              {fmtMXN(margen_mxn)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {margen_pct.toFixed(1)}% sobre lo cobrado
+              {resumen.tipo_cambio_promedio > 0 && (
+                <> · TC ${resumen.tipo_cambio_promedio.toFixed(2)}</>
+              )}
+            </p>
+          </div>
+
+        </CardContent>
+      </Card>
 
       {/* Tabla de clinicas con saldo */}
       <Card>

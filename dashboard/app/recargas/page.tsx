@@ -1,12 +1,13 @@
-import { listarClinicasConSaldo, historialRecargas } from "./actions"
+import { listarClinicasConSaldo, historialRecargas, obtenerResumenMes } from "./actions"
 import { RecargasClient } from "./RecargasClient"
 
 export const metadata = { title: "Recargas de saldo IA" }
 
 export default async function RecargasPage() {
-  const [clinicas, historial] = await Promise.all([
+  const [clinicas, historial, resumen] = await Promise.all([
     listarClinicasConSaldo(),
     historialRecargas(),
+    obtenerResumenMes(),
   ])
 
   return (
@@ -20,7 +21,7 @@ export default async function RecargasPage() {
           </p>
         </div>
 
-        <RecargasClient clinicas={clinicas} historial={historial} />
+        <RecargasClient clinicas={clinicas} historial={historial} resumen={resumen} />
       </div>
     </div>
   )

@@ -29,6 +29,23 @@ export type RecargaHistorial = {
   referencia_pago: string | null
 }
 
+export type ResumenMes = {
+  // Costo bruto en USD que la cuenta de Anthropic facturara
+  consumido_api_usd: number
+  // Costo cobrado al cliente final en MXN (con markup y tipo de cambio aplicados)
+  cobrado_mxn: number
+  // Tipo de cambio promedio usado en los consumos del mes
+  tipo_cambio_promedio: number
+  // Total recargado este mes (lo que pago el cliente para tener saldo)
+  recargado_mes_mxn: number
+  // Total cobrado / cargado en consumos_ia.costo_descontado_mxn este mes
+  cobrado_consumos_mxn: number
+  // Numero de llamadas a la API este mes
+  llamadas_api: number
+  // Cantidad de recargas registradas este mes
+  recargas_mes: number
+}
+
 // ---------------------------------------------------------------------------
 // Guard de seguridad
 // ---------------------------------------------------------------------------
@@ -47,6 +64,59 @@ function inicioMesActual(): string {
   d.setDate(1)
   d.setHours(0, 0, 0, 0)
   return d.toISOString()
+}
+
+// ---------------------------------------------------------------------------
+// Resumen del mes actual
+// ---------------------------------------------------------------------------
+
+export async function obtenerResumenMes(): Promise<ResumenMes> {
+  await verificarSuperadmin()
+  const db = createServerClient()
+
+  const inicio = inicioMesActual()
+
+  const [consumosRes, recargasRes] = await Promise.all([
+    db
+      .from("consumos_ia")
+      .select("costo_api_usd, costo_descontado_mxn, tipo_cambio")
+      .gte("created_at", inicio),
+    db
+      .from("recargas_saldo")
+      .select("monto_mxn")
+      .gte("created_at", inicio)
+      .eq("estado", "completada"),
+  ])
+
+  const consumos = consumosRes.data ?? []
+  const recargas = recargasRes.data ?? []
+
+  let consumido_api_usd = 0
+  let cobrado_consumos_mxn = 0
+  let suma_tipo_cambio = 0
+  for (const c of consumos) {
+    consumido_api_usd     += Number(c.costo_api_usd)
+    cobrado_consumos_mxn  += Number(c.costo_descontado_mxn)
+    suma_tipo_cambio      += Number(c.tipo_cambio)
+  }
+  const tipo_cambio_promedio = consumos.length > 0
+    ? suma_tipo_cambio / consumos.length
+    : 0
+
+  let recargado_mes_mxn = 0
+  for (const r of recargas) {
+    recargado_mes_mxn += Number(r.monto_mxn)
+  }
+
+  return {
+    consumido_api_usd,
+    cobrado_mxn:           cobrado_consumos_mxn,
+    tipo_cambio_promedio,
+    recargado_mes_mxn,
+    cobrado_consumos_mxn,
+    llamadas_api:          consumos.length,
+    recargas_mes:          recargas.length,
+  }
 }
 
 // ---------------------------------------------------------------------------
