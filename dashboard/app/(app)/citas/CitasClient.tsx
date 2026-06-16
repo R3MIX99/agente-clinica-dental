@@ -879,7 +879,13 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               >
                 <SheetContent
                   side="right"
-                  className="w-full sm:max-w-md p-0 flex flex-col gap-0"
+                  className={cn(
+                    "w-full sm:max-w-md p-0 flex flex-col gap-0",
+                    // Despegar del borde con margen y bordes redondeados
+                    "data-[side=right]:inset-y-3 data-[side=right]:right-3",
+                    "data-[side=right]:h-auto data-[side=right]:border",
+                    "rounded-xl shadow-2xl overflow-hidden"
+                  )}
                 >
                   <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
                     <SheetTitle>{tituloDetalle}</SheetTitle>
