@@ -60,8 +60,8 @@ export function AppLayoutClient({
           </header>
 
           {/* Contenido con animacion de ruta */}
-          {/* pb-16 en movil para no quedar tapado por la barra inferior */}
-          <main className="flex-1 overflow-auto pb-16 md:pb-0">
+          {/* En movil reserva 64px (h-16 de la barra) + 16px de respiro + safe-area */}
+          <main className="flex-1 overflow-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}

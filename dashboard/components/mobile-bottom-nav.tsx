@@ -6,9 +6,8 @@ import { useTransition } from "react"
 import {
   MessageSquare, CalendarDays, Users, Stethoscope,
   UserCog, LineChart, Receipt, BarChart3, Settings,
-  MoreHorizontal, LogOut, Loader2, Moon, Sun,
+  MoreHorizontal, LogOut, Loader2,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
 import {
@@ -47,7 +46,6 @@ const TABS_DOCTOR = (doctorId?: string | null) => [
 export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string | null }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
-  const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
 
   function handleLogout() {
@@ -170,16 +168,6 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
               </DropdownMenuItem>
             )
           })}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center gap-3 cursor-pointer"
-          >
-            {theme === "dark"
-              ? <Sun className="h-4 w-4" aria-hidden="true" />
-              : <Moon className="h-4 w-4" aria-hidden="true" />}
-            Modo {theme === "dark" ? "claro" : "oscuro"}
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogout}
