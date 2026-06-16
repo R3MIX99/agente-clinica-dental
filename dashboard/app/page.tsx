@@ -1,62 +1,11 @@
 import Link from "next/link"
-import { Stethoscope, CalendarCheck, MessageSquare, Bell, BarChart3, Check, ChevronRight } from "lucide-react"
+import { Stethoscope, CalendarCheck, MessageSquare, Bell, BarChart3, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { createServerClient } from "@/lib/supabase/server"
 
-// Datos estaticos que complementan cada plan con descripcion y caracteristicas
-const EXTRAS_PLAN: Record<string, {
-  destacado: boolean
-  badge?: string
-  descripcion: string
-  caracteristicas: string[]
-}> = {
-  Solo: {
-    destacado: false,
-    descripcion: "Para consultorios independientes que quieren automatizar desde el primer dia.",
-    caracteristicas: [
-      "1 clinica y 1 doctor",
-      "Agente IA 24/7 en WhatsApp",
-      "Agenda y recordatorios automaticos",
-      "Ficha digital de pacientes",
-      "Panel de control basico",
-    ],
-  },
-  Profesional: {
-    destacado: true,
-    badge: "Mas popular",
-    descripcion: "Para clinicas en crecimiento con equipo y reportes avanzados.",
-    caracteristicas: [
-      "1 clinica, hasta 5 doctores",
-      "2 usuarios administrativos",
-      "Todo lo del plan Solo",
-      "Panel de reportes avanzado",
-      "Soporte prioritario por correo",
-    ],
-  },
-  Clinica: {
-    destacado: false,
-    descripcion: "Para grupos dentales con varias sucursales.",
-    caracteristicas: [
-      "Hasta 3 clinicas",
-      "Hasta 12 doctores y 4 usuarios",
-      "Todo lo del plan Profesional",
-      "Gestion multi-sucursal",
-      "Soporte dedicado",
-    ],
-  },
-}
-
-export default async function LandingPage() {
-  const db = createServerClient()
-  const { data: planes } = await db
-    .from("planes")
-    .select("id, nombre, precio_mensual_mxn, precio_anual_mxn")
-    .eq("activo", true)
-    .order("precio_mensual_mxn")
-
+export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Encabezado */}
@@ -153,71 +102,6 @@ export default async function LandingPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        </section>
-
-        <Separator />
-
-        {/* Precios */}
-        <section id="precios" className="mx-auto max-w-6xl px-4 py-20">
-          <div className="mb-12 text-center">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
-              Planes y precios
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Todos los planes incluyen 14 dias de prueba gratuita.
-            </p>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {(planes ?? []).map((plan) => {
-              const extras = EXTRAS_PLAN[plan.nombre] ?? {
-                destacado: false,
-                descripcion: "",
-                caracteristicas: [],
-              }
-              return (
-                <Card
-                  key={plan.id}
-                  className={extras.destacado ? "border-primary shadow-md relative" : "border-border relative"}
-                >
-                  {extras.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="text-xs">{extras.badge}</Badge>
-                    </div>
-                  )}
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg">{plan.nombre}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{extras.descripcion}</p>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold text-foreground">
-                        ${Number(plan.precio_mensual_mxn).toLocaleString("es-MX")}
-                      </span>
-                      <span className="ml-1 text-sm text-muted-foreground">MXN / mes</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      o ${Number(plan.precio_anual_mxn).toLocaleString("es-MX")} MXN al ano
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button
-                      asChild
-                      className="w-full"
-                      variant={extras.destacado ? "default" : "outline"}
-                    >
-                      <Link href={`/registro?plan=${plan.id}`}>Empezar gratis</Link>
-                    </Button>
-                    <ul className="space-y-2">
-                      {extras.caracteristicas.map((c) => (
-                        <li key={c} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )
-            })}
           </div>
         </section>
 
