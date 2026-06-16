@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie } from "./actions"
 import { cn } from "@/lib/utils"
@@ -152,6 +152,49 @@ function esProxima(fechaHora: string): boolean {
   return new Date(fechaHora) > new Date()
 }
 
+// Devuelve la "cita representativa" de una serie: la proxima futura,
+// o si ya no hay futuras, la mas reciente pasada.
+function citaRepresentativa(serieCitas: Cita[]): Cita {
+  const ahora = Date.now()
+  const futuras = serieCitas.filter(
+    (c) => new Date(c.fecha_hora).getTime() > ahora,
+  )
+  if (futuras.length > 0) {
+    return futuras.sort(
+      (a, b) =>
+        new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime(),
+    )[0]
+  }
+  return [...serieCitas].sort(
+    (a, b) =>
+      new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime(),
+  )[0]
+}
+
+// Colapsa las citas por serie_id: cada serie aparece una sola vez en la lista,
+// las citas sueltas se conservan.
+function colapsarSeries(citas: Cita[]): Cita[] {
+  const grupos = new Map<string, Cita[]>()
+  const sueltas: Cita[] = []
+  for (const c of citas) {
+    if (c.serie_id) {
+      const arr = grupos.get(c.serie_id) ?? []
+      arr.push(c)
+      grupos.set(c.serie_id, arr)
+    } else {
+      sueltas.push(c)
+    }
+  }
+  const representativas: Cita[] = []
+  for (const arr of grupos.values()) {
+    representativas.push(citaRepresentativa(arr))
+  }
+  return [...sueltas, ...representativas].sort(
+    (a, b) =>
+      new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime(),
+  )
+}
+
 function isoAInputDatetime(iso: string): string {
   if (!iso) return ""
   const d = new Date(iso)
@@ -184,6 +227,21 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const [enviandoId, setEnviandoId] = useState<string | null>(null)
   const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
   const [isDesktop, setIsDesktop] = useState(false)
+
+  // Lista visible en tabla y mobile: una sola fila por serie mensual
+  const citasVisibles = useMemo(() => colapsarSeries(citas), [citas])
+
+  // Devuelve todas las instancias de la serie a la que pertenece la cita actual
+  // del drawer (ordenadas por fecha ascendente)
+  const instanciasSerie = useMemo(() => {
+    if (!citaDrawer?.serie_id) return []
+    return citas
+      .filter((c) => c.serie_id === citaDrawer.serie_id)
+      .sort(
+        (a, b) =>
+          new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime(),
+      )
+  }, [citas, citaDrawer])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -371,7 +429,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         <h1 className="text-xl font-semibold">Citas</h1>
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline text-sm text-muted-foreground">
-            {citas.length} registros
+            {citasVisibles.length} {citasVisibles.length === 1 ? "registro" : "registros"}
           </span>
           <Button size="sm" onClick={abrirFormNuevo}>
             Nueva cita
@@ -383,13 +441,13 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       {/* Vista mobile — lista de filas                                        */}
       {/* ------------------------------------------------------------------ */}
       <div className="md:hidden">
-        {citas.length === 0 ? (
+        {citasVisibles.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Sin citas registradas.
           </p>
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
-            {citas.map((cita) => (
+            {citasVisibles.map((cita) => (
               <button
                 key={cita.id}
                 onClick={() => setCitaDrawer(cita)}
@@ -465,7 +523,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             </tr>
           </thead>
           <tbody>
-            {citas.length === 0 && (
+            {citasVisibles.length === 0 && (
               <tr>
                 <td
                   colSpan={7}
@@ -475,10 +533,11 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 </td>
               </tr>
             )}
-            {citas.map((cita) => (
+            {citasVisibles.map((cita) => (
               <tr
                 key={cita.id}
-                className="border-b border-border last:border-0 hover:bg-muted/30"
+                onClick={() => setCitaDrawer(cita)}
+                className="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer"
               >
                 <td className="px-4 py-3 font-medium">
                   <div className="flex items-center gap-1.5">
@@ -522,7 +581,10 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                     <span className="text-muted-foreground text-xs">Pendiente</span>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td
+                  className="px-4 py-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => abrirFormEdicion(cita)}
@@ -733,13 +795,13 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 </div>
               )}
 
-              {/* Serie mensual — boton terminar */}
+              {/* Serie mensual — lista de instancias + terminar */}
               {citaDrawer.serie_id && (
-                <div className="border-t border-border pt-3 space-y-2">
+                <div className="border-t border-border pt-3 space-y-3">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>
-                      Esta cita es parte de una serie mensual
+                      Serie mensual
                       {citaDrawer.recurrencia_fin && (
                         <> hasta el{" "}
                           {new Date(citaDrawer.recurrencia_fin + "T12:00:00").toLocaleDateString("es-MX", {
@@ -749,8 +811,50 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                           })}
                         </>
                       )}
+                      {!citaDrawer.recurrencia_fin && <> indefinida</>}
                     </span>
                   </div>
+
+                  {/* Lista de todas las instancias de la serie */}
+                  {instanciasSerie.length > 0 && (
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      {instanciasSerie.map((inst) => {
+                        const esActual = inst.id === citaDrawer.id
+                        const pasada = new Date(inst.fecha_hora).getTime() < Date.now()
+                        return (
+                          <button
+                            key={inst.id}
+                            onClick={() => {
+                              if (!esActual) setCitaDrawer(inst)
+                            }}
+                            disabled={esActual}
+                            className={cn(
+                              "w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border-b border-border last:border-0 text-left transition-colors",
+                              esActual
+                                ? "bg-primary/10 cursor-default"
+                                : "hover:bg-muted/40 active:bg-muted/60",
+                            )}
+                          >
+                            <span className={cn(
+                              "tabular-nums",
+                              pasada && !esActual && "text-muted-foreground",
+                            )}>
+                              {formatFecha(inst.fecha_hora)}
+                            </span>
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                                ESTADO_ESTILO[inst.status] ?? "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {STATUS_LABELS[inst.status] ?? inst.status}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
                   <Button
                     variant="outline"
                     size="sm"
