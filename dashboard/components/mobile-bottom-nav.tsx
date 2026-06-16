@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useTransition } from "react"
 import {
   MessageSquare, CalendarDays, Users, Stethoscope,
-  UserCog, LineChart, Receipt, BarChart3, Settings,
+  UserCog, LineChart, BarChart3, Settings,
   MoreHorizontal, LogOut, Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -32,7 +32,6 @@ const TABS_SECUNDARIOS = [
   { href: "/doctores",    icon: Stethoscope,  label: "Doctores" },
   { href: "/usuarios",    icon: UserCog,      label: "Usuarios" },
   { href: "/analitica",   icon: LineChart,    label: "Analitica" },
-  { href: "/facturacion", icon: Receipt,      label: "Facturacion" },
   { href: "/uso",         icon: BarChart3,    label: "Uso y plan" },
   { href: "/ajustes",     icon: Settings,     label: "Ajustes" },
 ]

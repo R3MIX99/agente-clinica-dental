@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { MessageSquare, CalendarDays, Users, UserCog, Settings, Stethoscope, BarChart3, LineChart, Receipt } from "lucide-react"
+import { MessageSquare, CalendarDays, Users, UserCog, Settings, Stethoscope, BarChart3, LineChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
 import type { Rol } from "@/app/(app)/layout"
@@ -14,7 +14,6 @@ const NAV_ADMIN_SUPERVISOR = [
   { href: "/doctores",       label: "Doctores",        icon: Stethoscope },
   { href: "/usuarios",       label: "Usuarios",        icon: UserCog },
   { href: "/analitica",      label: "Analitica",        icon: LineChart  },
-  { href: "/facturacion",    label: "Facturacion",      icon: Receipt    },
   { href: "/uso",            label: "Uso y plan",      icon: BarChart3 },
   { href: "/ajustes",        label: "Ajustes",         icon: Settings },
 ]

@@ -1,13 +1,13 @@
 "use client"
 
-import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import type { EstadoSuscripcion } from "@/app/actions/facturacion"
 
-// Rutas permitidas incluso cuando la suscripcion esta suspendida o cancelada.
-const RUTAS_PERMITIDAS = ["/facturacion", "/ajustes"]
+// Rutas permitidas incluso cuando la cuenta esta suspendida o cancelada.
+// Las suspensiones las maneja el administrador del sistema; el cliente no
+// puede regularizarlas desde la UI, por eso no enlazamos a ninguna ruta.
+const RUTAS_PERMITIDAS = ["/ajustes"]
 
 export function SuspendidaScreen({
   estado,
@@ -36,20 +36,13 @@ export function SuspendidaScreen({
         <div className="max-w-md text-center px-6 py-8 rounded-xl border border-border bg-card shadow-lg">
           <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-foreground">
-            {estado === "cancelada" ? "Suscripcion cancelada" : "Acceso suspendido"}
+            {estado === "cancelada" ? "Cuenta cancelada" : "Acceso suspendido"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {estado === "cancelada"
-              ? "Tu suscripcion fue cancelada. Contrata un plan para volver a usar el sistema. Tus datos estan seguros."
-              : "Hay un pago pendiente en tu suscripcion. Regulariza el cobro para recuperar el acceso completo."}
+              ? "Tu cuenta fue cancelada. Contacta al administrador para reactivar el servicio. Tus datos estan seguros."
+              : "Tu cuenta esta suspendida. Contacta al administrador para regularizar el acceso."}
           </p>
-          <div className="mt-6">
-            <Button asChild>
-              <Link href="/facturacion">
-                {estado === "cancelada" ? "Contratar plan" : "Regularizar pago"}
-              </Link>
-            </Button>
-          </div>
         </div>
       </div>
     </div>
