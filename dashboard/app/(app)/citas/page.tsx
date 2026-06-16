@@ -62,7 +62,7 @@ export default async function CitasPage() {
   let citasQuery = db
     .from("appointments")
     .select(
-      "id, patient_id, service_id, doctor_id, fecha_hora, costo, duracion_min, status, recordatorio_enviado_at, notas, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio, duracion_min), doctors(id, nombre)"
+      "id, patient_id, service_id, doctor_id, fecha_hora, costo, duracion_min, status, recordatorio_enviado_at, notas, serie_id, recurrencia_tipo, recurrencia_fin, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio, duracion_min), doctors(id, nombre)"
     )
     .eq("clinica_id", clinicaId)
     .order("fecha_hora", { ascending: false })

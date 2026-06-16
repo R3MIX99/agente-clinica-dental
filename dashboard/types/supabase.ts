@@ -62,6 +62,9 @@ export type Database = {
           notas: string | null
           patient_id: string | null
           recordatorio_enviado_at: string | null
+          recurrencia_fin: string | null
+          recurrencia_tipo: string | null
+          serie_id: string | null
           service_id: string | null
           status: Database["public"]["Enums"]["appointment_status"]
         }
@@ -76,6 +79,9 @@ export type Database = {
           notas?: string | null
           patient_id?: string | null
           recordatorio_enviado_at?: string | null
+          recurrencia_fin?: string | null
+          recurrencia_tipo?: string | null
+          serie_id?: string | null
           service_id?: string | null
           status?: Database["public"]["Enums"]["appointment_status"]
         }
@@ -90,6 +96,9 @@ export type Database = {
           notas?: string | null
           patient_id?: string | null
           recordatorio_enviado_at?: string | null
+          recurrencia_fin?: string | null
+          recurrencia_tipo?: string | null
+          serie_id?: string | null
           service_id?: string | null
           status?: Database["public"]["Enums"]["appointment_status"]
         }

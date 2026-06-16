@@ -88,6 +88,7 @@ type Cita = {
   status: string
   costo: number | null
   notas: string | null
+  serie_id: string | null
   servicio: { id: string; nombre: string; duracion_min: number | null } | null
   doctor: { id: string; nombre: string } | null
 }
@@ -776,8 +777,16 @@ export function PacienteFichaClient({
                           )}
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium leading-tight">
+                            <p className="text-sm font-medium leading-tight flex items-center gap-1.5">
                               {cita.servicio?.nombre ?? "Cita sin servicio"}
+                              {cita.serie_id && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                                  title="Cita mensual recurrente"
+                                >
+                                  Mensual
+                                </span>
+                              )}
                             </p>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <span
@@ -846,9 +855,19 @@ export function PacienteFichaClient({
                               )}
                             >
                               <td className="px-4 py-3 font-medium whitespace-nowrap">
-                                {cita.servicio?.nombre ?? (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                  {cita.servicio?.nombre ?? (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                  {cita.serie_id && (
+                                    <span
+                                      className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                                      title="Cita mensual recurrente"
+                                    >
+                                      Mensual
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                                 {cita.doctor?.nombre ?? "—"}

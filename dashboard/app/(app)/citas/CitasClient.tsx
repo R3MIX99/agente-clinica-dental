@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio } from "./actions"
+import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie } from "./actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,7 +30,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2 } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -51,6 +51,9 @@ type Cita = {
   duracion_min: number | null
   recordatorio_enviado_at: string | null
   notas: string | null
+  serie_id: string | null
+  recurrencia_tipo: string | null
+  recurrencia_fin: string | null
   patients: Paciente | null
   services: Servicio | null
   doctors: Doctor | null
@@ -64,6 +67,11 @@ type FormCita = {
   status: string
   duracion_min: string
   notas: string
+  // Recurrencia (solo aplica en creacion)
+  recurrencia_tipo: "" | "mensual"
+  recurrencia_modo: "indefinido" | "n_meses" | "fecha"
+  recurrencia_meses: string
+  recurrencia_fin: string
 }
 
 interface Props {
@@ -87,6 +95,10 @@ const FORM_INICIAL: FormCita = {
   status: "programada",
   duracion_min: "",
   notas: "",
+  recurrencia_tipo:  "",
+  recurrencia_modo:  "indefinido",
+  recurrencia_meses: "3",
+  recurrencia_fin:   "",
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -208,6 +220,11 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       status: cita.status,
       duracion_min: cita.duracion_min != null ? String(cita.duracion_min) : "",
       notas: cita.notas ?? "",
+      // En edicion no se modifica la serie — los campos quedan vacios
+      recurrencia_tipo:  "",
+      recurrencia_modo:  "indefinido",
+      recurrencia_meses: "3",
+      recurrencia_fin:   "",
     })
     setFormOpen(true)
   }
@@ -226,19 +243,71 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       return
     }
 
+    // Calcular recurrencia_fin para el backend segun el modo seleccionado
+    let recurrenciaFinFinal = ""
+    if (form.recurrencia_tipo === "mensual") {
+      if (form.recurrencia_modo === "fecha") {
+        if (!form.recurrencia_fin) {
+          toast.error("Selecciona la fecha de fin de la serie")
+          return
+        }
+        recurrenciaFinFinal = form.recurrencia_fin
+      } else if (form.recurrencia_modo === "n_meses") {
+        const meses = Number(form.recurrencia_meses)
+        if (!Number.isFinite(meses) || meses < 1) {
+          toast.error("Ingresa un numero valido de meses")
+          return
+        }
+        // Calcular fecha de fin sumando N meses a la fecha de la cita
+        const base = new Date(form.fecha_hora)
+        base.setMonth(base.getMonth() + meses)
+        recurrenciaFinFinal = base.toISOString().slice(0, 10)
+      } else {
+        // indefinido — sin fecha de fin
+        recurrenciaFinFinal = ""
+      }
+    }
+
+    const datosEnvio = {
+      ...form,
+      recurrencia_tipo: form.recurrencia_tipo,
+      recurrencia_fin:  recurrenciaFinFinal,
+    }
+
     startTransition(async () => {
       try {
         if (citaEditando) {
-          await actualizarCita(citaEditando.id, form)
+          await actualizarCita(citaEditando.id, datosEnvio)
           toast.success("Cita actualizada correctamente")
         } else {
-          await crearCita(form)
-          toast.success("Cita creada correctamente")
+          await crearCita(datosEnvio)
+          if (form.recurrencia_tipo === "mensual") {
+            toast.success("Serie mensual creada — proximas citas generadas")
+          } else {
+            toast.success("Cita creada correctamente")
+          }
         }
         setFormOpen(false)
         router.refresh()
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : "Error al guardar la cita")
+      }
+    })
+  }
+
+  // -------------------------------------------------------------------------
+  // Handler — terminar serie recurrente
+  // -------------------------------------------------------------------------
+
+  function handleTerminarSerie(serieId: string) {
+    startTransition(async () => {
+      try {
+        await terminarSerie(serieId)
+        toast.success("Serie terminada. Se eliminaron las citas futuras.")
+        setCitaDrawer(null)
+        router.refresh()
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Error al terminar la serie")
       }
     })
   }
@@ -328,9 +397,17 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               >
                 {/* Info izquierda */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {cita.patients?.nombre ?? "Sin paciente"}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-sm truncate">
+                      {cita.patients?.nombre ?? "Sin paciente"}
+                    </p>
+                    {cita.serie_id && (
+                      <Repeat
+                        className="h-3.5 w-3.5 text-primary shrink-0"
+                        aria-label="Cita mensual"
+                      />
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {[cita.services?.nombre, cita.doctors?.nombre]
                       .filter(Boolean)
@@ -404,7 +481,18 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 className="border-b border-border last:border-0 hover:bg-muted/30"
               >
                 <td className="px-4 py-3 font-medium">
-                  {cita.patients?.nombre ?? "—"}
+                  <div className="flex items-center gap-1.5">
+                    {cita.patients?.nombre ?? "—"}
+                    {cita.serie_id && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                        title="Cita mensual recurrente"
+                      >
+                        <Repeat className="h-2.5 w-2.5" aria-hidden="true" />
+                        Mensual
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {cita.services?.nombre ?? "—"}
@@ -463,6 +551,18 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                         className={enviandoId === cita.id ? "animate-spin" : ""}
                       />
                     </button>
+                    {cita.serie_id && (
+                      <button
+                        onClick={() => {
+                          if (cita.serie_id) handleTerminarSerie(cita.serie_id)
+                        }}
+                        disabled={isPending}
+                        title="Terminar serie mensual"
+                        className="p-1.5 rounded-md text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+                      >
+                        <CircleStop size={15} />
+                      </button>
+                    )}
                     <button
                       onClick={() => setEliminarId(cita.id)}
                       title="Eliminar cita"
@@ -632,6 +732,39 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   </p>
                 </div>
               )}
+
+              {/* Serie mensual — boton terminar */}
+              {citaDrawer.serie_id && (
+                <div className="border-t border-border pt-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>
+                      Esta cita es parte de una serie mensual
+                      {citaDrawer.recurrencia_fin && (
+                        <> hasta el{" "}
+                          {new Date(citaDrawer.recurrencia_fin + "T12:00:00").toLocaleDateString("es-MX", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-destructive border-destructive/40 hover:bg-destructive/10"
+                    onClick={() => {
+                      if (citaDrawer.serie_id) handleTerminarSerie(citaDrawer.serie_id)
+                    }}
+                    disabled={isPending}
+                  >
+                    <CircleStop className="h-4 w-4 mr-2" aria-hidden="true" />
+                    Terminar serie
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DrawerContent>
@@ -776,6 +909,92 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 className="resize-none"
               />
             </div>
+
+            {/* Recurrencia mensual — solo en creacion */}
+            {!citaEditando && (
+              <div className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Label htmlFor="recurrencia-toggle" className="cursor-pointer">
+                      Repetir cada mes
+                    </Label>
+                  </div>
+                  <input
+                    id="recurrencia-toggle"
+                    type="checkbox"
+                    checked={form.recurrencia_tipo === "mensual"}
+                    onChange={(e) =>
+                      actualizarCampo(
+                        "recurrencia_tipo",
+                        e.target.checked ? "mensual" : "",
+                      )
+                    }
+                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                </div>
+
+                {form.recurrencia_tipo === "mensual" && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Se creara una cita el mismo dia de cada mes. Si el dia no
+                      existe en algun mes, se usara el ultimo dia disponible.
+                    </p>
+
+                    <div className="space-y-1.5">
+                      <Label>Duracion de la serie</Label>
+                      <Select
+                        value={form.recurrencia_modo}
+                        onValueChange={(v) =>
+                          actualizarCampo(
+                            "recurrencia_modo",
+                            v as FormCita["recurrencia_modo"],
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="indefinido">Indefinido (12 meses)</SelectItem>
+                          <SelectItem value="n_meses">Por N meses</SelectItem>
+                          <SelectItem value="fecha">Hasta una fecha</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {form.recurrencia_modo === "n_meses" && (
+                      <div className="space-y-1.5">
+                        <Label>Numero de meses</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="24"
+                          step="1"
+                          value={form.recurrencia_meses}
+                          onChange={(e) =>
+                            actualizarCampo("recurrencia_meses", e.target.value)
+                          }
+                        />
+                      </div>
+                    )}
+
+                    {form.recurrencia_modo === "fecha" && (
+                      <div className="space-y-1.5">
+                        <Label>Fecha de fin</Label>
+                        <Input
+                          type="date"
+                          value={form.recurrencia_fin}
+                          onChange={(e) =>
+                            actualizarCampo("recurrencia_fin", e.target.value)
+                          }
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )
 

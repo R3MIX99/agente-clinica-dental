@@ -48,7 +48,7 @@ export default async function PacienteFichaPage({
     db
       .from("appointments")
       .select(
-        "id, fecha_hora, status, costo, notas, services(id, nombre, duracion_min), doctors(id, nombre)"
+        "id, fecha_hora, status, costo, notas, serie_id, services(id, nombre, duracion_min), doctors(id, nombre)"
       )
       .eq("patient_id", id)
       .order("fecha_hora", { ascending: false }),
@@ -115,6 +115,7 @@ export default async function PacienteFichaPage({
     status: c.status,
     costo: c.costo,
     notas: c.notas,
+    serie_id: c.serie_id,
     servicio: c.services as { id: string; nombre: string; duracion_min: number | null } | null,
     doctor: c.doctors as { id: string; nombre: string } | null,
   }))
