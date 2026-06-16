@@ -641,238 +641,259 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Drawer — detalle de cita (mobile)                                    */}
+      {/* Detalle de cita — Drawer en mobile, Sheet lateral en desktop        */}
       {/* ------------------------------------------------------------------ */}
-      <Drawer
-        open={citaDrawer !== null}
-        onOpenChange={(o) => {
-          if (!o) setCitaDrawer(null)
-        }}
-        shouldScaleBackground
-      >
-        <DrawerContent>
-          <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
-            <DrawerTitle>
-              {citaDrawer?.services?.nombre ?? "Cita sin servicio"}
-            </DrawerTitle>
-            {citaDrawer && (
-              <div className="flex items-center justify-between gap-2 mt-1.5">
-                {/* Badge de estado */}
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                    ESTADO_ESTILO[citaDrawer.status] ??
-                      "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
+      {(() => {
+        const tituloDetalle = citaDrawer?.services?.nombre ?? "Cita sin servicio"
+
+        const accionesDetalle = citaDrawer && (
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => {
+                abrirFormEdicion(citaDrawer)
+                setCitaDrawer(null)
+              }}
+              title="Editar cita"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            >
+              <SquarePen size={16} />
+            </button>
+            <button
+              onClick={() => {
+                handleEnviarRecordatorio(citaDrawer)
+                setCitaDrawer(null)
+              }}
+              disabled={
+                !citaDrawer.patients?.channel_user_id ||
+                !!citaDrawer.recordatorio_enviado_at ||
+                enviandoId === citaDrawer.id
+              }
+              title={
+                !citaDrawer.patients?.channel_user_id
+                  ? "Sin ID de canal configurado"
+                  : citaDrawer.recordatorio_enviado_at
+                  ? "Recordatorio ya enviado"
+                  : "Enviar recordatorio"
+              }
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                citaDrawer.patients?.channel_user_id &&
+                  !citaDrawer.recordatorio_enviado_at
+                  ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+            >
+              <Clock
+                size={16}
+                className={enviandoId === citaDrawer.id ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              onClick={() => {
+                setEliminarId(citaDrawer.id)
+                setCitaDrawer(null)
+              }}
+              title="Eliminar cita"
+              className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )
+
+        const cuerpoDetalle = citaDrawer && (
+          <div className="px-4 py-4 pb-8 md:px-6 space-y-4">
+            {/* Datos de la cita */}
+            <div className="space-y-2.5 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Paciente</span>
+                <span className="font-medium">
+                  {citaDrawer.patients?.nombre ?? "—"}
                 </span>
-
-                {/* Iconos de accion */}
-                <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => {
-                      abrirFormEdicion(citaDrawer)
-                      setCitaDrawer(null)
-                    }}
-                    title="Editar cita"
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                  >
-                    <SquarePen size={16} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleEnviarRecordatorio(citaDrawer)
-                      setCitaDrawer(null)
-                    }}
-                    disabled={
-                      !citaDrawer.patients?.channel_user_id ||
-                      !!citaDrawer.recordatorio_enviado_at ||
-                      enviandoId === citaDrawer.id
-                    }
-                    title={
-                      !citaDrawer.patients?.channel_user_id
-                        ? "Sin ID de canal configurado"
-                        : citaDrawer.recordatorio_enviado_at
-                        ? "Recordatorio ya enviado"
-                        : "Enviar recordatorio"
-                    }
-                    className={cn(
-                      "p-1.5 rounded-md transition-colors",
-                      citaDrawer.patients?.channel_user_id &&
-                        !citaDrawer.recordatorio_enviado_at
-                        ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        : "text-muted-foreground/30 cursor-not-allowed"
-                    )}
-                  >
-                    <Clock
-                      size={16}
-                      className={
-                        enviandoId === citaDrawer.id ? "animate-spin" : ""
-                      }
-                    />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEliminarId(citaDrawer.id)
-                      setCitaDrawer(null)
-                    }}
-                    title="Eliminar cita"
-                    className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
               </div>
-            )}
-          </DrawerHeader>
 
-          {citaDrawer && (
-            <div className="px-4 py-4 pb-8 space-y-4">
-              {/* Datos de la cita */}
-              <div className="space-y-2.5 text-sm">
-                {/* Paciente */}
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-muted-foreground flex-shrink-0">
+                  Fecha y hora
+                </span>
+                <span className="font-medium text-right">
+                  {formatFechaCompleta(citaDrawer.fecha_hora)}
+                  {esProxima(citaDrawer.fecha_hora) && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 align-middle">
+                      próxima
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              {citaDrawer.doctors && (
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">Paciente</span>
-                  <span className="font-medium">
-                    {citaDrawer.patients?.nombre ?? "—"}
-                  </span>
-                </div>
-
-                {/* Fecha y hora */}
-                <div className="flex items-start justify-between gap-4">
-                  <span className="text-muted-foreground flex-shrink-0">
-                    Fecha y hora
-                  </span>
-                  <span className="font-medium text-right">
-                    {formatFechaCompleta(citaDrawer.fecha_hora)}
-                    {esProxima(citaDrawer.fecha_hora) && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 align-middle">
-                        próxima
-                      </span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Doctor */}
-                {citaDrawer.doctors && (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">Doctor</span>
-                    <span className="font-medium">
-                      {citaDrawer.doctors.nombre}
-                    </span>
-                  </div>
-                )}
-
-                {/* Duración */}
-                {citaDrawer.duracion_min != null && (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">Duración</span>
-                    <span className="font-medium tabular-nums">
-                      {citaDrawer.duracion_min} min
-                    </span>
-                  </div>
-                )}
-
-                {/* Recordatorio */}
-                {citaDrawer.recordatorio_enviado_at && (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">Recordatorio</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                      Enviado
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Notas */}
-              {citaDrawer.notas && (
-                <div className="border-t border-border pt-3">
-                  <p className="text-xs text-muted-foreground mb-1.5">Notas</p>
-                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
-                    {citaDrawer.notas}
-                  </p>
+                  <span className="text-muted-foreground">Doctor</span>
+                  <span className="font-medium">{citaDrawer.doctors.nombre}</span>
                 </div>
               )}
 
-              {/* Serie mensual — lista de instancias + terminar */}
-              {citaDrawer.serie_id && (
-                <div className="border-t border-border pt-3 space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>
-                      Serie mensual
-                      {citaDrawer.recurrencia_fin && (
-                        <> hasta el{" "}
-                          {new Date(citaDrawer.recurrencia_fin + "T12:00:00").toLocaleDateString("es-MX", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </>
-                      )}
-                      {!citaDrawer.recurrencia_fin && <> indefinida</>}
-                    </span>
-                  </div>
+              {citaDrawer.duracion_min != null && (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Duración</span>
+                  <span className="font-medium tabular-nums">
+                    {citaDrawer.duracion_min} min
+                  </span>
+                </div>
+              )}
 
-                  {/* Lista de todas las instancias de la serie */}
-                  {instanciasSerie.length > 0 && (
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      {instanciasSerie.map((inst) => {
-                        const esActual = inst.id === citaDrawer.id
-                        const pasada = new Date(inst.fecha_hora).getTime() < Date.now()
-                        return (
-                          <button
-                            key={inst.id}
-                            onClick={() => {
-                              if (!esActual) setCitaDrawer(inst)
-                            }}
-                            disabled={esActual}
-                            className={cn(
-                              "w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border-b border-border last:border-0 text-left transition-colors",
-                              esActual
-                                ? "bg-primary/10 cursor-default"
-                                : "hover:bg-muted/40 active:bg-muted/60",
-                            )}
-                          >
-                            <span className={cn(
-                              "tabular-nums",
-                              pasada && !esActual && "text-muted-foreground",
-                            )}>
-                              {formatFecha(inst.fecha_hora)}
-                            </span>
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                                ESTADO_ESTILO[inst.status] ?? "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {STATUS_LABELS[inst.status] ?? inst.status}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-destructive border-destructive/40 hover:bg-destructive/10"
-                    onClick={() => {
-                      if (citaDrawer.serie_id) handleTerminarSerie(citaDrawer.serie_id)
-                    }}
-                    disabled={isPending}
-                  >
-                    <CircleStop className="h-4 w-4 mr-2" aria-hidden="true" />
-                    Terminar serie
-                  </Button>
+              {citaDrawer.recordatorio_enviado_at && (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Recordatorio</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    Enviado
+                  </span>
                 </div>
               )}
             </div>
-          )}
-        </DrawerContent>
-      </Drawer>
+
+            {citaDrawer.notas && (
+              <div className="border-t border-border pt-3">
+                <p className="text-xs text-muted-foreground mb-1.5">Notas</p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {citaDrawer.notas}
+                </p>
+              </div>
+            )}
+
+            {/* Serie mensual */}
+            {citaDrawer.serie_id && (
+              <div className="border-t border-border pt-3 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>
+                    Serie mensual
+                    {citaDrawer.recurrencia_fin && (
+                      <> hasta el{" "}
+                        {new Date(citaDrawer.recurrencia_fin + "T12:00:00").toLocaleDateString("es-MX", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </>
+                    )}
+                    {!citaDrawer.recurrencia_fin && <> indefinida</>}
+                  </span>
+                </div>
+
+                {instanciasSerie.length > 0 && (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    {instanciasSerie.map((inst) => {
+                      const esActual = inst.id === citaDrawer.id
+                      const pasada = new Date(inst.fecha_hora).getTime() < Date.now()
+                      return (
+                        <button
+                          key={inst.id}
+                          onClick={() => {
+                            if (!esActual) setCitaDrawer(inst)
+                          }}
+                          disabled={esActual}
+                          className={cn(
+                            "w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border-b border-border last:border-0 text-left transition-colors",
+                            esActual
+                              ? "bg-primary/10 cursor-default"
+                              : "hover:bg-muted/40 active:bg-muted/60",
+                          )}
+                        >
+                          <span className={cn(
+                            "tabular-nums",
+                            pasada && !esActual && "text-muted-foreground",
+                          )}>
+                            {formatFecha(inst.fecha_hora)}
+                          </span>
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                              ESTADO_ESTILO[inst.status] ?? "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {STATUS_LABELS[inst.status] ?? inst.status}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-destructive border-destructive/40 hover:bg-destructive/10"
+                  onClick={() => {
+                    if (citaDrawer.serie_id) handleTerminarSerie(citaDrawer.serie_id)
+                  }}
+                  disabled={isPending}
+                >
+                  <CircleStop className="h-4 w-4 mr-2" aria-hidden="true" />
+                  Terminar serie
+                </Button>
+              </div>
+            )}
+          </div>
+        )
+
+        const cabeceraBadgeAcciones = citaDrawer && (
+          <div className="flex items-center justify-between gap-2 mt-1.5">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                ESTADO_ESTILO[citaDrawer.status] ??
+                  "bg-muted text-muted-foreground"
+              )}
+            >
+              {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
+            </span>
+            {accionesDetalle}
+          </div>
+        )
+
+        return (
+          <>
+            {/* Mobile — Drawer inferior */}
+            {!isDesktop && (
+              <Drawer
+                open={citaDrawer !== null}
+                onOpenChange={(o) => { if (!o) setCitaDrawer(null) }}
+                shouldScaleBackground
+              >
+                <DrawerContent>
+                  <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
+                    <DrawerTitle>{tituloDetalle}</DrawerTitle>
+                    {cabeceraBadgeAcciones}
+                  </DrawerHeader>
+                  {cuerpoDetalle}
+                </DrawerContent>
+              </Drawer>
+            )}
+
+            {/* Desktop — Sheet lateral derecho */}
+            {isDesktop && (
+              <Sheet
+                open={citaDrawer !== null}
+                onOpenChange={(o) => { if (!o) setCitaDrawer(null) }}
+              >
+                <SheetContent
+                  side="right"
+                  className="w-full sm:max-w-md p-0 flex flex-col gap-0"
+                >
+                  <SheetHeader className="shrink-0 border-b border-border px-6 py-4">
+                    <SheetTitle>{tituloDetalle}</SheetTitle>
+                    {cabeceraBadgeAcciones}
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto">
+                    {cuerpoDetalle}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
+          </>
+        )
+      })()}
 
       {/* ------------------------------------------------------------------ */}
       {/* Formulario — campos compartidos mobile y desktop                   */}
