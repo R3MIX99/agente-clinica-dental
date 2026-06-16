@@ -32,7 +32,7 @@ const TABS_SECUNDARIOS = [
   { href: "/doctores",    icon: Stethoscope,  label: "Doctores" },
   { href: "/usuarios",    icon: UserCog,      label: "Usuarios" },
   { href: "/analitica",   icon: LineChart,    label: "Analitica" },
-  { href: "/uso",         icon: BarChart3,    label: "Uso y plan" },
+  { href: "/uso",         icon: BarChart3,    label: "Uso" },
   { href: "/ajustes",     icon: Settings,     label: "Ajustes" },
 ]
 
