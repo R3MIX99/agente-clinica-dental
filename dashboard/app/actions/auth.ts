@@ -17,7 +17,9 @@ export async function loginAction(email: string, password: string): Promise<{ er
   const userId = data.user?.id
   const rol = data.user?.user_metadata?.rol
 
-  // Verificar si la clinica del usuario ya completo el onboarding
+  // Las cuentas las configura el administrador del sistema antes de
+  // entregar credenciales a la clinica. Aqui solo establecemos la
+  // cookie de clinica activa para que el dashboard la reconozca.
   if (userId) {
     const db = createServerClient()
     const { data: perfil } = await db
@@ -27,7 +29,6 @@ export async function loginAction(email: string, password: string): Promise<{ er
       .single()
 
     if (perfil?.clinica_id) {
-      // Establecer la cookie de clinica activa
       const cookieStore = await cookies()
       cookieStore.set("clinica_activa", perfil.clinica_id, {
         httpOnly: true,
@@ -36,21 +37,10 @@ export async function loginAction(email: string, password: string): Promise<{ er
         maxAge: 60 * 60 * 24 * 30,
         secure: process.env.NODE_ENV === "production",
       })
-
-      // Si el onboarding no esta completado, redirigir al wizard
-      const { data: clinica } = await db
-        .from("clinicas")
-        .select("onboarding_completado")
-        .eq("id", perfil.clinica_id)
-        .single()
-
-      if (!clinica?.onboarding_completado) {
-        redirect("/onboarding")
-      }
     }
   }
 
-  // Onboarding completado: ir al panel segun rol
+  // Ir al panel segun rol
   redirect(rol === "doctor" ? "/citas" : "/conversaciones")
 }
 

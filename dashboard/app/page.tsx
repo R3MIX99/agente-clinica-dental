@@ -1,9 +1,14 @@
 import Link from "next/link"
-import { Stethoscope, CalendarCheck, MessageSquare, Bell, BarChart3, ChevronRight } from "lucide-react"
+import { Stethoscope, CalendarCheck, MessageSquare, Bell, BarChart3, ChevronRight, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+
+// Correo de contacto para solicitar demo / instalacion del sistema.
+// Cambialo por tu correo real antes de publicar.
+const EMAIL_CONTACTO = "contacto@dentalia.mx"
+const ASUNTO_DEMO = "Solicitud de demo del sistema"
+const MAILTO_DEMO = `mailto:${EMAIL_CONTACTO}?subject=${encodeURIComponent(ASUNTO_DEMO)}`
 
 export default function LandingPage() {
   return (
@@ -22,7 +27,10 @@ export default function LandingPage() {
               <Link href="/login">Iniciar sesion</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href="/registro">Empezar gratis</Link>
+              <a href={MAILTO_DEMO}>
+                <Mail className="mr-1 h-4 w-4" aria-hidden="true" />
+                Solicitar demo
+              </a>
             </Button>
           </nav>
         </div>
@@ -31,9 +39,6 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-4 py-20 text-center">
-          <Badge variant="secondary" className="mb-6 text-xs font-medium">
-            14 dias de prueba gratuita — sin tarjeta de credito
-          </Badge>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             El asistente de IA que
             <br className="hidden sm:inline" /> cuida a tus pacientes
@@ -44,13 +49,13 @@ export default function LandingPage() {
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Button size="lg" asChild className="w-full sm:w-auto">
-              <Link href="/registro">
-                Empezar gratis
+              <a href={MAILTO_DEMO}>
+                Solicitar demo
                 <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
-              </Link>
+              </a>
             </Button>
             <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
-              <Link href="/login">Ya tengo cuenta</Link>
+              <Link href="/login">Iniciar sesion</Link>
             </Button>
           </div>
         </section>
@@ -72,12 +77,12 @@ export default function LandingPage() {
               {
                 icono: MessageSquare,
                 titulo: "Conversaciones automaticas",
-                texto: "El agente responde en WhatsApp a cualquier hora: horarios, precios y dudas frecuentes.",
+                texto: "El agente responde en Telegram a cualquier hora: horarios, precios y dudas frecuentes.",
               },
               {
                 icono: CalendarCheck,
                 titulo: "Agenda inteligente",
-                texto: "Los pacientes agendan, reprograman o cancelan citas sin llamar ni esperar.",
+                texto: "Lleva el control de las citas de cada doctor y servicio en un solo lugar.",
               },
               {
                 icono: Bell,
@@ -113,15 +118,15 @@ export default function LandingPage() {
             Lista para empezar?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Configura tu clinica en minutos. Sin contratos, sin instalaciones
-            ni costos ocultos.
+            Te ayudamos a configurar todo el sistema en tu clinica:
+            bot de Telegram, agenda, recordatorios y panel de control.
           </p>
           <div className="mt-8">
             <Button size="lg" asChild>
-              <Link href="/registro">
-                Crear mi cuenta gratis
-                <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
-              </Link>
+              <a href={MAILTO_DEMO}>
+                <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+                Solicitar demo
+              </a>
             </Button>
           </div>
         </section>
@@ -142,9 +147,12 @@ export default function LandingPage() {
               <Link href="/login" className="hover:text-foreground transition-colors">
                 Iniciar sesion
               </Link>
-              <Link href="/registro" className="hover:text-foreground transition-colors">
-                Registrarse
-              </Link>
+              <a
+                href={MAILTO_DEMO}
+                className="hover:text-foreground transition-colors"
+              >
+                Contacto
+              </a>
             </div>
           </div>
         </div>
