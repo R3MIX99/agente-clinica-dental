@@ -68,18 +68,18 @@ export function AppLayoutClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
-                className="h-full"
+                className="min-h-full"
               >
                 <SuspendidaScreen estado={estadoSuscripcion}>
                   {children}
                 </SuspendidaScreen>
               </motion.div>
             </AnimatePresence>
-            {/* Spacer movil — reserva alto de la barra inferior + safe-area */}
+            {/* Spacer movil — reserva alto de la barra inferior */}
             <div
               aria-hidden="true"
               className="md:hidden shrink-0"
-              style={{ height: "calc(5rem + env(safe-area-inset-bottom))" }}
+              style={{ height: "120px" }}
             />
           </main>
         </div>
