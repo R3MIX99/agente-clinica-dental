@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTransition } from "react"
-import { Stethoscope, UserCircle, Settings, LogOut, Moon, Sun, Loader2 } from "lucide-react"
+import { Stethoscope, UserCircle, Settings, LogOut, Moon, Sun, Loader2, User } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import {
@@ -56,6 +56,12 @@ export function MobileHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem asChild>
+            <Link href="/perfil" className="flex items-center gap-2 cursor-pointer">
+              <User className="h-4 w-4" />
+              Mi perfil
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/ajustes" className="flex items-center gap-2 cursor-pointer">
               <Settings className="h-4 w-4" />

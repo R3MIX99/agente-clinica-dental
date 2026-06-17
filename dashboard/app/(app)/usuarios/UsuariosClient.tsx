@@ -6,6 +6,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { crearUsuario, editarUsuario, eliminarUsuario, type PerfilUsuario } from "./actions"
+import { PASSWORD_TEMPORAL } from "./config"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -201,11 +202,14 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
       return
     }
 
-    toast.success(
-      usuarioEditando
-        ? "Usuario actualizado correctamente"
-        : "Invitación enviada al correo del usuario"
-    )
+    if (usuarioEditando) {
+      toast.success("Usuario actualizado correctamente")
+    } else {
+      toast.success(
+        `Usuario creado. Contrasena temporal: ${PASSWORD_TEMPORAL}`,
+        { duration: 10000 },
+      )
+    }
     setFormOpen(false)
     router.refresh()
   })

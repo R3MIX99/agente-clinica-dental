@@ -3,6 +3,7 @@
 import { createServerClient as createServiceClient } from "@/lib/supabase/server"
 import { getProfile } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
+import { PASSWORD_TEMPORAL } from "./config"
 
 export type PerfilUsuario = {
   id: string
@@ -53,13 +54,22 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
   const db = createServiceClient()
   const nombreFinal = await resolverNombrePerfil(db, datos)
 
-  const { data: authData, error: authError } = await db.auth.admin.inviteUserByEmail(
-    datos.email,
-    { data: { nombre: nombreFinal, rol: datos.rol } }
-  )
+  // Creacion directa con contrasena temporal. El usuario debera cambiarla
+  // desde /perfil al iniciar sesion (se le redirige automaticamente cuando
+  // password_temporal: true en los metadatos).
+  const { data: authData, error: authError } = await db.auth.admin.createUser({
+    email:         datos.email,
+    password:      PASSWORD_TEMPORAL,
+    email_confirm: true,
+    user_metadata: {
+      nombre:            nombreFinal,
+      rol:               datos.rol,
+      password_temporal: true,
+    },
+  })
 
   if (authError) {
-    if (authError.message.includes("already registered")) {
+    if (authError.message.toLowerCase().includes("already") || authError.message.toLowerCase().includes("registered")) {
       return { error: "Ya existe un usuario con ese email" }
     }
     return { error: authError.message }

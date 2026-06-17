@@ -6,7 +6,7 @@ import { useTransition } from "react"
 import {
   MessageSquare, CalendarDays, Users, Stethoscope,
   UserCog, LineChart, BarChart3, Settings,
-  MoreHorizontal, LogOut, Loader2,
+  MoreHorizontal, LogOut, Loader2, User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
@@ -34,6 +34,7 @@ const TABS_SECUNDARIOS = [
   { href: "/analitica",   icon: LineChart,    label: "Analitica" },
   { href: "/uso",         icon: BarChart3,    label: "Uso" },
   { href: "/ajustes",     icon: Settings,     label: "Ajustes" },
+  { href: "/perfil",      icon: User,         label: "Mi perfil" },
 ]
 
 const TABS_DOCTOR = (doctorId?: string | null) => [

@@ -1,7 +1,8 @@
 "use client"
 
 import { useTransition } from "react"
-import { Stethoscope, LogOut, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { Stethoscope, LogOut, Loader2, User } from "lucide-react"
 import { SidebarNav } from "./sidebar-nav"
 import { ClinicaSelector } from "./clinica-selector"
 import { logoutAction } from "@/app/actions/auth"
@@ -40,8 +41,15 @@ export function AppSidebar({
       <div className="flex-1 overflow-y-auto py-4">
         <SidebarNav rol={rol} doctorId={doctorId} />
       </div>
-      {/* Cerrar sesion */}
-      <div className="shrink-0 border-t border-sidebar-border p-3">
+      {/* Mi perfil + Cerrar sesion */}
+      <div className="shrink-0 border-t border-sidebar-border p-3 space-y-1">
+        <Link
+          href="/perfil"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
+          <User className="h-4 w-4" aria-hidden="true" />
+          Mi perfil
+        </Link>
         <button
           onClick={handleLogout}
           disabled={isPending}

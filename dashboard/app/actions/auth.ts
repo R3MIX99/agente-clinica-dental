@@ -16,6 +16,7 @@ export async function loginAction(email: string, password: string): Promise<{ er
 
   const userId = data.user?.id
   const rol = data.user?.user_metadata?.rol
+  const passwordTemporal = data.user?.user_metadata?.password_temporal === true
 
   // Las cuentas las configura el administrador del sistema antes de
   // entregar credenciales a la clinica. Aqui solo establecemos la
@@ -38,6 +39,12 @@ export async function loginAction(email: string, password: string): Promise<{ er
         secure: process.env.NODE_ENV === "production",
       })
     }
+  }
+
+  // Si la contrasena es la temporal generada por el administrador,
+  // redirigir a perfil para que el usuario la cambie antes de continuar.
+  if (passwordTemporal) {
+    redirect("/perfil")
   }
 
   // Ir al panel segun rol
