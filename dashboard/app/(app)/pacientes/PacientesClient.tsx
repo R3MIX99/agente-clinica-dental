@@ -136,6 +136,7 @@ type CitaFicha = {
   status: string
   costo: number | null
   notas: string | null
+  serie_id: string | null
   servicio: { id: string; nombre: string; duracion_min: number | null } | null
   doctor: { id: string; nombre: string } | null
 }
@@ -644,7 +645,7 @@ export function PacientesClient({
         supabase
           .from("appointments")
           .select(
-            "id, fecha_hora, status, costo, notas, services(id, nombre, duracion_min), doctors(id, nombre)"
+            "id, fecha_hora, status, costo, notas, serie_id, services(id, nombre, duracion_min), doctors(id, nombre)"
           )
           .eq("patient_id", p.id)
           .order("fecha_hora", { ascending: false }),
@@ -688,6 +689,7 @@ export function PacientesClient({
         status: c.status,
         costo: c.costo ?? null,
         notas: (c as Record<string, unknown>).notas as string | null ?? null,
+        serie_id: (c as { serie_id: string | null }).serie_id ?? null,
         servicio: c.services as {
           id: string
           nombre: string
@@ -723,7 +725,43 @@ export function PacientesClient({
   }
 
   // Datos derivados para el drawer
-  const drawerTimeline = buildTimeline(drawerCitas, drawerEstudios, drawerNotas)
+  // Colapsamos las citas de una misma serie mensual a una sola entrada:
+  // la próxima futura, o si ya no hay futuras, la más reciente pasada.
+  const drawerCitasVisibles = (() => {
+    const ahora = Date.now()
+    const grupos = new Map<string, CitaFicha[]>()
+    const sueltas: CitaFicha[] = []
+    for (const c of drawerCitas) {
+      if (c.serie_id) {
+        const arr = grupos.get(c.serie_id) ?? []
+        arr.push(c)
+        grupos.set(c.serie_id, arr)
+      } else {
+        sueltas.push(c)
+      }
+    }
+    const representantes: CitaFicha[] = []
+    for (const arr of grupos.values()) {
+      const futuras = arr.filter((c) => new Date(c.fecha_hora).getTime() > ahora)
+      const elegida =
+        futuras.length > 0
+          ? futuras.sort(
+              (a, b) =>
+                new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime(),
+            )[0]
+          : [...arr].sort(
+              (a, b) =>
+                new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime(),
+            )[0]
+      representantes.push(elegida)
+    }
+    return [...sueltas, ...representantes].sort(
+      (a, b) =>
+        new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime(),
+    )
+  })()
+
+  const drawerTimeline = buildTimeline(drawerCitasVisibles, drawerEstudios, drawerNotas)
 
   // -------------------------------------------------------------------------
   // Render
@@ -1126,15 +1164,15 @@ export function PacientesClient({
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2">
                     Citas
-                    {drawerCitas.length > 0 ? ` (${drawerCitas.length})` : ""}
+                    {drawerCitasVisibles.length > 0 ? ` (${drawerCitasVisibles.length})` : ""}
                   </p>
-                  {drawerCitas.length === 0 ? (
+                  {drawerCitasVisibles.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       Sin citas registradas.
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {drawerCitas.map((cita) => {
+                      {drawerCitasVisibles.map((cita) => {
                         const próxima = esProxima(cita.fecha_hora)
                         return (
                           <div
@@ -1147,8 +1185,16 @@ export function PacientesClient({
                             )}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-medium leading-tight">
+                              <p className="text-sm font-medium leading-tight flex items-center gap-1.5">
                                 {cita.servicio?.nombre ?? "Cita sin servicio"}
+                                {cita.serie_id && (
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                                    title="Cita mensual recurrente"
+                                  >
+                                    Mensual
+                                  </span>
+                                )}
                               </p>
                               <span
                                 className={cn(
@@ -1579,19 +1625,6 @@ export function PacientesClient({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Costo */}
-            <div className="space-y-1.5">
-              <Label>Costo (MXN)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={formCita.costo}
-                onChange={(e) => actualizarCampoCita("costo", e.target.value)}
-              />
             </div>
 
             {/* Notas */}
