@@ -9,8 +9,18 @@ export default async function ConversacionesPage() {
   const authClient = await createAuthClient()
   const supabase = createServerClient()
 
-  const { data: { session } } = await authClient.auth.getSession()
-  const nombreUsuario: string = session?.user?.user_metadata?.nombre ?? ""
+  // Leer el nombre desde profiles (fuente de verdad), no de los metadatos
+  // del JWT que solo se actualizan al iniciar sesion de nuevo.
+  const { data: { user } } = await authClient.auth.getUser()
+  let nombreUsuario = ""
+  if (user) {
+    const { data: perfilUsuario } = await supabase
+      .from("profiles")
+      .select("nombre")
+      .eq("id", user.id)
+      .single()
+    nombreUsuario = perfilUsuario?.nombre ?? user.user_metadata?.nombre ?? ""
+  }
 
   // Resolver clinica activa con la misma logica que el resto del sistema:
   // 1. Cookie "clinica_activa" validada contra membresias
