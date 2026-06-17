@@ -8,6 +8,9 @@ import {
   actualizarPaciente,
   eliminarPaciente,
   agendarCitaPaciente,
+  importarPacientes,
+  type PacienteImport,
+  type ResultadoImport,
 } from "./actions"
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -55,6 +58,7 @@ import {
   Search,
   SquarePen,
   Trash2,
+  Upload,
 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
@@ -438,6 +442,9 @@ export function PacientesClient({
   // Dialog eliminar
   const [eliminarId, setEliminarId] = useState<string | null>(null)
 
+  // Dialog importar pacientes
+  const [importarOpen, setImportarOpen] = useState(false)
+
   // Drawer — ficha mobile
   const [drawerPaciente, setDrawerPaciente] =
     useState<PacienteConDatos | null>(null)
@@ -733,6 +740,15 @@ export function PacientesClient({
               ? `${pacientesFiltrados.length} de ${pacientes.length} registros`
               : `${pacientes.length} registros`}
           </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setImportarOpen(true)}
+            title="Importar pacientes desde Excel o Google Sheets (CSV)"
+          >
+            <Upload className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Importar</span>
+          </Button>
           <Button size="sm" onClick={abrirFormNuevo}>
             Nuevo paciente
           </Button>
@@ -1629,6 +1645,382 @@ export function PacientesClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog importar pacientes (CSV / Excel / Google Sheets) */}
+      <DialogImportarPacientes
+        abierto={importarOpen}
+        onCerrar={() => setImportarOpen(false)}
+        onImportado={() => {
+          setImportarOpen(false)
+          router.refresh()
+        }}
+      />
     </div>
+  )
+}
+
+// ===========================================================================
+// Importar pacientes desde CSV (Excel / Google Sheets exportan a CSV)
+// ===========================================================================
+
+// Mapeo de nombres de columna aceptados (normalizados sin tildes) al campo destino
+const ALIAS_COLUMNAS: Record<string, keyof PacienteImport> = {
+  // nombre
+  "nombre":           "nombre",
+  "nombre completo":  "nombre",
+  "nombres":          "nombre",
+  "name":             "nombre",
+  "full name":        "nombre",
+  // telefono
+  "telefono":         "telefono",
+  "tel":              "telefono",
+  "celular":          "telefono",
+  "movil":            "telefono",
+  "phone":            "telefono",
+  // email
+  "email":            "email",
+  "correo":           "email",
+  "correo electronico": "email",
+  "mail":             "email",
+  "e-mail":           "email",
+  // notas
+  "notas":            "notas",
+  "nota":             "notas",
+  "observaciones":    "notas",
+  "comentarios":      "notas",
+  // canal
+  "channel":          "channel",
+  "canal":            "channel",
+  // channel_user_id
+  "channel_user_id":  "channel_user_id",
+  "channel user id":  "channel_user_id",
+  "id del canal":     "channel_user_id",
+  "chat id":          "channel_user_id",
+  "chat_id":          "channel_user_id",
+  // laboratorio
+  "laboratorio":      "laboratorio",
+  "lab":              "laboratorio",
+  // fecha_ingreso
+  "fecha_ingreso":    "fecha_ingreso",
+  "fecha de ingreso": "fecha_ingreso",
+  "fecha ingreso":    "fecha_ingreso",
+  "ingreso":          "fecha_ingreso",
+}
+
+function normalizarHeader(h: string): string {
+  return h
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")  // quitar tildes
+    .replace(/\s+/g, " ")
+}
+
+function detectarSeparador(linea: string): "," | ";" | "\t" {
+  // Heuristica: el separador es el caracter mas comun de los candidatos
+  const tabs = (linea.match(/\t/g) ?? []).length
+  const punctos = (linea.match(/;/g) ?? []).length
+  const comas = (linea.match(/,/g) ?? []).length
+  if (tabs >= punctos && tabs >= comas) return "\t"
+  if (punctos >= comas) return ";"
+  return ","
+}
+
+// Parser de una linea CSV con soporte para comillas dobles y comillas escapadas
+function parsearLineaCSV(linea: string, sep: string): string[] {
+  const campos: string[] = []
+  let actual = ""
+  let dentroComillas = false
+  for (let i = 0; i < linea.length; i++) {
+    const c = linea[i]
+    if (dentroComillas) {
+      if (c === '"') {
+        if (linea[i + 1] === '"') {
+          actual += '"'
+          i++
+        } else {
+          dentroComillas = false
+        }
+      } else {
+        actual += c
+      }
+    } else {
+      if (c === '"') {
+        dentroComillas = true
+      } else if (c === sep) {
+        campos.push(actual)
+        actual = ""
+      } else {
+        actual += c
+      }
+    }
+  }
+  campos.push(actual)
+  return campos
+}
+
+function parsearCSV(texto: string): { headers: string[]; filas: string[][] } {
+  // Soportar \r\n y \n
+  const lineas = texto.replace(/\r\n/g, "\n").split("\n").filter((l) => l.trim().length > 0)
+  if (lineas.length === 0) return { headers: [], filas: [] }
+  const sep = detectarSeparador(lineas[0])
+  const headers = parsearLineaCSV(lineas[0], sep).map((h) => h.trim())
+  const filas = lineas.slice(1).map((l) => parsearLineaCSV(l, sep))
+  return { headers, filas }
+}
+
+function mapearFilas(
+  headers: string[],
+  filas: string[][],
+): { pacientes: PacienteImport[]; columnasNoReconocidas: string[] } {
+  const indices: Partial<Record<keyof PacienteImport, number>> = {}
+  const columnasNoReconocidas: string[] = []
+
+  headers.forEach((h, i) => {
+    const clave = normalizarHeader(h)
+    const campo = ALIAS_COLUMNAS[clave]
+    if (campo) {
+      indices[campo] = i
+    } else if (h.trim()) {
+      columnasNoReconocidas.push(h)
+    }
+  })
+
+  const pacientes: PacienteImport[] = filas.map((fila) => {
+    const obj: PacienteImport = { nombre: "" }
+    for (const campo of Object.keys(indices) as Array<keyof PacienteImport>) {
+      const idx = indices[campo]!
+      obj[campo] = (fila[idx] ?? "").trim()
+    }
+    return obj
+  })
+
+  return { pacientes, columnasNoReconocidas }
+}
+
+function DialogImportarPacientes({
+  abierto,
+  onCerrar,
+  onImportado,
+}: {
+  abierto:     boolean
+  onCerrar:    () => void
+  onImportado: () => void
+}) {
+  const [textoCSV, setTextoCSV] = useState("")
+  const [vistaPrevia, setVistaPrevia] = useState<PacienteImport[]>([])
+  const [columnasNoReconocidas, setColumnasNoReconocidas] = useState<string[]>([])
+  const [resultado, setResultado] = useState<ResultadoImport | null>(null)
+  const [importando, startImport] = useTransition()
+
+  function handleArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const txt = String(reader.result ?? "")
+      setTextoCSV(txt)
+      procesarTexto(txt)
+    }
+    reader.readAsText(file)
+  }
+
+  function procesarTexto(txt: string) {
+    const { headers, filas } = parsearCSV(txt)
+    if (headers.length === 0 || filas.length === 0) {
+      setVistaPrevia([])
+      setColumnasNoReconocidas([])
+      return
+    }
+    const { pacientes, columnasNoReconocidas } = mapearFilas(headers, filas)
+    setVistaPrevia(pacientes)
+    setColumnasNoReconocidas(columnasNoReconocidas)
+  }
+
+  function handlePegarTexto(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const txt = e.target.value
+    setTextoCSV(txt)
+    procesarTexto(txt)
+  }
+
+  function reiniciar() {
+    setTextoCSV("")
+    setVistaPrevia([])
+    setColumnasNoReconocidas([])
+    setResultado(null)
+  }
+
+  function handleImportar() {
+    if (vistaPrevia.length === 0) {
+      toast.error("No hay pacientes para importar")
+      return
+    }
+    startImport(async () => {
+      try {
+        const res = await importarPacientes(vistaPrevia)
+        setResultado(res)
+        if (res.insertados > 0) {
+          toast.success(`${res.insertados} pacientes importados`)
+        }
+        if (res.errores.length > 0) {
+          toast.error(`${res.errores.length} errores durante la importación`)
+        }
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Error al importar")
+      }
+    })
+  }
+
+  const conNombre = vistaPrevia.filter((p) => p.nombre).length
+
+  return (
+    <Dialog open={abierto} onOpenChange={(o) => { if (!o) { onCerrar(); reiniciar() } }}>
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Importar pacientes</DialogTitle>
+        </DialogHeader>
+
+        {!resultado ? (
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1.5">
+              <p>
+                <strong className="text-foreground">Cómo importar desde Excel o Google Sheets:</strong>
+              </p>
+              <ol className="list-decimal ml-4 space-y-0.5">
+                <li>En tu hoja: <em>Archivo → Descargar como CSV</em> (o copia y pega el contenido aquí).</li>
+                <li>La primera fila debe contener los nombres de las columnas.</li>
+                <li>Columnas aceptadas: <code className="bg-background px-1 rounded">nombre</code>, <code className="bg-background px-1 rounded">teléfono</code>, <code className="bg-background px-1 rounded">correo</code>, <code className="bg-background px-1 rounded">notas</code>, <code className="bg-background px-1 rounded">canal</code>, <code className="bg-background px-1 rounded">chat_id</code>, <code className="bg-background px-1 rounded">laboratorio</code>, <code className="bg-background px-1 rounded">fecha_ingreso</code>.</li>
+                <li>Solo <code className="bg-background px-1 rounded">nombre</code> es obligatorio.</li>
+              </ol>
+            </div>
+
+            {/* Subir archivo */}
+            <div className="space-y-1.5">
+              <Label htmlFor="archivo-csv">Subir archivo CSV</Label>
+              <Input
+                id="archivo-csv"
+                type="file"
+                accept=".csv,text/csv,text/plain"
+                onChange={handleArchivo}
+                disabled={importando}
+              />
+            </div>
+
+            {/* O pegar texto */}
+            <div className="space-y-1.5">
+              <Label htmlFor="texto-csv">O pegar el contenido CSV aquí</Label>
+              <Textarea
+                id="texto-csv"
+                value={textoCSV}
+                onChange={handlePegarTexto}
+                placeholder={"nombre,telefono,correo\nMaría López,5551234567,maria@ejemplo.com\nJuan Pérez,5557654321,juan@ejemplo.com"}
+                rows={6}
+                className="font-mono text-xs"
+                disabled={importando}
+              />
+            </div>
+
+            {/* Avisos */}
+            {columnasNoReconocidas.length > 0 && (
+              <div className="rounded-lg border border-amber-300/50 bg-amber-50/50 dark:bg-amber-950/20 p-3 text-xs">
+                <p className="text-amber-900 dark:text-amber-200">
+                  <strong>Columnas no reconocidas (serán ignoradas):</strong>{" "}
+                  {columnasNoReconocidas.join(", ")}
+                </p>
+              </div>
+            )}
+
+            {/* Vista previa */}
+            {vistaPrevia.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <p className="font-medium">Vista previa</p>
+                  <p className="text-muted-foreground text-xs">
+                    {conNombre} con nombre · {vistaPrevia.length - conNombre} sin nombre (se omitirán)
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Nombre</th>
+                          <th className="px-3 py-2 text-left font-medium">Teléfono</th>
+                          <th className="px-3 py-2 text-left font-medium">Correo</th>
+                          <th className="px-3 py-2 text-left font-medium">Notas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vistaPrevia.slice(0, 10).map((p, i) => (
+                          <tr key={i} className="border-t border-border last:border-0">
+                            <td className="px-3 py-1.5">{p.nombre || <span className="text-destructive">(vacío)</span>}</td>
+                            <td className="px-3 py-1.5 text-muted-foreground">{p.telefono || "—"}</td>
+                            <td className="px-3 py-1.5 text-muted-foreground">{p.email || "—"}</td>
+                            <td className="px-3 py-1.5 text-muted-foreground truncate max-w-[200px]">{p.notas || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {vistaPrevia.length > 10 && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground border-t border-border bg-muted/20">
+                      Mostrando 10 de {vistaPrevia.length} filas
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Resultado de la importacion */
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg border border-border p-4 space-y-2">
+              <p className="text-sm">
+                <strong className="text-green-600">{resultado.insertados}</strong> pacientes importados correctamente.
+              </p>
+              {resultado.omitidos_vacios > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {resultado.omitidos_vacios} filas omitidas por nombre vacío.
+                </p>
+              )}
+              {resultado.errores.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-sm text-destructive">
+                    {resultado.errores.length} errores:
+                  </p>
+                  <ul className="text-xs text-muted-foreground ml-4 list-disc max-h-32 overflow-y-auto">
+                    {resultado.errores.map((e, i) => (
+                      <li key={i}>Fila {e.fila}: {e.mensaje}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          {resultado ? (
+            <Button onClick={onImportado}>Cerrar</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => { onCerrar(); reiniciar() }} disabled={importando}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleImportar}
+                disabled={importando || conNombre === 0}
+              >
+                {importando ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importando...</>
+                ) : (
+                  `Importar ${conNombre} pacientes`
+                )}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

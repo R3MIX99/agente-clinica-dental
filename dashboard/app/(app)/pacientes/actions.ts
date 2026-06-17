@@ -189,3 +189,111 @@ export async function agendarCitaPaciente(datos: DatosCitaRapida) {
   revalidatePath("/pacientes")
   revalidatePath("/citas")
 }
+
+// ---------------------------------------------------------------------------
+// Importar pacientes desde CSV (Excel / Google Sheets)
+// ---------------------------------------------------------------------------
+
+export type PacienteImport = {
+  nombre:           string
+  telefono?:        string
+  email?:           string
+  notas?:           string
+  channel?:         string
+  channel_user_id?: string
+  laboratorio?:     string
+  fecha_ingreso?:   string   // YYYY-MM-DD
+}
+
+export type ResultadoImport = {
+  insertados:      number
+  omitidos_vacios: number
+  errores:         Array<{ fila: number; mensaje: string }>
+}
+
+export async function importarPacientes(
+  filas: PacienteImport[],
+): Promise<ResultadoImport> {
+  const clinicaId = await resolverClinicaId()
+  const supabase  = createServerClient()
+
+  const errores: Array<{ fila: number; mensaje: string }> = []
+  let omitidos_vacios = 0
+
+  // Preparar filas validas para insertar en bloque
+  const filasValidas: Array<{
+    clinica_id:      string
+    nombre:          string
+    telefono:        string | null
+    email:           string | null
+    channel:         "telegram" | "whatsapp"
+    channel_user_id: string | null
+    notas:           string | null
+    laboratorio:     string | null
+    fecha_ingreso:   string | null
+  }> = []
+
+  filas.forEach((paciente, idx) => {
+    const numFila = idx + 2  // +1 por cabecera, +1 por base-1
+
+    const nombre = (paciente.nombre ?? "").trim()
+    if (!nombre) {
+      omitidos_vacios++
+      return
+    }
+
+    const channelRaw = (paciente.channel ?? "telegram").trim().toLowerCase()
+    const channel: "telegram" | "whatsapp" =
+      channelRaw === "whatsapp" ? "whatsapp" : "telegram"
+
+    let fecha: string | null = null
+    if (paciente.fecha_ingreso) {
+      const f = paciente.fecha_ingreso.trim()
+      // Aceptar YYYY-MM-DD o DD/MM/YYYY
+      if (/^\d{4}-\d{2}-\d{2}$/.test(f)) {
+        fecha = f
+      } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(f)) {
+        const [d, m, y] = f.split("/")
+        fecha = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`
+      } else {
+        errores.push({ fila: numFila, mensaje: `Fecha de ingreso invalida: "${f}"` })
+        return
+      }
+    }
+
+    filasValidas.push({
+      clinica_id:      clinicaId,
+      nombre,
+      telefono:        paciente.telefono?.trim()        || null,
+      email:           paciente.email?.trim()           || null,
+      channel,
+      channel_user_id: paciente.channel_user_id?.trim() || null,
+      notas:           paciente.notas?.trim()           || null,
+      laboratorio:     paciente.laboratorio?.trim()     || null,
+      fecha_ingreso:   fecha,
+    })
+  })
+
+  if (filasValidas.length === 0) {
+    return { insertados: 0, omitidos_vacios, errores }
+  }
+
+  // Insertar en bloques para no romper si la lista es muy grande
+  const TAMANO_LOTE = 100
+  let insertados = 0
+  for (let i = 0; i < filasValidas.length; i += TAMANO_LOTE) {
+    const lote = filasValidas.slice(i, i + TAMANO_LOTE)
+    const { error } = await supabase.from("patients").insert(lote)
+    if (error) {
+      errores.push({
+        fila:     i + 2,
+        mensaje:  `Error al insertar lote: ${error.message}`,
+      })
+    } else {
+      insertados += lote.length
+    }
+  }
+
+  revalidatePath("/pacientes")
+  return { insertados, omitidos_vacios, errores }
+}
