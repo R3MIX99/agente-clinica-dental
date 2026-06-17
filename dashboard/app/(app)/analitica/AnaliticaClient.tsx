@@ -35,7 +35,7 @@ import {
 type Periodo = "hoy" | "7d" | "30d" | "personalizado"
 
 // ---------------------------------------------------------------------------
-// Colores de graficas
+// Colores de gráficas
 // ---------------------------------------------------------------------------
 
 const COLOR_PACIENTE  = "#6366f1"
@@ -90,8 +90,8 @@ function calcularFechas(
 }
 
 function formatFechaCorta(fecha: string): string {
-  const [, mes, día] = fecha.split("-")
-  return `${día}/${mes}`
+  const [, mes, dia] = fecha.split("-")
+  return `${dia}/${mes}`
 }
 
 function formatMxn(valor: number): string {
@@ -132,7 +132,7 @@ function KpiCard({
 }
 
 // ---------------------------------------------------------------------------
-// Componente vacio de grafica
+// Componente vacío de gráfica
 // ---------------------------------------------------------------------------
 
 function GraficaVacia({ altura = 220 }: { altura?: number }) {
@@ -141,7 +141,7 @@ function GraficaVacia({ altura = 220 }: { altura?: number }) {
       className="flex items-center justify-center text-sm text-muted-foreground"
       style={{ height: altura }}
     >
-      Sin datos en el periodo selecciónado
+      Sin datos en el periodo seleccionado
     </div>
   )
 }
@@ -174,7 +174,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
     if (p !== "personalizado") cargar(p)
   }
 
-  // Datos para graficas de donut
+  // Datos para gráficas de dona
   const dataResolucion = [
     { name: "Automática", value: datos.conversaciones.automaticas, color: COLOR_AUTOMATICA },
     { name: "Handoff",    value: datos.conversaciones.handoff,    color: COLOR_HANDOFF    },
@@ -256,7 +256,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
           icon={BotMessageSquare}
         />
         <KpiCard
-          titulo="Resolucion automatica"
+          titulo="Resolución automática"
           valor={`${datos.conversaciones.pct_automatica}%`}
           sub={`${datos.conversaciones.automaticas} de ${datos.conversaciones.total}`}
           icon={CheckCircle2}
@@ -285,7 +285,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
         />
       </div>
 
-      {/* Fila 1: Serie diaria + Dona resolucion */}
+      {/* Fila 1: Serie diaria + Dona resolución */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
@@ -296,7 +296,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
           <CardContent>
             {!montado ? (
               <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
-                Cargando grafica...
+                Cargando gráfica...
               </div>
             ) : datos.serie_diaria.length === 0 ? (
               <GraficaVacia altura={220} />
@@ -352,13 +352,13 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground">
-              Tipo de resolucion
+              Tipo de resolución
             </CardTitle>
           </CardHeader>
           <CardContent>
             {!montado ? (
               <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
-                Cargando grafica...
+                Cargando gráfica...
               </div>
             ) : dataResolucion.length === 0 ? (
               <GraficaVacia altura={220} />
@@ -407,13 +407,13 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground">
-              Distribucion de intenciones
+              Distribución de intenciones
             </CardTitle>
           </CardHeader>
           <CardContent>
             {!montado ? (
               <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
-                Cargando grafica...
+                Cargando gráfica...
               </div>
             ) : datos.intenciones.length === 0 ? (
               <GraficaVacia altura={200} />
@@ -466,7 +466,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
           <CardContent>
             {!montado ? (
               <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
-                Cargando grafica...
+                Cargando gráfica...
               </div>
             ) : dataSentimiento.length === 0 ? (
               <GraficaVacia altura={200} />
