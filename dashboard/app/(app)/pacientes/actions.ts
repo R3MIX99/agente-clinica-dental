@@ -5,7 +5,7 @@ import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 
 // ---------------------------------------------------------------------------
-// Conversion de hora local Mexico City → UTC
+// Conversión de hora local Mexico City → UTC
 // ---------------------------------------------------------------------------
 
 function mexLocalToISO(localStr: string): string {

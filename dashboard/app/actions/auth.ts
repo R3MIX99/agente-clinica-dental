@@ -11,7 +11,7 @@ export async function loginAction(email: string, password: string): Promise<{ er
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: "Credenciales incorrectas. Verifica tu correo y contrasena." }
+    return { error: "Credenciales incorrectas. Verifica tu correo y contraseña." }
   }
 
   const userId = data.user?.id
@@ -19,7 +19,7 @@ export async function loginAction(email: string, password: string): Promise<{ er
   const passwordTemporal = data.user?.user_metadata?.password_temporal === true
 
   // Las cuentas las configura el administrador del sistema antes de
-  // entregar credenciales a la clinica. Aqui solo establecemos la
+  // entregar credenciales a la clinica. Aquí solo establecemos la
   // cookie de clinica activa para que el dashboard la reconozca.
   if (userId) {
     const db = createServerClient()
@@ -41,7 +41,7 @@ export async function loginAction(email: string, password: string): Promise<{ er
     }
   }
 
-  // Si la contrasena es la temporal generada por el administrador,
+  // Si la contraseña es la temporal generada por el administrador,
   // redirigir a perfil para que el usuario la cambie antes de continuar.
   if (passwordTemporal) {
     redirect("/perfil")

@@ -54,8 +54,8 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
   const db = createServiceClient()
   const nombreFinal = await resolverNombrePerfil(db, datos)
 
-  // Creacion directa con contrasena temporal. El usuario debera cambiarla
-  // desde /perfil al iniciar sesion (se le redirige automaticamente cuando
+  // Creación directa con contraseña temporal. El usuario debera cambiarla
+  // desde /perfil al iniciar sesión (se le redirige automáticamente cuando
   // password_temporal: true en los metadatos).
   const { data: authData, error: authError } = await db.auth.admin.createUser({
     email:         datos.email,
@@ -187,7 +187,7 @@ export async function editarUsuario(
 
 export async function eliminarUsuario(id: string): Promise<{ error?: string }> {
   const perfilActual = await getProfile()
-  if (!perfilActual) return { error: "Sin sesion activa" }
+  if (!perfilActual) return { error: "Sin sesión activa" }
   if (perfilActual.rol === "doctor") return { error: "Sin permisos para eliminar usuarios" }
 
   const db = createServiceClient()

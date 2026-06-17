@@ -96,7 +96,7 @@ async function calcularTotalMensual(susId: string, db: ReturnType<typeof createS
   return planPrecio + addonTotal
 }
 
-/** Calcula el prorrateo informativo para los dias restantes del periodo */
+/** Calcula el prorrateo informativo para los días restantes del periodo */
 function calcularProrrateo(precioMensual: number, inicioPeriodo: string | null, finPeriodo: string | null): number {
   if (!inicioPeriodo || !finPeriodo) return 0
   const inicio = new Date(inicioPeriodo + "T12:00:00")
@@ -195,9 +195,9 @@ export async function obtenerDatosAddons(): Promise<DatosAddons> {
 export async function contratarAddon(addonId: string): Promise<{ ok: boolean; mensaje: string }> {
   const { db, sus } = await resolverContexto()
 
-  if (!sus) return { ok: false, mensaje: "No se encontro la suscripcion activa." }
+  if (!sus) return { ok: false, mensaje: "No se encontro la suscripción activa." }
   if (!["prueba", "activa"].includes(sus.estado)) {
-    return { ok: false, mensaje: "Solo puedes contratar add-ons con una suscripcion activa o en prueba." }
+    return { ok: false, mensaje: "Solo puedes contratar add-ons con una suscripción activa o en prueba." }
   }
 
   // Obtener el add-on del catalogo
@@ -244,7 +244,7 @@ export async function contratarAddon(addonId: string): Promise<{ ok: boolean; me
       })
   }
 
-  // Actualizar monto en Mercado Pago si hay suscripcion activa
+  // Actualizar monto en Mercado Pago si hay suscripción activa
   const mpId = (sus as any).mp_subscription_id as string | null
   if (sus.estado === "activa" && mpId) {
     try {
@@ -255,7 +255,7 @@ export async function contratarAddon(addonId: string): Promise<{ ok: boolean; me
         `addon-add-${sus.id}-${addonId}`,
       )
     } catch {
-      // No bloquear si falla la actualizacion en MP; el cambio queda en BD
+      // No bloquear si falla la actualización en MP; el cambio queda en BD
     }
   }
 
@@ -269,9 +269,9 @@ export async function contratarAddon(addonId: string): Promise<{ ok: boolean; me
 export async function quitarAddon(suscripcionAddonId: string): Promise<{ ok: boolean; mensaje: string }> {
   const { db, sus } = await resolverContexto()
 
-  if (!sus) return { ok: false, mensaje: "No se encontro la suscripcion activa." }
+  if (!sus) return { ok: false, mensaje: "No se encontro la suscripción activa." }
 
-  // Verificar que el registro pertenece a esta suscripcion
+  // Verificar que el registro pertenece a esta suscripción
   const { data: registro } = await (db as any)
     .from("suscripcion_addons")
     .select("id, suscripcion_id, addon_id, cantidad, addons(nombre, tipo, incremento_doctores, incremento_usuarios)")
@@ -336,5 +336,5 @@ export async function quitarAddon(suscripcionAddonId: string): Promise<{ ok: boo
     }
   }
 
-  return { ok: true, mensaje: `Add-on "${addon?.nombre ?? ""}" cancelado. El cambio aplica al proximo ciclo.` }
+  return { ok: true, mensaje: `Add-on "${addon?.nombre ?? ""}" cancelado. El cambio aplica al próximo ciclo.` }
 }

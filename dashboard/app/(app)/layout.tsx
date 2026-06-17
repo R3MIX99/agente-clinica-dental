@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const clinicaCookie = cookieStore.get("clinica_activa")?.value
 
   let clinicas: ClinicaBasica[] = []
-  let clinicaActual: ClinicaBasica = { id: "", nombre: "Clinica Dental" }
+  let clinicaActual: ClinicaBasica = { id: "", nombre: "Clínica Dental" }
   let rol: Rol = "supervisor"
   let doctorId: string | null = null
   let estadoSuscripcion: EstadoSuscripcion = "prueba"
@@ -40,11 +40,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         const c = m.clinicas as { id: string; nombre: string | null } | null
         return {
           id: m.clinica_id as string,
-          nombre: c?.nombre ?? "Clinica Dental",
+          nombre: c?.nombre ?? "Clínica Dental",
         }
       })
 
-    // Clinica activa: cookie validada > primera membresia
+    // Clínica activa: cookie validada > primera membresia
     const clinicaDeCookie = clinicas.find((c) => c.id === clinicaCookie)
     clinicaActual = clinicaDeCookie ?? clinicas[0] ?? clinicaActual
 
@@ -65,7 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       doctorId = data?.doctor_id ?? null
     }
 
-    // Estado de la suscripcion para control de acceso
+    // Estado de la suscripción para control de acceso
     if (clinicaActual.id) {
       const { data: clinicaRow } = await db
         .from("clinicas")

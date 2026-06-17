@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
 // Correo de contacto para solicitar demo / instalacion del sistema.
-// Cambialo por tu correo real antes de publicar.
+// Cámbialo por tu correo real antes de publicar.
 const EMAIL_CONTACTO = "contacto@dentalia.mx"
 const ASUNTO_DEMO = "Solicitud de demo del sistema"
 const MAILTO_DEMO = `mailto:${EMAIL_CONTACTO}?subject=${encodeURIComponent(ASUNTO_DEMO)}`
@@ -24,7 +24,7 @@ export default function LandingPage() {
           </div>
           <nav className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Iniciar sesion</Link>
+              <Link href="/login">Iniciar sesión</Link>
             </Button>
             <Button size="sm" asChild>
               <a href={MAILTO_DEMO}>
@@ -55,14 +55,14 @@ export default function LandingPage() {
               </a>
             </Button>
             <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
-              <Link href="/login">Iniciar sesion</Link>
+              <Link href="/login">Iniciar sesión</Link>
             </Button>
           </div>
         </section>
 
         <Separator />
 
-        {/* Caracteristicas */}
+        {/* Características */}
         <section className="mx-auto max-w-6xl px-4 py-20">
           <div className="mb-12 text-center">
             <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
@@ -87,7 +87,7 @@ export default function LandingPage() {
               {
                 icono: Bell,
                 titulo: "Recordatorios automaticos",
-                texto: "Envia recordatorios el dia anterior y reduce las inasistencias hasta un 40 %.",
+                texto: "Envia recordatorios el día anterior y reduce las inasistencias hasta un 40 %.",
               },
               {
                 icono: BarChart3,
@@ -145,7 +145,7 @@ export default function LandingPage() {
             </p>
             <div className="flex gap-4 text-xs text-muted-foreground">
               <Link href="/login" className="hover:text-foreground transition-colors">
-                Iniciar sesion
+                Iniciar sesión
               </Link>
               <a
                 href={MAILTO_DEMO}

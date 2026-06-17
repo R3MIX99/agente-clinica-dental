@@ -34,7 +34,7 @@ export function ClinicaSelector({
     })
   }
 
-  const nombre = clinicaActual.nombre || "Clinica Dental"
+  const nombre = clinicaActual.nombre || "Clínica Dental"
 
   // Sin opciones multiples: solo mostrar el nombre
   if (clinicas.length <= 1) {
@@ -77,7 +77,7 @@ export function ClinicaSelector({
               style={{ opacity: c.id === clinicaActual.id ? 1 : 0 }}
               aria-hidden="true"
             />
-            <span className="truncate">{c.nombre || "Clinica Dental"}</span>
+            <span className="truncate">{c.nombre || "Clínica Dental"}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

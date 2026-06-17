@@ -64,7 +64,7 @@ export async function obtenerMiPerfil(): Promise<PerfilCompleto | null> {
 export async function actualizarMiPerfil(datos: { nombre: string }): Promise<{ ok: boolean; error?: string }> {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return { ok: false, error: "Sin sesion activa" }
+  if (!user) return { ok: false, error: "Sin sesión activa" }
 
   if (!datos.nombre.trim()) {
     return { ok: false, error: "El nombre no puede estar vacio" }
@@ -78,7 +78,7 @@ export async function actualizarMiPerfil(datos: { nombre: string }): Promise<{ o
     .eq("id", user.id)
   if (errProfile) return { ok: false, error: errProfile.message }
 
-  // Mantener el nombre tambien en los metadatos de Auth (lo lee la app en
+  // Mantener el nombre también en los metadatos de Auth (lo lee la app en
   // varios lugares como el header)
   const { error: errAuth } = await db.auth.admin.updateUserById(user.id, {
     user_metadata: { ...user.user_metadata, nombre: datos.nombre.trim() },
@@ -90,7 +90,7 @@ export async function actualizarMiPerfil(datos: { nombre: string }): Promise<{ o
 }
 
 // ---------------------------------------------------------------------------
-// Cambiar correo electronico
+// Cambiar correo electrónico
 // Supabase mantiene el correo actual hasta que el usuario confirme el nuevo
 // haciendo clic en el enlace que llega al correo nuevo.
 // ---------------------------------------------------------------------------
@@ -98,22 +98,22 @@ export async function actualizarMiPerfil(datos: { nombre: string }): Promise<{ o
 export async function cambiarMiCorreo(nuevoEmail: string): Promise<{ ok: boolean; error?: string; mensaje?: string }> {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return { ok: false, error: "Sin sesion activa" }
+  if (!user) return { ok: false, error: "Sin sesión activa" }
 
   const email = nuevoEmail.trim().toLowerCase()
   if (!email || !email.includes("@")) {
-    return { ok: false, error: "Correo no valido" }
+    return { ok: false, error: "Correo no válido" }
   }
   if (email === user.email?.toLowerCase()) {
     return { ok: false, error: "El correo nuevo es igual al actual" }
   }
 
-  // Usar updateUser de la sesion del usuario para que Supabase envie
+  // Usar updateUser de la sesión del usuario para que Supabase envie
   // el correo de confirmacion al nuevo email.
   const { error } = await authClient.auth.updateUser({ email })
   if (error) return { ok: false, error: error.message }
 
-  // Tambien sincronizar la columna email en la tabla profiles (algunas
+  // También sincronizar la columna email en la tabla profiles (algunas
   // consultas de la app la usan en lugar de auth.email)
   const db = createServiceClient()
   await db.from("profiles").update({ email }).eq("id", user.id)
@@ -121,13 +121,13 @@ export async function cambiarMiCorreo(nuevoEmail: string): Promise<{ ok: boolean
   revalidatePath("/perfil")
   return {
     ok:      true,
-    mensaje: `Se envio un enlace de confirmacion a ${email}. El cambio se completara cuando lo abras.`,
+    mensaje: `Se envió un enlace de confirmación a ${email}. El cambio se completará cuando lo abras.`,
   }
 }
 
 // ---------------------------------------------------------------------------
-// Cambiar contrasena
-// Verifica la contrasena actual reautenticando con signInWithPassword,
+// Cambiar contraseña
+// Verifica la contraseña actual reautenticando con signInWithPassword,
 // despues aplica la nueva.
 // ---------------------------------------------------------------------------
 
@@ -137,19 +137,19 @@ export async function cambiarMiPassword(datos: {
 }): Promise<{ ok: boolean; error?: string }> {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user?.email) return { ok: false, error: "Sin sesion activa" }
+  if (!user?.email) return { ok: false, error: "Sin sesión activa" }
 
   if (datos.password_nuevo.length < 6) {
-    return { ok: false, error: "La contrasena nueva debe tener al menos 6 caracteres" }
+    return { ok: false, error: "La contraseña nueva debe tener al menos 6 caracteres" }
   }
 
-  // Verificar la contrasena actual reautenticando.
+  // Verificar la contraseña actual reautenticando.
   const { error: errLogin } = await authClient.auth.signInWithPassword({
     email:    user.email,
     password: datos.password_actual,
   })
   if (errLogin) {
-    return { ok: false, error: "La contrasena actual no es correcta" }
+    return { ok: false, error: "La contraseña actual no es correcta" }
   }
 
   // Aplicar la nueva

@@ -108,7 +108,7 @@ function DialogRecarga({
 
   const onSubmit = handleSubmit((datos) => {
     if (!clinica?.suscripcion_id) {
-      toast.error("La clinica no tiene suscripcion activa")
+      toast.error("La clinica no tiene suscripción activa")
       return
     }
     startTransition(async () => {
@@ -137,7 +137,7 @@ function DialogRecarga({
         <DialogHeader>
           <DialogTitle>Recargar saldo IA</DialogTitle>
           <DialogDescription>
-            Clinica: <strong>{clinica?.clinica_nombre ?? "—"}</strong>
+            Clínica: <strong>{clinica?.clinica_nombre ?? "—"}</strong>
             <br />
             Cuenta: {clinica?.cuenta_nombre}
             <br />
@@ -178,7 +178,7 @@ function DialogRecarga({
               {...register("vigencia_fin")}
             />
             <p className="text-xs text-muted-foreground">
-              Si lo dejas vacio, la recarga vence con el periodo de la suscripcion.
+              Si lo dejas vacio, la recarga vence con el periodo de la suscripción.
             </p>
           </div>
 
@@ -227,12 +227,12 @@ export function RecargasClient({
 
   return (
     <div className="space-y-6">
-      {/* Boton de cerrar sesion */}
+      {/* Boton de cerrar sesión */}
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={handleLogout} disabled={logoutPending}>
           {logoutPending
             ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saliendo...</>
-            : <><LogOut className="h-4 w-4 mr-2" />Cerrar sesion</>}
+            : <><LogOut className="h-4 w-4 mr-2" />Cerrar sesión</>}
         </Button>
       </div>
 
@@ -312,7 +312,7 @@ export function RecargasClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Clinica</TableHead>
+                <TableHead>Clínica</TableHead>
                 <TableHead>Cuenta</TableHead>
                 <TableHead className="text-right">Saldo disponible</TableHead>
                 <TableHead className="text-right">Consumido este mes</TableHead>
@@ -379,7 +379,7 @@ export function RecargasClient({
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
-                <TableHead>Clinica</TableHead>
+                <TableHead>Clínica</TableHead>
                 <TableHead>Cuenta</TableHead>
                 <TableHead className="text-right">Monto</TableHead>
                 <TableHead>Referencia</TableHead>
@@ -411,7 +411,7 @@ export function RecargasClient({
               {historial.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-6 text-sm">
-                    Aun no hay recargas registradas.
+                    Aún no hay recargas registradas.
                   </TableCell>
                 </TableRow>
               )}

@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 
 // ---------------------------------------------------------------------------
-// Conversion de hora local Mexico City <-> UTC
+// Conversión de hora local Mexico City <-> UTC
 // ---------------------------------------------------------------------------
 
 function mexLocalToISO(localStr: string): string {
@@ -73,14 +73,14 @@ function isoToMexLocalParts(iso: string): {
   }
 }
 
-// Ultimo dia del mes (1-12)
+// Último día del mes (1-12)
 function ultimoDiaMes(year: number, month: number): number {
   return new Date(year, month, 0).getDate()
 }
 
 // Genera las fechas mensuales (en ISO UTC) a partir de una fecha base, sumando 1 mes
-// cada vez, respetando el dia del mes original. Si el dia no existe en el mes
-// destino (ej. 31 -> febrero), usa el ultimo dia del mes.
+// cada vez, respetando el día del mes original. Si el día no existe en el mes
+// destino (ej. 31 -> febrero), usa el último día del mes.
 function generarFechasMensuales(
   fechaBaseIso: string,
   numeroInstanciasExtra: number,
@@ -168,7 +168,7 @@ export type DatosCita = {
   recurrencia_fin?: string
 }
 
-// Numero de meses por defecto cuando la serie es indefinida.
+// Número de meses por defecto cuando la serie es indefinida.
 // Despues se puede extender con un job que regenere periodicamente.
 const HORIZONTE_INDEFINIDO_MESES = 12
 
@@ -276,7 +276,7 @@ export async function actualizarCita(id: string, datos: DatosCita) {
 }
 
 // ---------------------------------------------------------------------------
-// Eliminar cita unica
+// Eliminar cita única
 // ---------------------------------------------------------------------------
 
 export async function eliminarCita(id: string) {
@@ -325,10 +325,10 @@ export async function terminarSerie(serieId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Editar duracion de una serie recurrente
+// Editar duración de una serie recurrente
 // Permite cambiar la fecha de fin de la serie a una fecha posterior (genera
 // nuevas instancias), una fecha anterior (elimina las futuras que sobran)
-// o volverla indefinida (genera el horizonte por defecto desde la ultima).
+// o volverla indefinida (genera el horizonte por defecto desde la última).
 // Solo afecta a citas futuras — las pasadas se respetan siempre.
 // ---------------------------------------------------------------------------
 
@@ -358,7 +358,7 @@ export async function editarSerie(
     return { ok: false, error: "La serie no existe o esta vacia" }
   }
 
-  // Fecha base de la serie (primera cita): mantiene dia/hora a replicar
+  // Fecha base de la serie (primera cita): mantiene día/hora a replicar
   const citaBase = citasSerie[0]
   const ultimaCita = citasSerie[citasSerie.length - 1]
   const ahoraMs = Date.now()
@@ -366,11 +366,11 @@ export async function editarSerie(
   // Calcular nueva recurrencia_fin (ISO YYYY-MM-DD) o null para indefinido
   let nuevaRecurrenciaFin: string | null = null
   if (datos.modo === "fecha") {
-    if (!datos.fecha) return { ok: false, error: "Selecciona la fecha de fin" }
+    if (!datos.fecha) return { ok: false, error: "Seleccióna la fecha de fin" }
     nuevaRecurrenciaFin = datos.fecha
   } else if (datos.modo === "n_meses") {
     if (!datos.meses || datos.meses < 1) {
-      return { ok: false, error: "Numero de meses invalido" }
+      return { ok: false, error: "Número de meses invalido" }
     }
     // N meses despues de la primera cita de la serie
     const base = new Date(citaBase.fecha_hora)
@@ -380,7 +380,7 @@ export async function editarSerie(
   // indefinido => nuevaRecurrenciaFin queda null
 
   // Limite efectivo para nuevas instancias:
-  // - Con fecha de fin: timestamp del dia + 23:59:59 UTC
+  // - Con fecha de fin: timestamp del día + 23:59:59 UTC
   // - Indefinido: HORIZONTE_INDEFINIDO_MESES despues de la cita base
   let limiteMs: number
   if (nuevaRecurrenciaFin) {

@@ -1,7 +1,7 @@
 import { obtenerAnalitica } from "@/app/actions/analitica"
 import { AnaliticaClient } from "./AnaliticaClient"
 
-export const metadata = { title: "Analitica" }
+export const metadata = { title: "Analítica" }
 
 export default async function AnaliticaPage() {
   const fin    = new Date()
@@ -15,7 +15,7 @@ export default async function AnaliticaPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Analitica</h1>
+        <h1 className="text-xl font-semibold text-foreground">Analítica</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Actividad del agente de IA: conversaciones, mensajes y rendimiento del periodo.
         </p>

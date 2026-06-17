@@ -57,7 +57,7 @@ interface Props {
 }
 
 // ---------------------------------------------------------------------------
-// Esquema de validacion
+// Esquema de validación
 // ---------------------------------------------------------------------------
 
 const usuarioSchema = z.object({
@@ -206,7 +206,7 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
       toast.success("Usuario actualizado correctamente")
     } else {
       toast.success(
-        `Usuario creado. Contrasena temporal: ${PASSWORD_TEMPORAL}`,
+        `Usuario creado. Contraseña temporal: ${PASSWORD_TEMPORAL}`,
         { duration: 10000 },
       )
     }

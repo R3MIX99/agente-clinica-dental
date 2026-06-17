@@ -3,14 +3,14 @@ import { createAuthClient } from "@/lib/supabase/server-auth"
 import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { ConversacionesClient } from "./ConversacionesClient"
 
-export const metadata = { title: "Conversaciones — Clinica Dental" }
+export const metadata = { title: "Conversaciones — Clínica Dental" }
 
 export default async function ConversacionesPage() {
   const authClient = await createAuthClient()
   const supabase = createServerClient()
 
   // Leer el nombre desde profiles (fuente de verdad), no de los metadatos
-  // del JWT que solo se actualizan al iniciar sesion de nuevo.
+  // del JWT que solo se actualizan al iniciar sesión de nuevo.
   const { data: { user } } = await authClient.auth.getUser()
   let nombreUsuario = ""
   if (user) {

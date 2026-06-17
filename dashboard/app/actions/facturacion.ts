@@ -22,7 +22,7 @@ export type DatosFacturacion = {
     nombre: string
     precio_mensual_mxn: number
   }
-  suscripcion: {
+  suscripción: {
     id: string
     estado: EstadoSuscripcion
     periodo: string
@@ -101,7 +101,7 @@ export async function obtenerFacturacion(): Promise<DatosFacturacion> {
 
   const plan = (sus?.planes as any) ?? { id: "", nombre: "Sin plan", precio_mensual_mxn: 0 }
 
-  // Historial de los ultimos 10 pagos
+  // Historial de los últimos 10 pagos
   const { data: historial } = await db
     .from("historial_pagos")
     .select("id, created_at, status, monto_mxn, concepto, mp_payment_id")
@@ -115,7 +115,7 @@ export async function obtenerFacturacion(): Promise<DatosFacturacion> {
       nombre:             plan.nombre,
       precio_mensual_mxn: Number(plan.precio_mensual_mxn ?? 0),
     },
-    suscripcion: {
+    suscripción: {
       id:                    sus?.id ?? "",
       estado:                (sus?.estado ?? "prueba") as EstadoSuscripcion,
       periodo:               sus?.periodo ?? "mensual",
@@ -159,9 +159,9 @@ export async function iniciarCheckout(planId: string): Promise<{ url: string }> 
 
   if (!plan) throw new Error("Plan no encontrado")
 
-  // Suscripcion activa del cuenta
+  // Suscripción activa del cuenta
   const sus = await resolverSuscripcionActual(cuentaId)
-  if (!sus) throw new Error("Suscripcion no encontrada")
+  if (!sus) throw new Error("Suscripción no encontrada")
 
   // Si ya existe un preapproval pendiente en MP, cancelarlo antes de crear uno nuevo
   const mpIdAnterior = (sus as any).mp_subscription_id as string | null
@@ -199,7 +199,7 @@ export async function iniciarCheckout(planId: string): Promise<{ url: string }> 
   )
 
   // Solo guardamos el ID del preapproval y el correo.
-  // El plan_id NO cambia aqui — solo cambia cuando el pago se confirma como exitoso.
+  // El plan_id NO cambia aquí — solo cambia cuando el pago se confirma como exitoso.
   await db
     .from("suscripciones")
     .update({
@@ -221,7 +221,7 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
 }> {
   const db = createServerClient()
 
-  // Buscar suscripcion por mp_subscription_id
+  // Buscar suscripción por mp_subscription_id
   const { data: sus } = await db
     .from("suscripciones")
     .select("id, cuenta_id, plan_id, estado")
@@ -231,7 +231,7 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
   if (!sus) {
     return {
       estado: "prueba",
-      mensaje: "No se encontro la suscripcion asociada. Ve a Facturacion para reintentar.",
+      mensaje: "No se encontro la suscripción asociada. Ve a Facturacion para reintentar.",
     }
   }
 
@@ -250,7 +250,7 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
 
   // -------------------------------------------------------------------------
   // Regla critica: el plan y el estado SOLO cambian si el pago fue autorizado.
-  // Si el usuario regreso sin pagar (pending) o cancelo, la suscripcion
+  // Si el usuario regreso sin pagar (pending) o cancelo, la suscripción
   // se queda exactamente como estaba — sin penalizacion.
   // -------------------------------------------------------------------------
 
@@ -293,12 +293,12 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
       cuenta_id:         sus.cuenta_id,
       mp_preapproval_id: preapprovalId,
       status:            "authorized",
-      concepto:          "Suscripcion activada",
+      concepto:          "Suscripción activada",
     })
 
     return {
       estado: "activa",
-      mensaje: "Suscripcion activada correctamente. Ya puedes usar todas las funciones de tu plan.",
+      mensaje: "Suscripción activada correctamente. Ya puedes usar todas las funciones de tu plan.",
     }
   }
 
@@ -317,9 +317,9 @@ export async function confirmarCheckout(preapprovalId: string): Promise<{
         .from("suscripciones")
         .update({ estado: "cancelada", mp_last_payment_status: "cancelled" } as any)
         .eq("id", sus.id)
-      return { estado: "cancelada", mensaje: "La suscripcion fue cancelada." }
+      return { estado: "cancelada", mensaje: "La suscripción fue cancelada." }
     }
-    return { estado: estadoActual, mensaje: "El intento de pago fue cancelado. Tu suscripcion no cambio." }
+    return { estado: estadoActual, mensaje: "El intento de pago fue cancelado. Tu suscripción no cambio." }
   }
 
   // Cualquier otro estado de MP (paused, etc.) — no tocar nada
@@ -338,7 +338,7 @@ export async function cancelarSuscripcion(): Promise<{ ok: boolean; mensaje: str
   const db = createServerClient()
 
   const sus = await resolverSuscripcionActual(cuentaId)
-  if (!sus) return { ok: false, mensaje: "Suscripcion no encontrada." }
+  if (!sus) return { ok: false, mensaje: "Suscripción no encontrada." }
 
   const mpId = (sus as any).mp_subscription_id as string | null
 
@@ -364,10 +364,10 @@ export async function cancelarSuscripcion(): Promise<{ ok: boolean; mensaje: str
     cuenta_id:         cuentaId,
     mp_preapproval_id: mpId,
     status:            "cancelled",
-    concepto:          "Suscripcion cancelada por el usuario",
+    concepto:          "Suscripción cancelada por el usuario",
   })
 
-  return { ok: true, mensaje: "Suscripcion cancelada. Tus datos se conservan intactos." }
+  return { ok: true, mensaje: "Suscripción cancelada. Tus datos se conservan intactos." }
 }
 
 // ---------------------------------------------------------------------------
@@ -379,7 +379,7 @@ export async function cambiarPlan(planIdNuevo: string): Promise<{ ok: boolean; m
   const db = createServerClient()
 
   const sus = await resolverSuscripcionActual(cuentaId)
-  if (!sus) return { ok: false, mensaje: "Suscripcion no encontrada." }
+  if (!sus) return { ok: false, mensaje: "Suscripción no encontrada." }
 
   const planActualId = sus.plan_id
   if (planActualId === planIdNuevo) return { ok: false, mensaje: "Ya tienes este plan." }
@@ -427,7 +427,7 @@ export async function cambiarPlan(planIdNuevo: string): Promise<{ ok: boolean; m
   }
 
   // Downgrade: programar para el siguiente ciclo
-  // Validar que el numero actual de doctores no exceda el nuevo limite
+  // Validar que el número actual de doctores no exceda el nuevo limite
   const { data: clinica } = await db
     .from("clinicas")
     .select("id")
@@ -480,7 +480,7 @@ export async function cambiarPlan(planIdNuevo: string): Promise<{ ok: boolean; m
 
   return {
     ok: true,
-    mensaje: `Tu plan cambiara a ${planNuevo.nombre} al inicio del proximo periodo. Hasta entonces conservas los limites actuales.`,
+    mensaje: `Tu plan cambiara a ${planNuevo.nombre} al inicio del próximo periodo. Hasta entonces conservas los limites actuales.`,
   }
 }
 

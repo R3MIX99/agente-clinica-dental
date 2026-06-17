@@ -40,7 +40,7 @@ export function SuspendidaScreen({
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {estado === "cancelada"
-              ? "Tu cuenta fue cancelada. Contacta al administrador para reactivar el servicio. Tus datos estan seguros."
+              ? "Tu cuenta fue cancelada. Contacta al administrador para reactivar el servicio. Tus datos están seguros."
               : "Tu cuenta esta suspendida. Contacta al administrador para regularizar el acceso."}
           </p>
         </div>

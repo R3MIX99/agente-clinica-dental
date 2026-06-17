@@ -409,7 +409,7 @@ export function PacienteFichaClient({
   // Drawer — detalle de cita (mobile)
   const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
 
-  // Confirmacion de eliminacion
+  // Confirmación de eliminación
   const [confirmarEliminar, setConfirmarEliminar] = useState<{
     tipo: "nota" | "cita"
     id: string
@@ -764,14 +764,14 @@ export function PacienteFichaClient({
                   {/* Mobile — lista cliqueables */}
                   <div className="md:hidden px-4 pt-2 pb-4 space-y-2">
                     {citas.map((cita) => {
-                      const proxima = esProxima(cita.fecha_hora)
+                      const próxima = esProxima(cita.fecha_hora)
                       return (
                         <button
                           key={cita.id}
                           onClick={() => setCitaDrawer(cita)}
                           className={cn(
                             "w-full text-left rounded-lg border p-3 space-y-1.5 transition-colors active:bg-muted/40",
-                            proxima
+                            próxima
                               ? "border-blue-200 bg-blue-50/40 dark:border-blue-800/40 dark:bg-blue-950/20"
                               : "border-border hover:bg-muted/20"
                           )}
@@ -803,7 +803,7 @@ export function PacienteFichaClient({
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {formatFechaCompleta(cita.fecha_hora)}
-                            {proxima && (
+                            {próxima && (
                               <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
                                 próxima
                               </span>
@@ -843,13 +843,13 @@ export function PacienteFichaClient({
                       </thead>
                       <tbody>
                         {citas.map((cita) => {
-                          const proxima = esProxima(cita.fecha_hora)
+                          const próxima = esProxima(cita.fecha_hora)
                           return (
                             <tr
                               key={cita.id}
                               className={cn(
                                 "border-b border-border last:border-0 transition-colors",
-                                proxima
+                                próxima
                                   ? "bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/70 dark:hover:bg-blue-950/30"
                                   : "hover:bg-muted/30"
                               )}
@@ -875,16 +875,16 @@ export function PacienteFichaClient({
                               <td className="px-4 py-3 tabular-nums whitespace-nowrap">
                                 <span
                                   className={
-                                    proxima
+                                    próxima
                                       ? "font-medium"
                                       : "text-muted-foreground"
                                   }
                                 >
                                   {formatFechaCompleta(cita.fecha_hora)}
                                 </span>
-                                {proxima && (
+                                {próxima && (
                                   <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-                                    proxima
+                                    próxima
                                   </span>
                                 )}
                               </td>
@@ -1242,7 +1242,7 @@ export function PacienteFichaClient({
       })()}
 
       {/* ------------------------------------------------------------------ */}
-      {/* Confirmar eliminacion                                                */}
+      {/* Confirmar eliminación                                                */}
       {/* ------------------------------------------------------------------ */}
       <Dialog
         open={confirmarEliminar !== null}
@@ -1320,7 +1320,7 @@ export function PacienteFichaClient({
                     {formatFechaCompleta(citaDrawer.fecha_hora)}
                     {esProxima(citaDrawer.fecha_hora) && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 align-middle">
-                        proxima
+                        próxima
                       </span>
                     )}
                   </span>

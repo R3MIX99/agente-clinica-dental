@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { mpGet, validarFirmaWebhook, type MpPreapproval, type MpPayment } from "@/lib/mercadopago"
 
-// Dias de gracia por defecto si no esta en config_sistema
+// Días de gracia por defecto si no esta en config_sistema
 const DIAS_GRACIA_DEFAULT = 3
 
 // ---------------------------------------------------------------------------
 // POST /api/mp/webhook
-// Recibe notificaciones de Mercado Pago y actualiza el estado de suscripciones.
+// Recibe notificaciónes de Mercado Pago y actualiza el estado de suscripciones.
 // Referencia: https://www.mercadopago.com.mx/developers/es/docs/your-integrations/notifications/webhooks
 // ---------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const tipo = body?.type
 
-  // 2. Procesar segun el tipo de notificacion
+  // 2. Procesar segun el tipo de notificación
   if (tipo === "preapproval") {
     await procesarPreapproval(dataId)
   } else if (tipo === "payment") {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 // ---------------------------------------------------------------------------
-// Procesar evento de suscripcion (preapproval)
+// Procesar evento de suscripción (preapproval)
 // ---------------------------------------------------------------------------
 
 async function procesarPreapproval(preapprovalId: string): Promise<void> {
@@ -62,7 +62,7 @@ async function procesarPreapproval(preapprovalId: string): Promise<void> {
     return
   }
 
-  // Buscar la suscripcion por el ID del preapproval de MP
+  // Buscar la suscripción por el ID del preapproval de MP
   const { data: sus } = await db
     .from("suscripciones")
     .select("id, cuenta_id, estado, plan_id")
@@ -127,7 +127,7 @@ async function procesarPreapproval(preapprovalId: string): Promise<void> {
     cuenta_id:         sus.cuenta_id,
     mp_preapproval_id: preapprovalId,
     status:            preapproval.status,
-    concepto:          `Suscripcion webhook: ${preapproval.status}`,
+    concepto:          `Suscripción webhook: ${preapproval.status}`,
   })
 }
 
@@ -146,7 +146,7 @@ async function procesarPago(paymentId: string): Promise<void> {
     return
   }
 
-  // Buscar la suscripcion por el preapproval_id del pago
+  // Buscar la suscripción por el preapproval_id del pago
   const mpPreapprovalId = pago.preapproval_id ?? pago.subscription_id
   if (!mpPreapprovalId) return
 
@@ -162,7 +162,7 @@ async function procesarPago(paymentId: string): Promise<void> {
   const pagoFallido  = pago.status === "rejected" || pago.status === "cancelled" || pago.status === "charged_back"
 
   if (pagoAprobado) {
-    // Pago exitoso: activar suscripcion y limpiar periodo de gracia
+    // Pago exitoso: activar suscripción y limpiar periodo de gracia
     const ahora = new Date()
     const finPeriodo = new Date(ahora)
     finPeriodo.setMonth(finPeriodo.getMonth() + 1)

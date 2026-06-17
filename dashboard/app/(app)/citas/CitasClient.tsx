@@ -160,7 +160,7 @@ function esProxima(fechaHora: string): boolean {
   return new Date(fechaHora) > new Date()
 }
 
-// Devuelve la "cita representativa" de una serie: la proxima futura,
+// Devuelve la "cita representativa" de una serie: la próxima futura,
 // o si ya no hay futuras, la mas reciente pasada.
 function citaRepresentativa(serieCitas: Cita[]): Cita {
   const ahora = Date.now()
@@ -305,7 +305,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
 
   function handleGuardar() {
     if (!form.patient_id) {
-      toast.error("Selecciona un paciente")
+      toast.error("Seleccióna un paciente")
       return
     }
     if (!form.fecha_hora) {
@@ -313,19 +313,19 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       return
     }
 
-    // Calcular recurrencia_fin para el backend segun el modo seleccionado
+    // Calcular recurrencia_fin para el backend segun el modo selecciónado
     let recurrenciaFinFinal = ""
     if (form.recurrencia_tipo === "mensual") {
       if (form.recurrencia_modo === "fecha") {
         if (!form.recurrencia_fin) {
-          toast.error("Selecciona la fecha de fin de la serie")
+          toast.error("Seleccióna la fecha de fin de la serie")
           return
         }
         recurrenciaFinFinal = form.recurrencia_fin
       } else if (form.recurrencia_modo === "n_meses") {
         const meses = Number(form.recurrencia_meses)
         if (!Number.isFinite(meses) || meses < 1) {
-          toast.error("Ingresa un numero valido de meses")
+          toast.error("Ingresa un número válido de meses")
           return
         }
         // Calcular fecha de fin sumando N meses a la fecha de la cita
@@ -352,7 +352,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         } else {
           await crearCita(datosEnvio)
           if (form.recurrencia_tipo === "mensual") {
-            toast.success("Serie mensual creada — proximas citas generadas")
+            toast.success("Serie mensual creada — próximas citas generadas")
           } else {
             toast.success("Cita creada correctamente")
           }
@@ -961,7 +961,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 onValueChange={(v) => actualizarCampo("patient_id", v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un paciente" />
+                  <SelectValue placeholder="Seleccióna un paciente" />
                 </SelectTrigger>
                 <SelectContent>
                   {pacientes.map((p) => (
@@ -991,7 +991,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un servicio" />
+                  <SelectValue placeholder="Seleccióna un servicio" />
                 </SelectTrigger>
                 <SelectContent>
                   {servicios.map((s) => (
@@ -1017,7 +1017,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   onValueChange={(v) => actualizarCampo("doctor_id", v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un doctor" />
+                    <SelectValue placeholder="Seleccióna un doctor" />
                   </SelectTrigger>
                   <SelectContent>
                     {doctores.map((d) => (
@@ -1114,12 +1114,12 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 {form.recurrencia_tipo === "mensual" && (
                   <>
                     <p className="text-xs text-muted-foreground">
-                      Se creara una cita el mismo dia de cada mes. Si el dia no
-                      existe en algun mes, se usara el ultimo dia disponible.
+                      Se creará una cita el mismo día de cada mes. Si el día no
+                      existe en algún mes, se usará el último día disponible.
                     </p>
 
                     <div className="space-y-1.5">
-                      <Label>Duracion de la serie</Label>
+                      <Label>Duración de la serie</Label>
                       <Select
                         value={form.recurrencia_modo}
                         onValueChange={(v) =>
@@ -1142,7 +1142,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
 
                     {form.recurrencia_modo === "n_meses" && (
                       <div className="space-y-1.5">
-                        <Label>Numero de meses</Label>
+                        <Label>Número de meses</Label>
                         <Input
                           type="number"
                           min="1"
@@ -1244,7 +1244,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         )
       })()}
 
-      {/* Dialog — editar duracion de la serie */}
+      {/* Dialog — editar duración de la serie */}
       <DialogEditarSerie
         info={editarSerieInfo}
         onCerrar={() => setEditarSerieInfo(null)}
@@ -1252,7 +1252,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         isPending={isPending}
       />
 
-      {/* Drawer — confirmar eliminacion */}
+      {/* Drawer — confirmar eliminación */}
       <Drawer
         open={eliminarId !== null}
         onOpenChange={(o) => !o && setEliminarId(null)}
@@ -1290,7 +1290,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
 }
 
 // ---------------------------------------------------------------------------
-// Dialog — editar duracion de la serie
+// Dialog — editar duración de la serie
 // ---------------------------------------------------------------------------
 
 type EditarSerieInfo = { serieId: string; finActual: string | null }
@@ -1325,13 +1325,13 @@ function DialogEditarSerie({
 
   function handleGuardar() {
     if (modo === "fecha" && !fecha) {
-      toast.error("Selecciona la fecha de fin")
+      toast.error("Seleccióna la fecha de fin")
       return
     }
     if (modo === "n_meses") {
       const n = Number(meses)
       if (!Number.isFinite(n) || n < 1) {
-        toast.error("Numero de meses invalido")
+        toast.error("Número de meses invalido")
         return
       }
     }
@@ -1348,14 +1348,14 @@ function DialogEditarSerie({
         <DialogHeader>
           <DialogTitle>Editar serie mensual</DialogTitle>
           <DialogDescription>
-            Cambia la duracion de la serie. Solo se afectan las citas futuras —
+            Cambia la duración de la serie. Solo se afectan las citas futuras —
             las pasadas se respetan siempre.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Duracion de la serie</Label>
+            <Label>Duración de la serie</Label>
             <Select
               value={modo}
               onValueChange={(v) =>
@@ -1375,7 +1375,7 @@ function DialogEditarSerie({
 
           {modo === "n_meses" && (
             <div className="space-y-1.5">
-              <Label htmlFor="serie-meses">Numero de meses</Label>
+              <Label htmlFor="serie-meses">Número de meses</Label>
               <Input
                 id="serie-meses"
                 type="number"

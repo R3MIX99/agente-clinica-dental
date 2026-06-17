@@ -3,7 +3,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { DoctorFichaClient } from "./DoctorFichaClient"
 
-export const metadata = { title: "Ficha de doctor — Clinica Dental" }
+export const metadata = { title: "Ficha de doctor — Clínica Dental" }
 
 export default async function DoctorFichaPage({
   params,

@@ -133,8 +133,8 @@ async function reanudarConBot(conversationId: string) {
   const systemPrompt = `Eres el asistente virtual de ${clinica?.nombre ?? "la clinica"}.
 
 Datos de la clinica:
-- Direccion: ${clinica?.direccion ?? ""}
-- Telefono: ${clinica?.telefono ?? ""}
+- Dirección: ${clinica?.direccion ?? ""}
+- Teléfono: ${clinica?.telefono ?? ""}
 - Correo: ${clinica?.email ?? ""}
 - Sitio web: ${clinica?.sitio_web ?? ""}
 - Horario: ${clinica?.horario ?? ""}
@@ -151,8 +151,8 @@ CONTEXTO DE ESTA SESION: Un agente humano acaba de devolverte el control de la c
 
 Instrucciones:
 1. Responde unicamente sobre la clinica, servicios, citas, horarios, contacto, facturacion y formas de pago.
-2. USA tipo "handoff" EXCLUSIVAMENTE si el ultimo mensaje del paciente contiene una solicitud nueva y explicita de hablar con una persona.
-3. Responde en espanol formal, sin emojis. Si el texto tiene opciones, haz una lista con guiones (-).
+2. USA tipo "handoff" EXCLUSIVAMENTE si el último mensaje del paciente contiene una solicitud nueva y explicita de hablar con una persona.
+3. Responde en español formal, sin emojis. Si el texto tiene opciones, haz una lista con guiones (-).
 4. Devuelve EXCLUSIVAMENTE un JSON con esta estructura:
    {"tipo": "respuesta" | "handoff", "texto": "tu respuesta"}
 5. No incluyas texto fuera del JSON.
@@ -165,7 +165,7 @@ Instrucciones:
       headers: {
         "Content-Type": "application/json",
         "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-versión": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
@@ -220,7 +220,7 @@ Instrucciones:
     if (!handoffExplicito) {
       parsed = {
         tipo: "respuesta",
-        texto: "Estoy aqui para ayudarle. Por favor indicame en que puedo asistirle.",
+        texto: "Estoy aquí para ayudarle. Por favor indicame en que puedo asistirle.",
       }
     } else {
       await supabase

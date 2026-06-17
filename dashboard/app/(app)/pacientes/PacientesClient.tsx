@@ -782,7 +782,7 @@ export function PacientesClient({
                   )}
                 </div>
 
-                {/* Proxima cita + chevron */}
+                {/* Próxima cita + chevron */}
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <div className="text-right">
                     {p.proxima_cita ? (
@@ -855,7 +855,7 @@ export function PacientesClient({
                   </Link>
                 </td>
 
-                {/* Proxima cita */}
+                {/* Próxima cita */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   {p.proxima_cita ? (
                     <span className="text-muted-foreground">
@@ -1119,13 +1119,13 @@ export function PacientesClient({
                   ) : (
                     <div className="space-y-2">
                       {drawerCitas.map((cita) => {
-                        const proxima = esProxima(cita.fecha_hora)
+                        const próxima = esProxima(cita.fecha_hora)
                         return (
                           <div
                             key={cita.id}
                             className={cn(
                               "rounded-lg border p-3 space-y-1.5",
-                              proxima
+                              próxima
                                 ? "border-blue-200 bg-blue-50/40 dark:border-blue-800/40 dark:bg-blue-950/20"
                                 : "border-border"
                             )}
@@ -1146,7 +1146,7 @@ export function PacientesClient({
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {formatFechaCompleta(cita.fecha_hora)}
-                              {proxima && (
+                              {próxima && (
                                 <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
                                   próxima
                                 </span>
@@ -1231,7 +1231,7 @@ export function PacientesClient({
               />
             </div>
 
-            {/* Telefono y Email */}
+            {/* Teléfono y Email */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Teléfono</Label>
@@ -1602,7 +1602,7 @@ export function PacientesClient({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog — confirmar eliminacion */}
+      {/* Dialog — confirmar eliminación */}
       <Dialog
         open={eliminarId !== null}
         onOpenChange={(o) => !o && setEliminarId(null)}

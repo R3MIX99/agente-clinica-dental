@@ -33,21 +33,21 @@ export function PerfilClient({ perfil }: { perfil: PerfilCompleto }) {
         <div>
           <h1 className="text-xl font-semibold">Mi perfil</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Administra tus datos personales, correo y contrasena.
+            Administra tus datos personales, correo y contraseña.
           </p>
         </div>
 
-        {/* Aviso de contrasena temporal */}
+        {/* Aviso de contraseña temporal */}
         {perfil.password_temporal && (
           <div className="flex gap-3 rounded-lg border border-amber-300/50 bg-amber-50/50 dark:bg-amber-950/20 p-4">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                Cambia tu contrasena temporal
+                Cambia tu contraseña temporal
               </p>
               <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
-                Estas usando la contrasena que te asigno el administrador. Por
-                seguridad, cambiala desde la seccion de abajo antes de continuar.
+                Estás usando la contraseña que te asignó el administrador. Por
+                seguridad, cámbiala desde la sección de abajo antes de continuar.
               </p>
             </div>
           </div>
@@ -59,7 +59,7 @@ export function PerfilClient({ perfil }: { perfil: PerfilCompleto }) {
         {/* Cambiar correo */}
         <CorreoCard perfil={perfil} onActualizar={() => router.refresh()} />
 
-        {/* Cambiar contrasena */}
+        {/* Cambiar contraseña */}
         <PasswordCard perfilUserId={perfil.id} onCambiada={() => router.refresh()} />
       </div>
     </div>
@@ -130,7 +130,7 @@ function DatosGeneralesCard({
             </div>
             {perfil.clinica_nombre && (
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Clinica</p>
+                <p className="text-xs text-muted-foreground">Clínica</p>
                 <p className="text-sm font-medium">{perfil.clinica_nombre}</p>
               </div>
             )}
@@ -201,9 +201,9 @@ function CorreoCard({
             <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
           <div>
-            <CardTitle className="text-base">Correo electronico</CardTitle>
+            <CardTitle className="text-base">Correo electrónico</CardTitle>
             <CardDescription>
-              Es el correo con el que inicias sesion.
+              Es el correo con el que inicias sesión.
             </CardDescription>
           </div>
         </div>
@@ -231,7 +231,7 @@ function CorreoCard({
                   required: "Ingresa el nuevo correo",
                   pattern: {
                     value:   /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "Correo no valido",
+                    message: "Correo no válido",
                   },
                 })}
                 disabled={isPending}
@@ -240,8 +240,8 @@ function CorreoCard({
                 <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Te llegara un enlace de confirmacion al correo nuevo. El cambio
-                se completa cuando lo abras desde ahi.
+                Te llegará un enlace de confirmación al correo nuevo. El cambio
+                se completa cuando lo abras desde ahí.
               </p>
             </div>
 
@@ -253,7 +253,7 @@ function CorreoCard({
                 {isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando...</>
                 ) : (
-                  "Enviar enlace de confirmacion"
+                  "Enviar enlace de confirmación"
                 )}
               </Button>
             </div>
@@ -265,7 +265,7 @@ function CorreoCard({
 }
 
 // ---------------------------------------------------------------------------
-// Cambiar contrasena
+// Cambiar contraseña
 // ---------------------------------------------------------------------------
 
 type FormPassword = {
@@ -292,15 +292,15 @@ function PasswordCard({
     defaultValues: { password_actual: "", password_nuevo: "", password_confirmar: "" },
   })
 
-  // Forzar uso del id en algun side-effect para que no sea unused — ayuda
-  // tambien a resetear si cambia el usuario.
+  // Forzar uso del id en algún side-effect para que no sea unused — ayuda
+  // también a resetear si cambia el usuario.
   useEffect(() => { reset() }, [perfilUserId, reset])
 
   const passwordNuevo = watch("password_nuevo")
 
   const onSubmit = handleSubmit((datos) => {
     if (datos.password_nuevo !== datos.password_confirmar) {
-      toast.error("Las contrasenas no coinciden")
+      toast.error("Las contraseñas no coinciden")
       return
     }
     startTransition(async () => {
@@ -309,11 +309,11 @@ function PasswordCard({
         password_nuevo:  datos.password_nuevo,
       })
       if (res.ok) {
-        toast.success("Contrasena actualizada")
+        toast.success("Contraseña actualizada")
         reset()
         onCambiada()
       } else {
-        toast.error(res.error ?? "Error al cambiar la contrasena")
+        toast.error(res.error ?? "Error al cambiar la contraseña")
       }
     })
   })
@@ -326,9 +326,9 @@ function PasswordCard({
             <Lock className="h-5 w-5 text-primary" aria-hidden="true" />
           </div>
           <div>
-            <CardTitle className="text-base">Contrasena</CardTitle>
+            <CardTitle className="text-base">Contraseña</CardTitle>
             <CardDescription>
-              Cambia tu contrasena de acceso al panel.
+              Cambia tu contraseña de acceso al panel.
             </CardDescription>
           </div>
         </div>
@@ -336,12 +336,12 @@ function PasswordCard({
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="password_actual">Contrasena actual</Label>
+            <Label htmlFor="password_actual">Contraseña actual</Label>
             <Input
               id="password_actual"
               type="password"
               autoComplete="current-password"
-              {...register("password_actual", { required: "Ingresa tu contrasena actual" })}
+              {...register("password_actual", { required: "Ingresa tu contraseña actual" })}
               disabled={isPending}
             />
             {errors.password_actual && (
@@ -350,13 +350,13 @@ function PasswordCard({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password_nuevo">Contrasena nueva</Label>
+            <Label htmlFor="password_nuevo">Contraseña nueva</Label>
             <Input
               id="password_nuevo"
               type="password"
               autoComplete="new-password"
               {...register("password_nuevo", {
-                required: "Ingresa la contrasena nueva",
+                required: "Ingresa la contraseña nueva",
                 minLength: { value: 6, message: "Al menos 6 caracteres" },
               })}
               disabled={isPending}
@@ -367,14 +367,14 @@ function PasswordCard({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password_confirmar">Confirmar contrasena nueva</Label>
+            <Label htmlFor="password_confirmar">Confirmar contraseña nueva</Label>
             <Input
               id="password_confirmar"
               type="password"
               autoComplete="new-password"
               {...register("password_confirmar", {
-                required: "Repite la contrasena nueva",
-                validate: (v) => v === passwordNuevo || "Las contrasenas no coinciden",
+                required: "Repite la contraseña nueva",
+                validate: (v) => v === passwordNuevo || "Las contraseñas no coinciden",
               })}
               disabled={isPending}
             />
@@ -388,7 +388,7 @@ function PasswordCard({
               {isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Cambiando...</>
               ) : (
-                "Cambiar contrasena"
+                "Cambiar contraseña"
               )}
             </Button>
           </div>

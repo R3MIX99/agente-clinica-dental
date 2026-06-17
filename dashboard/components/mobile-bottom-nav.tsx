@@ -31,7 +31,7 @@ const TABS_PRIMARIOS = [
 const TABS_SECUNDARIOS = [
   { href: "/doctores",    icon: Stethoscope,  label: "Doctores" },
   { href: "/usuarios",    icon: UserCog,      label: "Usuarios" },
-  { href: "/analitica",   icon: LineChart,    label: "Analitica" },
+  { href: "/analitica",   icon: LineChart,    label: "Analítica" },
   { href: "/uso",         icon: BarChart3,    label: "Uso" },
   { href: "/ajustes",     icon: Settings,     label: "Ajustes" },
   { href: "/perfil",      icon: User,         label: "Mi perfil" },
@@ -59,7 +59,7 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
       <nav
         aria-label="Navegacion principal movil"
         className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-border bg-background md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={{ paddingBottom: "env(safe-área-inset-bottom)" }}
       >
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = pathname.startsWith(href)
@@ -93,7 +93,7 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
     <nav
       aria-label="Navegacion principal movil"
       className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-border bg-background md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{ paddingBottom: "env(safe-área-inset-bottom)" }}
     >
       {/* Items primarios */}
       {TABS_PRIMARIOS.map(({ href, icon: Icon, label }) => {
@@ -131,7 +131,7 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            aria-label="Mas opciones"
+            aria-label="Más opciones"
             className={cn(
               "relative flex h-16 flex-1 flex-col items-center justify-center gap-0.5 transition-colors",
               masActivo ? "text-primary" : "text-muted-foreground hover:text-foreground"
@@ -177,7 +177,7 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
             {isPending
               ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               : <LogOut className="h-4 w-4" aria-hidden="true" />}
-            Cerrar sesion
+            Cerrar sesión
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

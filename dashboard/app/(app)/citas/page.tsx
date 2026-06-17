@@ -3,7 +3,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { CitasClient } from "./CitasClient"
 
-export const metadata = { title: "Citas — Clinica Dental" }
+export const metadata = { title: "Citas — Clínica Dental" }
 
 export default async function CitasPage() {
   const authClient = await createAuthClient()
@@ -24,7 +24,7 @@ export default async function CitasPage() {
       .select("rol, doctor_id, clinica_id")
       .eq("id", session.user.id)
       .single(),
-    // pacientes y servicios se cargan aqui sin filtro; se filtran por clinicaId abajo
+    // pacientes y servicios se cargan aquí sin filtro; se filtran por clinicaId abajo
     Promise.resolve({ data: null }),
     Promise.resolve({ data: null }),
     Promise.resolve({ data: null }),

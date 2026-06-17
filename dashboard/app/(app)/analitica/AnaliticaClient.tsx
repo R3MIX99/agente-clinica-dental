@@ -90,8 +90,8 @@ function calcularFechas(
 }
 
 function formatFechaCorta(fecha: string): string {
-  const [, mes, dia] = fecha.split("-")
-  return `${dia}/${mes}`
+  const [, mes, día] = fecha.split("-")
+  return `${día}/${mes}`
 }
 
 function formatMxn(valor: number): string {
@@ -141,7 +141,7 @@ function GraficaVacia({ altura = 220 }: { altura?: number }) {
       className="flex items-center justify-center text-sm text-muted-foreground"
       style={{ height: altura }}
     >
-      Sin datos en el periodo seleccionado
+      Sin datos en el periodo selecciónado
     </div>
   )
 }
@@ -176,7 +176,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
 
   // Datos para graficas de donut
   const dataResolucion = [
-    { name: "Automatica", value: datos.conversaciones.automaticas, color: COLOR_AUTOMATICA },
+    { name: "Automática", value: datos.conversaciones.automaticas, color: COLOR_AUTOMATICA },
     { name: "Handoff",    value: datos.conversaciones.handoff,    color: COLOR_HANDOFF    },
   ].filter((d) => d.value > 0)
 
@@ -200,8 +200,8 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
             disabled={cargando}
           >
             {p === "hoy"           ? "Hoy"
-             : p === "7d"          ? "7 dias"
-             : p === "30d"         ? "30 dias"
+             : p === "7d"          ? "7 días"
+             : p === "30d"         ? "30 días"
              : "Personalizado"}
           </Button>
         ))}
@@ -290,7 +290,7 @@ export function AnaliticaClient({ datos: datosProp }: { datos: DatosAnalitica })
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground">
-              Mensajes por dia
+              Mensajes por día
             </CardTitle>
           </CardHeader>
           <CardContent>

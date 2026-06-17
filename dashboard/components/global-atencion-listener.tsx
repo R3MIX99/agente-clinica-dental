@@ -35,7 +35,7 @@ export function GlobalAtencionListener() {
         }
       })
 
-    // Suscripcion a actualizaciones de conversaciones
+    // Suscripción a actualizaciónes de conversaciones
     const chConvs = supabase
       .channel("global-rt-conversations")
       .on(
@@ -72,7 +72,7 @@ export function GlobalAtencionListener() {
       )
       .subscribe()
 
-    // Suscripcion a mensajes entrantes
+    // Suscripción a mensajes entrantes
     const chMsgs = supabase
       .channel("global-rt-messages")
       .on(

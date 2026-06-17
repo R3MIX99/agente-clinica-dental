@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Iniciar sesion — Clinica Dental",
+  title: "Iniciar sesión — Clínica Dental",
 }
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

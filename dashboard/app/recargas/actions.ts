@@ -40,7 +40,7 @@ export type ResumenMes = {
   recargado_mes_mxn: number
   // Total cobrado / cargado en consumos_ia.costo_descontado_mxn este mes
   cobrado_consumos_mxn: number
-  // Numero de llamadas a la API este mes
+  // Número de llamadas a la API este mes
   llamadas_api: number
   // Cantidad de recargas registradas este mes
   recargas_mes: number
@@ -143,7 +143,7 @@ export async function listarClinicasConSaldo(): Promise<ClinicaSaldo[]> {
       .gte("created_at", inicioMesActual()),
   ])
 
-  // Primera suscripcion activa por cuenta
+  // Primera suscripción activa por cuenta
   const suscPorCuenta = new Map<string, { id: string; saldo: number; incluido: number }>()
   for (const s of suscRes.data ?? []) {
     if (suscPorCuenta.has(s.cuenta_id)) continue
@@ -182,7 +182,7 @@ export async function listarClinicasConSaldo(): Promise<ClinicaSaldo[]> {
 
 // ---------------------------------------------------------------------------
 // Recargar saldo de una clinica
-// (registra recarga + suma al saldo disponible de la suscripcion)
+// (registra recarga + suma al saldo disponible de la suscripción)
 // ---------------------------------------------------------------------------
 
 export async function recargarSaldo(datos: {
@@ -213,7 +213,7 @@ export async function recargarSaldo(datos: {
   })
   if (errRecarga) return { ok: false, error: errRecarga.message }
 
-  // 2. Sumar al saldo disponible de la suscripcion
+  // 2. Sumar al saldo disponible de la suscripción
   // Leer el saldo actual y sumar el monto en una sola operacion
   const { data: susc } = await db
     .from("suscripciones")

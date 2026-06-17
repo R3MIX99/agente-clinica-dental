@@ -13,7 +13,7 @@ const NAV_ADMIN_SUPERVISOR = [
   { href: "/pacientes",      label: "Pacientes",       icon: Users },
   { href: "/doctores",       label: "Doctores",        icon: Stethoscope },
   { href: "/usuarios",       label: "Usuarios",        icon: UserCog },
-  { href: "/analitica",      label: "Analitica",        icon: LineChart  },
+  { href: "/analitica",      label: "Analítica",        icon: LineChart  },
   { href: "/uso",            label: "Uso",             icon: BarChart3 },
   { href: "/ajustes",        label: "Ajustes",         icon: Settings },
 ]

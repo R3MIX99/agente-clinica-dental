@@ -2,7 +2,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
 // Endpoint llamado por n8n despues de cada respuesta del agente con Claude.
-// Valida X-Shared-Secret y llama a la funcion atomica registrar_consumo_ia.
+// Válida X-Shared-Secret y llama a la función atomica registrar_consumo_ia.
 //
 // Cuerpo esperado:
 // {

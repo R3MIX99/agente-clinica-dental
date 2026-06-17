@@ -248,5 +248,5 @@ export async function guardarCanal(datos: {
   }
 
   revalidatePath("/ajustes")
-  return { ok: true, mensaje: "Configuracion de canal guardada." }
+  return { ok: true, mensaje: "Configuración de canal guardada." }
 }

@@ -6,12 +6,12 @@ import { createAuthClient } from "@/lib/supabase/server-auth"
 import { redirect } from "next/navigation"
 
 // Cambia la clinica activa del usuario.
-// Valida que el usuario tenga membresia activa en la clinica solicitada
+// Válida que el usuario tenga membresia activa en la clinica solicitada
 // antes de escribir la cookie — previene suplantacion de tenant.
 export async function cambiarClinicaActiva(clinicaId: string) {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user) throw new Error("Sin sesion activa")
+  if (!user) throw new Error("Sin sesión activa")
 
   const db = createServerClient()
   const { data } = await db
@@ -31,7 +31,7 @@ export async function cambiarClinicaActiva(clinicaId: string) {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 dias
+    maxAge: 60 * 60 * 24 * 30, // 30 días
     secure: process.env.NODE_ENV === "production",
   })
 

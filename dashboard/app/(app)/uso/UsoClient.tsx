@@ -129,7 +129,7 @@ export function UsoClient({ uso }: { uso: UsoClinica }) {
           )}
           {recordatorios.estado === "agotado" && (
             <p className="text-sm text-destructive">
-              Limite de recordatorios alcanzado. Los nuevos recordatorios estan pausados hasta el siguiente periodo.
+              Limite de recordatorios alcanzado. Los nuevos recordatorios están pausados hasta el siguiente periodo.
             </p>
           )}
         </CardContent>

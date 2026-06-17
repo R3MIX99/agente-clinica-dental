@@ -98,9 +98,9 @@ export async function invitarMiembros(miembros: DatosMiembro[]) {
     .select("cuenta_id")
     .eq("id", clinicaId)
     .single()
-  if (!clinica) throw new Error("Clinica no encontrada")
+  if (!clinica) throw new Error("Clínica no encontrada")
 
-  // Enforcement de limites del plan (validacion servidor)
+  // Enforcement de limites del plan (validación servidor)
   const doctoresNuevos  = miembros.filter((m) => m.rol === "doctor" && m.email.trim())
   const usuariosNuevos  = miembros.filter((m) => m.rol !== "doctor" && m.email.trim())
 

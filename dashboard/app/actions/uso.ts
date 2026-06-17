@@ -19,7 +19,7 @@ export type UsoClinica = {
     max_usuarios: number
     max_recordatorios_mes: number
   }
-  suscripcion: {
+  suscripción: {
     id: string
     estado: string
     periodo: string
@@ -73,7 +73,7 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
 
   const cuentaId = clinicaRow?.cuenta_id ?? ""
 
-  // Suscripcion activa o en prueba con plan
+  // Suscripción activa o en prueba con plan
   const { data: susData } = await db
     .from("suscripciones")
     .select(`
@@ -114,7 +114,7 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
       .eq("activa", true),
   ])
 
-  // Ultimos 10 consumos de IA
+  // Últimos 10 consumos de IA
   const { data: consumos } = await db
     .from("consumos_ia")
     .select("id, created_at, tokens_entrada, tokens_salida, costo_descontado_mxn, modelo")
@@ -167,7 +167,7 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
       max_usuarios:          Number(plan.max_usuarios ?? 0),
       max_recordatorios_mes: maxRecordatorios,
     },
-    suscripcion: {
+    suscripción: {
       id:             susData?.id             ?? "",
       estado:         susData?.estado         ?? "prueba",
       periodo:        susData?.periodo        ?? "mensual",

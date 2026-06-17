@@ -424,7 +424,7 @@ function ChatPanel({
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Selecciona una conversación para ver el hilo de mensajes.
+          Seleccióna una conversación para ver el hilo de mensajes.
         </p>
       </div>
     )
@@ -512,7 +512,7 @@ function ChatPanel({
         )}
       </div>
 
-      {/* Caja de envio / estado */}
+      {/* Caja de envío / estado */}
       {convSeleccionadaEsActiva && convSeleccionada.mode === "humano" ? (
         <div className="border-t border-border p-3 shrink-0 bg-background">
           <div className="flex gap-2 items-end">
@@ -608,7 +608,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
 
   const convSeleccionadaEsActiva = convs.some((c) => c.id === selectedId)
 
-  // Si la conversacion seleccionada desaparece, volver a la lista en movil
+  // Si la conversacion selecciónada desaparece, volver a la lista en movil
   useEffect(() => {
     if (mobileVistaChat && !convSeleccionada) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -1053,7 +1053,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Aun no has configurado la URL publica del bot. Ve a Ajustes -&gt;
+              Aún no has configurado la URL publica del bot. Ve a Ajustes -&gt;
               Canal para agregarla.
             </p>
           )}

@@ -23,16 +23,16 @@ import {
 // Tipos
 // ---------------------------------------------------------------------------
 
-type Horario = { dia: string; activo: boolean; apertura: string; cierre: string }
+type Horario = { día: string; activo: boolean; apertura: string; cierre: string }
 type Servicio = { nombre: string; precio: string; duracion_min: string; }
 type Miembro = { nombre: string; email: string; rol: "doctor" | "supervisor" }
 
-const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
+const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sabado", "Domingo"]
 const PASO_TOTAL = 5
 
 const PASOS = [
-  { titulo: "Datos de la clinica", descripcion: "Completa la informacion de contacto de tu clinica." },
-  { titulo: "Horarios de atencion", descripcion: "Configura los dias y horarios en que atiendes." },
+  { titulo: "Datos de la clinica", descripcion: "Completa la información de contacto de tu clinica." },
+  { titulo: "Horarios de atención", descripcion: "Configura los días y horarios en que atiendes." },
   { titulo: "Servicios", descripcion: "Agrega los primeros servicios que ofreces." },
   { titulo: "FAQ del asistente", descripcion: "Define las preguntas frecuentes que el agente sabra responder." },
   { titulo: "Invitar equipo", descripcion: "Agrega doctores y colaboradores a tu clinica." },
@@ -69,9 +69,9 @@ export function OnboardingWizard({
 
   // ---- Estado paso 2 ----
   const [horarios, setHorarios] = useState<Horario[]>(
-    DIAS.map((dia) => ({
-      dia,
-      activo: !["Sabado", "Domingo"].includes(dia),
+    DIAS.map((día) => ({
+      día,
+      activo: !["Sabado", "Domingo"].includes(día),
       apertura: "09:00",
       cierre: "18:00",
     }))
@@ -86,7 +86,7 @@ export function OnboardingWizard({
 
   // ---- Estado paso 4 ----
   const [faq, setFaq] = useState(
-    "¿Atienden seguros medicos?\nR: En este momento no manejamos seguros. Trabajamos con pago directo.\n\n¿Cual es el tiempo de espera para agendar?\nR: Generalmente podemos recibirte dentro de los proximos 2 a 5 dias habiles.\n\n¿Que formas de pago aceptan?\nR: Aceptamos efectivo y transferencia bancaria."
+    "¿Atienden seguros medicos?\nR: En este momento no manejamos seguros. Trabajamos con pago directo.\n\n¿Cual es el tiempo de espera para agendar?\nR: Generalmente podemos recibirte dentro de los próximos 2 a 5 días habiles.\n\n¿Que formas de pago aceptan?\nR: Aceptamos efectivo y transferencia bancaria."
   )
 
   // ---- Estado paso 5 ----
@@ -109,7 +109,7 @@ export function OnboardingWizard({
       try {
         const horarioTexto = horarios
           .filter((h) => h.activo)
-          .map((h) => `${h.dia} ${h.apertura}–${h.cierre}`)
+          .map((h) => `${h.día} ${h.apertura}–${h.cierre}`)
           .join(", ")
         await guardarDatosClinica({
           telefono: tel,
@@ -130,7 +130,7 @@ export function OnboardingWizard({
       try {
         const horarioTexto = horarios
           .filter((h) => h.activo)
-          .map((h) => `${h.dia} ${h.apertura}–${h.cierre}`)
+          .map((h) => `${h.día} ${h.apertura}–${h.cierre}`)
           .join(", ")
         await guardarDatosClinica({ horario: horarioTexto })
         avanzar()
@@ -172,7 +172,7 @@ export function OnboardingWizard({
       } catch (e) {
         // redirect() lanza un error especial que Next.js maneja internamente — no es un error real
         if (isRedirectError(e)) throw e
-        toast.error("Error al finalizar la configuracion. Intentalo de nuevo.")
+        toast.error("Error al finalizar la configuración. Intentalo de nuevo.")
       }
     })
   }
@@ -200,7 +200,7 @@ export function OnboardingWizard({
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             disabled={isPending}
           >
-            Omitir configuracion
+            Omitir configuración
           </button>
         </div>
       </header>
@@ -258,7 +258,7 @@ export function OnboardingWizard({
                 <div className="space-y-4">
                   <CampoOnb
                     id="tel"
-                    label="Telefono de la clinica"
+                    label="Teléfono de la clinica"
                     value={tel}
                     onChange={setTel}
                     placeholder="55 1234 5678"
@@ -266,7 +266,7 @@ export function OnboardingWizard({
                   />
                   <CampoOnb
                     id="emailClinica"
-                    label="Correo electronico de la clinica"
+                    label="Correo electrónico de la clinica"
                     value={emailClinica}
                     onChange={setEmailClinica}
                     placeholder="contacto@miclinica.com"
@@ -274,7 +274,7 @@ export function OnboardingWizard({
                   />
                   <CampoOnb
                     id="dir"
-                    label="Direccion"
+                    label="Dirección"
                     value={dir}
                     onChange={setDir}
                     placeholder="Calle, colonia, ciudad"
@@ -301,7 +301,7 @@ export function OnboardingWizard({
               {paso === 2 && (
                 <div className="space-y-3">
                   {horarios.map((h, i) => (
-                    <div key={h.dia} className="flex items-center gap-3">
+                    <div key={h.día} className="flex items-center gap-3">
                       <Switch
                         checked={h.activo}
                         onCheckedChange={(v) => {
@@ -309,10 +309,10 @@ export function OnboardingWizard({
                           copia[i] = { ...copia[i], activo: v }
                           setHorarios(copia)
                         }}
-                        id={`dia-${h.dia}`}
+                        id={`día-${h.día}`}
                       />
-                      <Label htmlFor={`dia-${h.dia}`} className="w-24 text-sm">
-                        {h.dia}
+                      <Label htmlFor={`día-${h.día}`} className="w-24 text-sm">
+                        {h.día}
                       </Label>
                       {h.activo ? (
                         <div className="flex items-center gap-2 flex-1">
@@ -358,7 +358,7 @@ export function OnboardingWizard({
                 <div className="space-y-3">
                   <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
                     <span className="col-span-8">Servicio</span>
-                    <span className="col-span-3">Duracion min</span>
+                    <span className="col-span-3">Duración min</span>
                     <span className="col-span-1" />
                   </div>
                   {servicios.map((s, i) => (
@@ -428,7 +428,7 @@ export function OnboardingWizard({
                       onChange={(e) => setFaq(e.target.value)}
                       rows={10}
                       className="text-sm font-mono resize-none"
-                      placeholder="Escribe aqui las preguntas y respuestas que el agente usara..."
+                      placeholder="Escribe aquí las preguntas y respuestas que el agente usara..."
                     />
                     <p className="text-xs text-muted-foreground">
                       Escribe en formato pregunta/respuesta. El agente usara este contenido para responder a tus pacientes.
@@ -510,7 +510,7 @@ export function OnboardingWizard({
                     Agregar miembro
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Cada miembro recibira un correo de invitacion para crear su acceso.
+                    Cada miembro recibira un correo de invitación para crear su acceso.
                   </p>
 
                   {/* Botones finales */}

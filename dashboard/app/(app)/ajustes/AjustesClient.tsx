@@ -126,7 +126,7 @@ const identidadSchema = z.object({
   logo_url:    z.string(),
   direccion:   z.string(),
   telefono:    z.string(),
-  email:       z.union([z.string().email("Correo electronico invalido"), z.literal("")]),
+  email:       z.union([z.string().email("Correo electrónico invalido"), z.literal("")]),
   sitio_web:   z.string(),
   horario:     z.string(),
   formas_pago: z.string(),
@@ -169,13 +169,13 @@ function IdentidadTab({ clinica }: { clinica: ClinicaInfo }) {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="rounded-lg border border-border p-6 space-y-4">
-        <h2 className="text-sm font-semibold">Informacion general</h2>
+        <h2 className="text-sm font-semibold">Información general</h2>
 
         {/* Nombre y logo */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="nombre">Nombre de la clinica</Label>
-            <Input id="nombre" placeholder="Clinica Dental..." {...register("nombre")} />
+            <Input id="nombre" placeholder="Clínica Dental..." {...register("nombre")} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="logo_url">URL del logo</Label>
@@ -183,20 +183,20 @@ function IdentidadTab({ clinica }: { clinica: ClinicaInfo }) {
           </div>
         </div>
 
-        {/* Direccion */}
+        {/* Dirección */}
         <div className="space-y-1.5">
-          <Label htmlFor="direccion">Direccion</Label>
-          <Input id="direccion" placeholder="Calle, numero, colonia, ciudad" {...register("direccion")} />
+          <Label htmlFor="direccion">Dirección</Label>
+          <Input id="direccion" placeholder="Calle, número, colonia, ciudad" {...register("direccion")} />
         </div>
 
-        {/* Telefono y Email */}
+        {/* Teléfono y Email */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="telefono">Telefono</Label>
+            <Label htmlFor="telefono">Teléfono</Label>
             <Input id="telefono" placeholder="55 1234 5678" {...register("telefono")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="email">Correo electronico</Label>
+            <Label htmlFor="email">Correo electrónico</Label>
             <Input id="email" type="email" placeholder="info@clinica.com" {...register("email")} />
             {errors.email && (
               <p className="text-xs text-red-500">{errors.email.message}</p>
@@ -212,7 +212,7 @@ function IdentidadTab({ clinica }: { clinica: ClinicaInfo }) {
 
         {/* Horario */}
         <div className="space-y-1.5">
-          <Label htmlFor="horario">Horario de atencion</Label>
+          <Label htmlFor="horario">Horario de atención</Label>
           <Input id="horario" placeholder="Lun-Vie 9:00-18:00, Sab 9:00-14:00" {...register("horario")} />
         </div>
 
@@ -436,13 +436,13 @@ function ServiciosTab({ serviciosIniciales }: { serviciosIniciales: Servicio[] }
 
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="s-duracion">Duracion (min)</Label>
-                <Input id="s-duracion" type="number" min="0" step="5" placeholder="60" {...register("duracion_min")} />
+                <Label htmlFor="s-duración">Duración (min)</Label>
+                <Input id="s-duración" type="number" min="0" step="5" placeholder="60" {...register("duracion_min")} />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="s-descripcion">Descripcion (opcional)</Label>
+              <Label htmlFor="s-descripcion">Descripción (opcional)</Label>
               <Input id="s-descripcion" placeholder="Incluye estudio previo..." {...register("descripcion")} />
             </div>
 
@@ -544,7 +544,7 @@ function FaqTab({ faqInicial }: { faqInicial: FaqItem[] }) {
               <Label htmlFor={`faq-${index}-pregunta`}>Pregunta</Label>
               <Input
                 id={`faq-${index}-pregunta`}
-                placeholder="Cual es el horario de atencion?"
+                placeholder="Cual es el horario de atención?"
                 {...register(`faq.${index}.pregunta`)}
               />
               {errors.faq?.[index]?.pregunta?.message && (
@@ -692,7 +692,7 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
 
         {canalTelegram?.updated_at && (
           <p className="text-xs text-muted-foreground">
-            Ultima actualizacion:{" "}
+            Última actualización:{" "}
             {new Date(canalTelegram.updated_at).toLocaleString("es-MX")}
           </p>
         )}
@@ -702,12 +702,12 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
       <div className="rounded-lg border border-border border-dashed p-6 opacity-50">
         <h2 className="text-sm font-semibold">WhatsApp</h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Disponible proximamente. La abstraccion de canal esta preparada para integrarlo sin cambios en la logica del agente.
+          Disponible próximamente. La abstraccion de canal esta preparada para integrarlo sin cambios en la logica del agente.
         </p>
       </div>
 
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Guardando..." : "Guardar configuracion de canal"}
+        {isSubmitting ? "Guardando..." : "Guardar configuración de canal"}
       </Button>
     </form>
   )

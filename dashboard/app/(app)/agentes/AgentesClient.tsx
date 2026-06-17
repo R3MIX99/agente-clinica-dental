@@ -35,7 +35,7 @@ import { toast } from "sonner"
 import { ChevronRight, SquarePen } from "lucide-react"
 
 // ---------------------------------------------------------------------------
-// Esquema de validacion
+// Esquema de validación
 // ---------------------------------------------------------------------------
 
 const agenteSchema = z.object({

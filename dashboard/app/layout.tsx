@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Clinica Dental — Panel de Control",
+  title: "Clínica Dental — Panel de Control",
   description: "Panel de control del agente IA para clinica dental",
 }
 

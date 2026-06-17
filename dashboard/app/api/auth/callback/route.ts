@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server"
 import { cookies } from "next/headers"
 
 // Callback de Supabase Auth para confirmacion de correo electrónico y magic links.
-// Supabase redirige aqui despues de que el usuario confirma su cuenta.
+// Supabase redirige aquí despues de que el usuario confirma su cuenta.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")

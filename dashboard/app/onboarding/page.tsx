@@ -3,7 +3,7 @@ import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
 import { OnboardingWizard } from "./OnboardingWizard"
 
-export const metadata = { title: "Configuracion inicial — DentalIA" }
+export const metadata = { title: "Configuración inicial — DentalIA" }
 
 export default async function OnboardingPage() {
   const authClient = await createAuthClient()

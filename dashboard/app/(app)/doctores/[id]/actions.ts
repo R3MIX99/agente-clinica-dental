@@ -14,8 +14,8 @@ export async function agregarBloqueHorario(
   doctorId: string,
   datos: DatosBloqueHorario
 ) {
-  const dia = parseInt(datos.dia_semana)
-  if (isNaN(dia) || dia < 0 || dia > 6) throw new Error("Dia invalido")
+  const día = parseInt(datos.dia_semana)
+  if (isNaN(día) || día < 0 || día > 6) throw new Error("Día invalido")
   if (!datos.hora_inicio || !datos.hora_fin)
     throw new Error("Hora de inicio y fin son requeridas")
   if (datos.hora_fin <= datos.hora_inicio)
@@ -26,7 +26,7 @@ export async function agregarBloqueHorario(
   const { error } = await supabase.from("doctor_schedules").insert({
     clinica_id: clinicaId,
     doctor_id: doctorId,
-    dia_semana: dia,
+    dia_semana: día,
     hora_inicio: datos.hora_inicio,
     hora_fin: datos.hora_fin,
   })

@@ -5,7 +5,7 @@ import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { AjustesClient } from "./AjustesClient"
 import type { CanalTelegramPublico } from "./actions"
 
-export const metadata = { title: "Ajustes — Clinica Dental" }
+export const metadata = { title: "Ajustes — Clínica Dental" }
 
 export default async function AjustesPage() {
   const authClient = await createAuthClient()

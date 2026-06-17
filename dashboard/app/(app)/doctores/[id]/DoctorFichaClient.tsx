@@ -143,7 +143,7 @@ function formatHoraCita(raw: string): string {
   })
 }
 
-// Agrupa citas por fecha (dia) en America/Mexico_City
+// Agrupa citas por fecha (día) en America/Mexico_City
 function agruparCitasPorDia(
   citas: CitaDoctor[]
 ): Array<{ fechaKey: string; label: string; citas: CitaDoctor[] }> {
@@ -425,15 +425,15 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {diasConHorario.map((dia, idx) => (
-                    <div key={dia}>
+                  {diasConHorario.map((día, idx) => (
+                    <div key={día}>
                       {idx > 0 && <Separator className="mb-4" />}
                       <div className="flex items-start gap-4">
                         <p className="text-sm font-medium w-24 pt-1 flex-shrink-0">
-                          {DIA_NOMBRE[dia]}
+                          {DIA_NOMBRE[día]}
                         </p>
                         <div className="flex-1 space-y-2">
-                          {horariosPorDia[dia]
+                          {horariosPorDia[día]
                             .sort((a, b) =>
                               a.hora_inicio.localeCompare(b.hora_inicio)
                             )

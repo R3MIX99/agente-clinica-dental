@@ -41,7 +41,7 @@ export function AppSidebar({
       <div className="flex-1 overflow-y-auto py-4">
         <SidebarNav rol={rol} doctorId={doctorId} />
       </div>
-      {/* Mi perfil + Cerrar sesion */}
+      {/* Mi perfil + Cerrar sesión */}
       <div className="shrink-0 border-t border-sidebar-border p-3 space-y-1">
         <Link
           href="/perfil"
@@ -60,7 +60,7 @@ export function AppSidebar({
           ) : (
             <LogOut className="h-4 w-4" aria-hidden="true" />
           )}
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </div>
     </aside>

@@ -13,7 +13,7 @@ export function MobileSidebar({ rol = "supervisor" }: { rol?: Rol }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menu">
+        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menú">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
