@@ -52,6 +52,7 @@ import {
   FileText,
   FlaskConical,
   Calendar,
+  Repeat,
   SquarePen,
   Trash2,
 } from "lucide-react"
@@ -163,6 +164,10 @@ const FORM_CITA_INICIAL = {
   status: "programada",
   costo: "",
   notas: "",
+  recurrencia_tipo:  "" as "" | "mensual",
+  recurrencia_modo:  "indefinido" as "indefinido" | "n_meses" | "fecha",
+  recurrencia_meses: "3",
+  recurrencia_fin:   "",
 }
 
 // ---------------------------------------------------------------------------
@@ -431,10 +436,46 @@ export function PacienteFichaClient({
       toast.error("Ingresa la fecha y hora de la cita")
       return
     }
+
+    // Calcular recurrencia_fin según el modo elegido
+    let recurrenciaFinFinal = ""
+    if (formCita.recurrencia_tipo === "mensual") {
+      if (formCita.recurrencia_modo === "fecha") {
+        if (!formCita.recurrencia_fin) {
+          toast.error("Selecciona la fecha de fin de la serie")
+          return
+        }
+        recurrenciaFinFinal = formCita.recurrencia_fin
+      } else if (formCita.recurrencia_modo === "n_meses") {
+        const meses = Number(formCita.recurrencia_meses)
+        if (!Number.isFinite(meses) || meses < 1) {
+          toast.error("Ingresa un número válido de meses")
+          return
+        }
+        const base = new Date(formCita.fecha_hora)
+        base.setMonth(base.getMonth() + meses)
+        recurrenciaFinFinal = base.toISOString().slice(0, 10)
+      } else {
+        recurrenciaFinFinal = ""
+      }
+    }
+
     startTransition(async () => {
       try {
-        await agendarCitaFicha(paciente.id, formCita)
-        toast.success("Cita agendada correctamente")
+        await agendarCitaFicha(paciente.id, {
+          service_id:       formCita.service_id,
+          fecha_hora:       formCita.fecha_hora,
+          status:           formCita.status,
+          costo:            formCita.costo,
+          notas:            formCita.notas,
+          recurrencia_tipo: formCita.recurrencia_tipo,
+          recurrencia_fin:  recurrenciaFinFinal,
+        })
+        if (formCita.recurrencia_tipo === "mensual") {
+          toast.success("Serie mensual creada — próximas citas generadas")
+        } else {
+          toast.success("Cita agendada correctamente")
+        }
         setAgendarOpen(false)
         setFormCita(FORM_CITA_INICIAL)
         router.refresh()
@@ -1071,6 +1112,87 @@ export function PacienteFichaClient({
                 className="resize-none"
               />
             </div>
+
+            {/* Recurrencia mensual */}
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Label htmlFor="recurrencia-toggle-ficha" className="cursor-pointer">
+                    Repetir cada mes
+                  </Label>
+                </div>
+                <input
+                  id="recurrencia-toggle-ficha"
+                  type="checkbox"
+                  checked={formCita.recurrencia_tipo === "mensual"}
+                  onChange={(e) =>
+                    actualizarCampoCita(
+                      "recurrencia_tipo",
+                      e.target.checked ? "mensual" : "",
+                    )
+                  }
+                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                />
+              </div>
+
+              {formCita.recurrencia_tipo === "mensual" && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Se creará una cita el mismo día de cada mes. Si el día no
+                    existe en algún mes, se usará el último día disponible.
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <Label>Duración de la serie</Label>
+                    <Select
+                      value={formCita.recurrencia_modo}
+                      onValueChange={(v) =>
+                        actualizarCampoCita("recurrencia_modo", v)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="indefinido">Indefinido (12 meses)</SelectItem>
+                        <SelectItem value="n_meses">Por N meses</SelectItem>
+                        <SelectItem value="fecha">Hasta una fecha</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formCita.recurrencia_modo === "n_meses" && (
+                    <div className="space-y-1.5">
+                      <Label>Número de meses</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="24"
+                        step="1"
+                        value={formCita.recurrencia_meses}
+                        onChange={(e) =>
+                          actualizarCampoCita("recurrencia_meses", e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {formCita.recurrencia_modo === "fecha" && (
+                    <div className="space-y-1.5">
+                      <Label>Fecha de fin</Label>
+                      <Input
+                        type="date"
+                        value={formCita.recurrencia_fin}
+                        onChange={(e) =>
+                          actualizarCampoCita("recurrencia_fin", e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )
         const botonesCita = (
@@ -1104,7 +1226,7 @@ export function PacienteFichaClient({
 
             {/* Dialog — solo escritorio */}
             <Dialog open={agendarOpen && isDesktop} onOpenChange={(o) => { if (!o) setAgendarOpen(false) }}>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Agendar cita</DialogTitle>
                 </DialogHeader>
