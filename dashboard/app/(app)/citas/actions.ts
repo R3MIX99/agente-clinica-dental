@@ -325,6 +325,144 @@ export async function terminarSerie(serieId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Editar duracion de una serie recurrente
+// Permite cambiar la fecha de fin de la serie a una fecha posterior (genera
+// nuevas instancias), una fecha anterior (elimina las futuras que sobran)
+// o volverla indefinida (genera el horizonte por defecto desde la ultima).
+// Solo afecta a citas futuras — las pasadas se respetan siempre.
+// ---------------------------------------------------------------------------
+
+export type DatosEditarSerie = {
+  modo:           "indefinido" | "n_meses" | "fecha"
+  meses?:         number
+  fecha?:         string  // YYYY-MM-DD
+}
+
+export async function editarSerie(
+  serieId: string,
+  datos: DatosEditarSerie,
+): Promise<{ ok: boolean; error?: string }> {
+  const clinicaId = await resolverClinicaId()
+  const supabase  = createServerClient()
+
+  // Cargar todas las citas de la serie ordenadas por fecha ascendente
+  const { data: citasSerie, error: errCargar } = await supabase
+    .from("appointments")
+    .select("id, fecha_hora, patient_id, service_id, doctor_id, duracion_min, notas, status")
+    .eq("clinica_id", clinicaId)
+    .eq("serie_id", serieId)
+    .order("fecha_hora", { ascending: true })
+
+  if (errCargar) return { ok: false, error: errCargar.message }
+  if (!citasSerie || citasSerie.length === 0) {
+    return { ok: false, error: "La serie no existe o esta vacia" }
+  }
+
+  // Fecha base de la serie (primera cita): mantiene dia/hora a replicar
+  const citaBase = citasSerie[0]
+  const ultimaCita = citasSerie[citasSerie.length - 1]
+  const ahoraMs = Date.now()
+
+  // Calcular nueva recurrencia_fin (ISO YYYY-MM-DD) o null para indefinido
+  let nuevaRecurrenciaFin: string | null = null
+  if (datos.modo === "fecha") {
+    if (!datos.fecha) return { ok: false, error: "Selecciona la fecha de fin" }
+    nuevaRecurrenciaFin = datos.fecha
+  } else if (datos.modo === "n_meses") {
+    if (!datos.meses || datos.meses < 1) {
+      return { ok: false, error: "Numero de meses invalido" }
+    }
+    // N meses despues de la primera cita de la serie
+    const base = new Date(citaBase.fecha_hora)
+    base.setMonth(base.getMonth() + datos.meses)
+    nuevaRecurrenciaFin = base.toISOString().slice(0, 10)
+  }
+  // indefinido => nuevaRecurrenciaFin queda null
+
+  // Limite efectivo para nuevas instancias:
+  // - Con fecha de fin: timestamp del dia + 23:59:59 UTC
+  // - Indefinido: HORIZONTE_INDEFINIDO_MESES despues de la cita base
+  let limiteMs: number
+  if (nuevaRecurrenciaFin) {
+    limiteMs = new Date(nuevaRecurrenciaFin + "T23:59:59Z").getTime()
+  } else {
+    const horizonte = new Date(citaBase.fecha_hora)
+    horizonte.setMonth(horizonte.getMonth() + HORIZONTE_INDEFINIDO_MESES)
+    limiteMs = horizonte.getTime()
+  }
+
+  // ----- Acortar serie: borrar citas futuras posteriores al limite -----
+  const ahoraIso = new Date().toISOString()
+  const fechaCorteIso = new Date(limiteMs).toISOString()
+  const { error: errDel } = await supabase
+    .from("appointments")
+    .delete()
+    .eq("clinica_id", clinicaId)
+    .eq("serie_id", serieId)
+    .gt("fecha_hora", ahoraIso)            // solo futuras
+    .gt("fecha_hora", fechaCorteIso)       // posteriores al nuevo limite
+  if (errDel) return { ok: false, error: errDel.message }
+
+  // ----- Extender serie: generar citas faltantes hasta el limite -----
+  const ultimaFechaActualMs = new Date(ultimaCita.fecha_hora).getTime()
+  const nuevasFilas: Array<{
+    clinica_id:        string
+    serie_id:          string
+    recurrencia_tipo:  string
+    recurrencia_fin:   string | null
+    patient_id:        string | null
+    service_id:        string | null
+    doctor_id:         string | null
+    duracion_min:      number | null
+    notas:             string | null
+    status:            "programada" | "confirmada" | "cancelada" | "completada" | "no_asistio"
+    fecha_hora:        string
+  }> = []
+
+  if (limiteMs > ultimaFechaActualMs) {
+    // Generar candidatos desde la cita base hasta encontrar uno > ultimaCita
+    // y luego hasta limiteMs.
+    for (let i = 1; i <= 240; i++) {
+      const candidato = generarFechasMensuales(citaBase.fecha_hora, i)[i - 1]
+      const t = new Date(candidato).getTime()
+      if (t <= ultimaFechaActualMs) continue       // ya existe
+      if (t > limiteMs) break
+      nuevasFilas.push({
+        clinica_id:       clinicaId,
+        serie_id:         serieId,
+        recurrencia_tipo: "mensual",
+        recurrencia_fin:  nuevaRecurrenciaFin,
+        patient_id:       citaBase.patient_id,
+        service_id:       citaBase.service_id,
+        doctor_id:        citaBase.doctor_id,
+        duracion_min:     citaBase.duracion_min,
+        notas:            citaBase.notas,
+        status:           "programada",
+        fecha_hora:       candidato,
+      })
+    }
+
+    if (nuevasFilas.length > 0) {
+      const { error: errInsert } = await supabase
+        .from("appointments")
+        .insert(nuevasFilas)
+      if (errInsert) return { ok: false, error: errInsert.message }
+    }
+  }
+
+  // ----- Actualizar recurrencia_fin en todas las filas remanentes -----
+  const { error: errUpd } = await supabase
+    .from("appointments")
+    .update({ recurrencia_fin: nuevaRecurrenciaFin })
+    .eq("clinica_id", clinicaId)
+    .eq("serie_id", serieId)
+  if (errUpd) return { ok: false, error: errUpd.message }
+
+  revalidatePath("/citas")
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
 // Recordatorio manual via canal
 // ---------------------------------------------------------------------------
 

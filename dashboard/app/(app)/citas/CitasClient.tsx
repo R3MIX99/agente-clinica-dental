@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie } from "./actions"
+import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie, editarSerie, type DatosEditarSerie } from "./actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,8 +29,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -227,6 +235,10 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const [enviandoId, setEnviandoId] = useState<string | null>(null)
   const [citaDrawer, setCitaDrawer] = useState<Cita | null>(null)
   const [isDesktop, setIsDesktop] = useState(false)
+  const [editarSerieInfo, setEditarSerieInfo] = useState<{
+    serieId: string
+    finActual: string | null
+  } | null>(null)
 
   // Lista visible en tabla y mobile: una sola fila por serie mensual
   const citasVisibles = useMemo(() => colapsarSeries(citas), [citas])
@@ -366,6 +378,22 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         router.refresh()
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : "Error al terminar la serie")
+      }
+    })
+  }
+
+  function handleEditarSerie(datos: DatosEditarSerie) {
+    if (!editarSerieInfo) return
+    const serieId = editarSerieInfo.serieId
+    startTransition(async () => {
+      const res = await editarSerie(serieId, datos)
+      if (res.ok) {
+        toast.success("Serie actualizada")
+        setEditarSerieInfo(null)
+        setCitaDrawer(null)
+        router.refresh()
+      } else {
+        toast.error(res.error ?? "Error al actualizar la serie")
       }
     })
   }
@@ -820,18 +848,36 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   </div>
                 )}
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-destructive border-destructive/40 hover:bg-destructive/10"
-                  onClick={() => {
-                    if (citaDrawer.serie_id) handleTerminarSerie(citaDrawer.serie_id)
-                  }}
-                  disabled={isPending}
-                >
-                  <CircleStop className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Terminar serie
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (citaDrawer.serie_id) {
+                        setEditarSerieInfo({
+                          serieId:   citaDrawer.serie_id,
+                          finActual: citaDrawer.recurrencia_fin ?? null,
+                        })
+                      }
+                    }}
+                    disabled={isPending}
+                  >
+                    <CalendarRange className="h-4 w-4 mr-2" aria-hidden="true" />
+                    Editar serie
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                    onClick={() => {
+                      if (citaDrawer.serie_id) handleTerminarSerie(citaDrawer.serie_id)
+                    }}
+                    disabled={isPending}
+                  >
+                    <CircleStop className="h-4 w-4 mr-2" aria-hidden="true" />
+                    Terminar serie
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -1198,6 +1244,14 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         )
       })()}
 
+      {/* Dialog — editar duracion de la serie */}
+      <DialogEditarSerie
+        info={editarSerieInfo}
+        onCerrar={() => setEditarSerieInfo(null)}
+        onGuardar={handleEditarSerie}
+        isPending={isPending}
+      />
+
       {/* Drawer — confirmar eliminacion */}
       <Drawer
         open={eliminarId !== null}
@@ -1232,5 +1286,133 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         </DrawerContent>
       </Drawer>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Dialog — editar duracion de la serie
+// ---------------------------------------------------------------------------
+
+type EditarSerieInfo = { serieId: string; finActual: string | null }
+
+function DialogEditarSerie({
+  info,
+  onCerrar,
+  onGuardar,
+  isPending,
+}: {
+  info: EditarSerieInfo | null
+  onCerrar: () => void
+  onGuardar: (datos: DatosEditarSerie) => void
+  isPending: boolean
+}) {
+  // Modo inicial inferido del valor actual
+  const modoInicial: "indefinido" | "fecha" =
+    info?.finActual ? "fecha" : "indefinido"
+  const [modo, setModo] = useState<"indefinido" | "n_meses" | "fecha">(modoInicial)
+  const [meses, setMeses] = useState("3")
+  const [fecha, setFecha] = useState(info?.finActual ?? "")
+
+  // Resincronizar campos cuando se abre con una serie diferente
+  useEffect(() => {
+    if (info) {
+      setModo(info.finActual ? "fecha" : "indefinido")
+      setMeses("3")
+      setFecha(info.finActual ?? "")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [info?.serieId])
+
+  function handleGuardar() {
+    if (modo === "fecha" && !fecha) {
+      toast.error("Selecciona la fecha de fin")
+      return
+    }
+    if (modo === "n_meses") {
+      const n = Number(meses)
+      if (!Number.isFinite(n) || n < 1) {
+        toast.error("Numero de meses invalido")
+        return
+      }
+    }
+    onGuardar({
+      modo,
+      meses: modo === "n_meses" ? Number(meses) : undefined,
+      fecha: modo === "fecha" ? fecha : undefined,
+    })
+  }
+
+  return (
+    <Dialog open={info !== null} onOpenChange={(o) => { if (!o) onCerrar() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar serie mensual</DialogTitle>
+          <DialogDescription>
+            Cambia la duracion de la serie. Solo se afectan las citas futuras —
+            las pasadas se respetan siempre.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Duracion de la serie</Label>
+            <Select
+              value={modo}
+              onValueChange={(v) =>
+                setModo(v as "indefinido" | "n_meses" | "fecha")
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="indefinido">Indefinida (12 meses)</SelectItem>
+                <SelectItem value="n_meses">Por N meses</SelectItem>
+                <SelectItem value="fecha">Hasta una fecha</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {modo === "n_meses" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="serie-meses">Numero de meses</Label>
+              <Input
+                id="serie-meses"
+                type="number"
+                min="1"
+                max="24"
+                step="1"
+                value={meses}
+                onChange={(e) => setMeses(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Contados desde la primera cita de la serie.
+              </p>
+            </div>
+          )}
+
+          {modo === "fecha" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="serie-fecha">Fecha de fin</Label>
+              <Input
+                id="serie-fecha"
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onCerrar} disabled={isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleGuardar} disabled={isPending}>
+            {isPending ? "Aplicando..." : "Aplicar cambios"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
