@@ -47,3 +47,4 @@ coverage/
 
 # Credenciales de prueba — compartir por separado, nunca subir al repo
 credenciales-prueba.txt
+dashboard/graphify-out/
