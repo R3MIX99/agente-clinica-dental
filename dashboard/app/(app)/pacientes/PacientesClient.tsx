@@ -1052,6 +1052,22 @@ export function PacientesClient({
                 </Link>
               )}
             </div>
+
+            {/* Botón agendar cita */}
+            {drawerPaciente && (
+              <Button
+                size="sm"
+                className="w-full mt-3"
+                onClick={() => {
+                  const p = drawerPaciente
+                  setDrawerPaciente(null)
+                  abrirAgendarCita(p)
+                }}
+              >
+                <CalendarPlus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                Agendar cita
+              </Button>
+            )}
           </DrawerHeader>
 
           {/* Contenido desplazable */}
@@ -1595,7 +1611,7 @@ export function PacientesClient({
 
       {/* Dialog — agendar cita */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Agendar cita</DialogTitle>
           </DialogHeader>
