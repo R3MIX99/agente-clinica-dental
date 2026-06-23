@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { loginAction } from "@/app/actions/auth"
+import { createClient } from "@/lib/supabase/client"
 
 const esquema = z.object({
   email: z.string().email("Ingresa un correo electrónico válido"),
@@ -35,6 +36,16 @@ export function LoginClient() {
       if (resultado?.error) {
         toast.error(resultado.error)
       }
+    })
+  }
+
+  function accederComoSuperadmin() {
+    const supabase = createClient()
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/callback?next=/superadmin`,
+      },
     })
   }
 
@@ -95,6 +106,16 @@ export function LoginClient() {
             )}
           </Button>
         </form>
+
+        <div className="mt-5 border-t border-border pt-4">
+          <button
+            type="button"
+            onClick={accederComoSuperadmin}
+            className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Acceso de superadministrador
+          </button>
+        </div>
       </div>
     </div>
   )

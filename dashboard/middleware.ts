@@ -41,6 +41,19 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Panel de superadmin: solo el correo autorizado entra. Sin sesion o con otro
+  // correo, se redirige a /login para no exponer la existencia del panel.
+  // El control real (verificado + proveedor Google) lo hace assertSuperadmin
+  // en el servidor; esta capa solo bloquea la ruta de forma temprana.
+  if (pathname.startsWith("/superadmin")) {
+    const email = user?.email?.trim().toLowerCase()
+    const permitido = process.env.SUPERADMIN_EMAIL?.trim().toLowerCase()
+    if (!user || !permitido || email !== permitido) {
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+    return supabaseResponse
+  }
+
   // Sin sesion y ruta privada → redirigir a /login
   if (!user && !esPublica(pathname) && !pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/login", request.url))
