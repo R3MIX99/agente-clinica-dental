@@ -1,0 +1,316 @@
+{
+  "name": "03 Respuesta de Agente Humano",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agente-mensaje",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cb75b2f9-9a5e-40cb-8583-28994913699f",
+      "name": "Webhook: recibir mensaje del agente",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        336,
+        1408
+      ],
+      "webhookId": "agente-mensaje-dental"
+    },
+    {
+      "parameters": {
+        "jsCode": "// IMPORTANTE: cambia este valor por tu secreto real y usa el mismo en el dashboard (.env.local N8N_SHARED_SECRET)\nconst SECRETO = 'dental_2026_xK9mPqR';\n\nconst body = $input.first().json.body || {};\nconst headers = $input.first().json.headers || {};\nconst secretRecibido = headers['x-shared-secret'] || headers['X-Shared-Secret'] || '';\n\nreturn [{\n  json: {\n    es_valido: secretRecibido === SECRETO,\n    conversacion_id: body.conversationId || '',\n    channel: body.channel || 'telegram',\n    channel_user_id: body.channelUserId || '',\n    texto: body.texto || '',\n    agente_id: body.agenteId || ''\n  }\n}];\n"
+      },
+      "id": "f3537787-d08c-4169-bd3d-dceff1f6bad9",
+      "name": "Validar secreto y extraer body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        1408
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "c-valido",
+              "leftValue": "={{ $json.es_valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "5e1d8a2f-750d-4d43-aee9-f74997455b3c",
+      "name": "Secreto valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        784,
+        1408
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"No autorizado\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "a26d3102-bb10-480b-b883-1ccd761108b3",
+      "name": "Responder 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1008,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "c-tg",
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "id": "c-wa",
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7246b538-90f6-4437-a455-8ef7a7354c6d",
+      "name": "Switch por canal",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1008,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.channel_user_id }}",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "35e19976-27fa-448c-a402-86c0824fb528",
+      "name": "Telegram: enviar mensaje del agente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1328,
+        1248
+      ],
+      "webhookId": "8c94c7c3-e0f9-4d29-8c44-8a5f5c8fde65",
+      "credentials": {
+        "telegramApi": {
+          "id": "pNvXvZxbpRLsEPIo",
+          "name": "Telegram Bot — Clinica Dental"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "0d5ff794-4ff1-4cbb-a348-bd3ccba49da7",
+      "name": "WhatsApp (pendiente)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.",
+        "height": 80,
+        "width": 316
+      },
+      "id": "2339514b-07fe-4fce-889a-f565cf55b744",
+      "name": "Nota WhatsApp",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        1648
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c85a07b8-90bc-4e36-a047-3fe449f899d9",
+      "name": "Responder 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1664,
+        1312
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: recibir mensaje del agente": {
+      "main": [
+        [
+          {
+            "node": "Validar secreto y extraer body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar secreto y extraer body": {
+      "main": [
+        [
+          {
+            "node": "Secreto valido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Secreto valido?": {
+      "main": [
+        [
+          {
+            "node": "Switch por canal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por canal": {
+      "main": [
+        [
+          {
+            "node": "Telegram: enviar mensaje del agente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp (pendiente)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: enviar mensaje del agente": {
+      "main": [
+        [
+          {
+            "node": "Responder 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp (pendiente)": {
+      "main": [
+        [
+          {
+            "node": "Responder 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "12a49444-af6d-4f7f-bc85-caadb7658366",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7de42bfec74a523754a04b6c97d1d2da61349735ba0caac21b860b05678e36e0"
+  },
+  "id": "eae4V1vp4UP284R2",
+  "tags": []
+}

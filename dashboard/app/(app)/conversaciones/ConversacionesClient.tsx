@@ -902,7 +902,10 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
       {/* ================================================================== */}
       {/* MOVIL (< md) — lista o chat a pantalla completa con animacion       */}
       {/* ================================================================== */}
-      <div className="flex flex-1 flex-col overflow-hidden md:hidden">
+      <div
+        className="flex flex-1 flex-col overflow-hidden md:hidden"
+        style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+      >
         <AnimatePresence mode="wait" initial={false}>
           {!mobileVistaChat ? (
             <motion.div
