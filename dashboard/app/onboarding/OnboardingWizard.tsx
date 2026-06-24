@@ -1,9 +1,8 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { isRedirectError } from "next/dist/client/components/redirect-error"
-import Link from "next/link"
-import { Stethoscope, Loader2, Plus, Trash2, ChevronRight, ArrowLeft } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Stethoscope, Loader2, Plus, Trash2, ChevronRight, ArrowLeft, Send } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +15,8 @@ import {
   guardarServicios,
   guardarFAQ,
   invitarMiembros,
-  completarOnboarding,
+  guardarProgreso,
+  conectarTelegramOnboarding,
 } from "@/app/actions/onboarding"
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ type Servicio = { nombre: string; precio: string; duracion_min: string; }
 type Miembro = { nombre: string; email: string; rol: "doctor" | "supervisor" }
 
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sabado", "Domingo"]
-const PASO_TOTAL = 5
+const PASO_TOTAL = 6
 
 const PASOS = [
   { titulo: "Datos de la clinica", descripcion: "Completa la información de contacto de tu clinica." },
@@ -36,6 +36,7 @@ const PASOS = [
   { titulo: "Servicios", descripcion: "Agrega los primeros servicios que ofreces." },
   { titulo: "FAQ del asistente", descripcion: "Define las preguntas frecuentes que el agente sabra responder." },
   { titulo: "Invitar equipo", descripcion: "Agrega doctores y colaboradores a tu clinica." },
+  { titulo: "Conectar Telegram", descripcion: "Conecta el bot de Telegram para activar el asistente. Este paso es obligatorio." },
 ]
 
 // ---------------------------------------------------------------------------
@@ -46,6 +47,8 @@ export function OnboardingWizard({
   nombreUsuario,
   clinicaInicial,
   serviciosIniciales,
+  pasoInicial,
+  telegramConectado,
 }: {
   nombreUsuario: string
   clinicaInicial: {
@@ -57,8 +60,11 @@ export function OnboardingWizard({
     horario: string
   }
   serviciosIniciales: Servicio[]
+  pasoInicial: number
+  telegramConectado: boolean
 }) {
-  const [paso, setPaso] = useState(1)
+  const router = useRouter()
+  const [paso, setPaso] = useState(Math.min(Math.max(pasoInicial, 1), PASO_TOTAL))
   const [isPending, startTransition] = useTransition()
 
   // ---- Estado paso 1 ----
@@ -92,12 +98,18 @@ export function OnboardingWizard({
   // ---- Estado paso 5 ----
   const [miembros, setMiembros] = useState<Miembro[]>([])
 
+  // ---- Estado paso 6 (Telegram) ----
+  const [token, setToken] = useState("")
+
   // ---------------------------------------------------------------------------
   // Guardar y avanzar
   // ---------------------------------------------------------------------------
 
   function avanzar() {
-    if (paso < PASO_TOTAL) setPaso(paso + 1)
+    const siguiente = Math.min(paso + 1, PASO_TOTAL)
+    setPaso(siguiente)
+    // Persistir el progreso para poder reanudar mas tarde
+    guardarProgreso(siguiente).catch(() => {})
   }
 
   function omitir() {
@@ -162,18 +174,29 @@ export function OnboardingWizard({
     })
   }
 
-  function finalizar() {
+  function guardarPaso5() {
     startTransition(async () => {
       try {
         if (miembros.filter((m) => m.email.trim()).length > 0) {
           await invitarMiembros(miembros.filter((m) => m.email.trim()))
         }
-        await completarOnboarding()
-      } catch (e) {
-        // redirect() lanza un error especial que Next.js maneja internamente — no es un error real
-        if (isRedirectError(e)) throw e
-        toast.error("Error al finalizar la configuración. Intentalo de nuevo.")
+        avanzar()
+      } catch {
+        toast.error("Error al invitar al equipo. Intentalo de nuevo.")
       }
+    })
+  }
+
+  function conectarTelegram() {
+    startTransition(async () => {
+      const r = await conectarTelegramOnboarding(token.trim())
+      if (!r.ok) {
+        toast.error(r.error ?? "No se pudo conectar el bot de Telegram.")
+        return
+      }
+      toast.success("Bot de Telegram conectado. Tu asistente ya esta activo.")
+      router.push("/conversaciones")
+      router.refresh()
     })
   }
 
@@ -194,14 +217,7 @@ export function OnboardingWizard({
             </div>
             <span className="text-sm font-semibold text-foreground">DentalIA</span>
           </div>
-          <button
-            type="button"
-            onClick={() => { startTransition(async () => { await completarOnboarding() }) }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            disabled={isPending}
-          >
-            Omitir configuración
-          </button>
+          <span className="text-xs text-muted-foreground">Configuración inicial</span>
         </div>
       </header>
 
@@ -214,7 +230,7 @@ export function OnboardingWizard({
                 Bienvenido, {nombreUsuario.split(" ")[0]}
               </h1>
               <p className="mt-1 text-muted-foreground">
-                Configuremos tu clinica en pocos pasos. Puedes omitir cualquier paso y completarlo despues.
+                Configuremos tu clinica en pocos pasos. El progreso se guarda solo: puedes salir y continuar despues.
               </p>
             </div>
           )}
@@ -233,7 +249,6 @@ export function OnboardingWizard({
                 style={{ width: `${(paso / PASO_TOTAL) * 100}%` }}
               />
             </div>
-            {/* Indicadores de paso */}
             <div className="mt-2 flex justify-between">
               {PASOS.map((_, i) => (
                 <div
@@ -256,44 +271,11 @@ export function OnboardingWizard({
               {/* ---- Paso 1: Datos de la clinica ---- */}
               {paso === 1 && (
                 <div className="space-y-4">
-                  <CampoOnb
-                    id="tel"
-                    label="Teléfono de la clinica"
-                    value={tel}
-                    onChange={setTel}
-                    placeholder="55 1234 5678"
-                    type="tel"
-                  />
-                  <CampoOnb
-                    id="emailClinica"
-                    label="Correo electrónico de la clinica"
-                    value={emailClinica}
-                    onChange={setEmailClinica}
-                    placeholder="contacto@miclinica.com"
-                    type="email"
-                  />
-                  <CampoOnb
-                    id="dir"
-                    label="Dirección"
-                    value={dir}
-                    onChange={setDir}
-                    placeholder="Calle, colonia, ciudad"
-                  />
-                  <CampoOnb
-                    id="web"
-                    label="Sitio web (opcional)"
-                    value={web}
-                    onChange={setWeb}
-                    placeholder="https://miclinica.com"
-                    type="url"
-                  />
-                  <BotonesNavegacion
-                    paso={paso}
-                    isPending={isPending}
-                    onAtras={() => setPaso(paso - 1)}
-                    onOmitir={omitir}
-                    onContinuar={guardarPaso1}
-                  />
+                  <CampoOnb id="tel" label="Teléfono de la clinica" value={tel} onChange={setTel} placeholder="55 1234 5678" type="tel" />
+                  <CampoOnb id="emailClinica" label="Correo electrónico de la clinica" value={emailClinica} onChange={setEmailClinica} placeholder="contacto@miclinica.com" type="email" />
+                  <CampoOnb id="dir" label="Dirección" value={dir} onChange={setDir} placeholder="Calle, colonia, ciudad" />
+                  <CampoOnb id="web" label="Sitio web (opcional)" value={web} onChange={setWeb} placeholder="https://miclinica.com" type="url" />
+                  <BotonesNavegacion paso={paso} isPending={isPending} onAtras={() => setPaso(paso - 1)} onOmitir={omitir} onContinuar={guardarPaso1} />
                 </div>
               )}
 
@@ -311,45 +293,23 @@ export function OnboardingWizard({
                         }}
                         id={`día-${h.día}`}
                       />
-                      <Label htmlFor={`día-${h.día}`} className="w-24 text-sm">
-                        {h.día}
-                      </Label>
+                      <Label htmlFor={`día-${h.día}`} className="w-24 text-sm">{h.día}</Label>
                       {h.activo ? (
                         <div className="flex items-center gap-2 flex-1">
-                          <input
-                            type="time"
-                            value={h.apertura}
-                            onChange={(e) => {
-                              const copia = [...horarios]
-                              copia[i] = { ...copia[i], apertura: e.target.value }
-                              setHorarios(copia)
-                            }}
-                            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                          />
+                          <input type="time" value={h.apertura}
+                            onChange={(e) => { const c = [...horarios]; c[i] = { ...c[i], apertura: e.target.value }; setHorarios(c) }}
+                            className="h-8 rounded-md border border-input bg-background px-2 text-sm" />
                           <span className="text-muted-foreground text-sm">a</span>
-                          <input
-                            type="time"
-                            value={h.cierre}
-                            onChange={(e) => {
-                              const copia = [...horarios]
-                              copia[i] = { ...copia[i], cierre: e.target.value }
-                              setHorarios(copia)
-                            }}
-                            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                          />
+                          <input type="time" value={h.cierre}
+                            onChange={(e) => { const c = [...horarios]; c[i] = { ...c[i], cierre: e.target.value }; setHorarios(c) }}
+                            className="h-8 rounded-md border border-input bg-background px-2 text-sm" />
                         </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">Cerrado</span>
                       )}
                     </div>
                   ))}
-                  <BotonesNavegacion
-                    paso={paso}
-                    isPending={isPending}
-                    onAtras={() => setPaso(paso - 1)}
-                    onOmitir={omitir}
-                    onContinuar={guardarPaso2}
-                  />
+                  <BotonesNavegacion paso={paso} isPending={isPending} onAtras={() => setPaso(paso - 1)} onOmitir={omitir} onContinuar={guardarPaso2} />
                 </div>
               )}
 
@@ -363,55 +323,26 @@ export function OnboardingWizard({
                   </div>
                   {servicios.map((s, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                      <Input
-                        className="col-span-8 h-8 text-sm"
-                        value={s.nombre}
-                        onChange={(e) => {
-                          const copia = [...servicios]
-                          copia[i] = { ...copia[i], nombre: e.target.value }
-                          setServicios(copia)
-                        }}
-                        placeholder="Nombre del servicio"
-                      />
-                      <Input
-                        className="col-span-3 h-8 text-sm"
-                        type="number"
-                        value={s.duracion_min}
-                        onChange={(e) => {
-                          const copia = [...servicios]
-                          copia[i] = { ...copia[i], duracion_min: e.target.value }
-                          setServicios(copia)
-                        }}
-                        placeholder="30"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setServicios(servicios.filter((_, j) => j !== i))}
+                      <Input className="col-span-8 h-8 text-sm" value={s.nombre}
+                        onChange={(e) => { const c = [...servicios]; c[i] = { ...c[i], nombre: e.target.value }; setServicios(c) }}
+                        placeholder="Nombre del servicio" />
+                      <Input className="col-span-3 h-8 text-sm" type="number" value={s.duracion_min}
+                        onChange={(e) => { const c = [...servicios]; c[i] = { ...c[i], duracion_min: e.target.value }; setServicios(c) }}
+                        placeholder="30" />
+                      <button type="button" onClick={() => setServicios(servicios.filter((_, j) => j !== i))}
                         className="col-span-1 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
-                        aria-label="Eliminar servicio"
-                      >
+                        aria-label="Eliminar servicio">
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   ))}
                   {servicios.length < 10 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setServicios([...servicios, { nombre: "", precio: "0", duracion_min: "30" }])}
-                    >
-                      <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
-                      Agregar servicio
+                    <Button type="button" variant="outline" size="sm"
+                      onClick={() => setServicios([...servicios, { nombre: "", precio: "0", duracion_min: "30" }])}>
+                      <Plus className="mr-1 h-4 w-4" aria-hidden="true" />Agregar servicio
                     </Button>
                   )}
-                  <BotonesNavegacion
-                    paso={paso}
-                    isPending={isPending}
-                    onAtras={() => setPaso(paso - 1)}
-                    onOmitir={omitir}
-                    onContinuar={guardarPaso3}
-                  />
+                  <BotonesNavegacion paso={paso} isPending={isPending} onAtras={() => setPaso(paso - 1)} onOmitir={omitir} onContinuar={guardarPaso3} />
                 </div>
               )}
 
@@ -419,28 +350,15 @@ export function OnboardingWizard({
               {paso === 4 && (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="faq">
-                      Preguntas frecuentes y respuestas
-                    </Label>
-                    <Textarea
-                      id="faq"
-                      value={faq}
-                      onChange={(e) => setFaq(e.target.value)}
-                      rows={10}
+                    <Label htmlFor="faq">Preguntas frecuentes y respuestas</Label>
+                    <Textarea id="faq" value={faq} onChange={(e) => setFaq(e.target.value)} rows={10}
                       className="text-sm font-mono resize-none"
-                      placeholder="Escribe aquí las preguntas y respuestas que el agente usara..."
-                    />
+                      placeholder="Escribe aquí las preguntas y respuestas que el agente usara..." />
                     <p className="text-xs text-muted-foreground">
                       Escribe en formato pregunta/respuesta. El agente usara este contenido para responder a tus pacientes.
                     </p>
                   </div>
-                  <BotonesNavegacion
-                    paso={paso}
-                    isPending={isPending}
-                    onAtras={() => setPaso(paso - 1)}
-                    onOmitir={omitir}
-                    onContinuar={guardarPaso4}
-                  />
+                  <BotonesNavegacion paso={paso} isPending={isPending} onAtras={() => setPaso(paso - 1)} onOmitir={omitir} onContinuar={guardarPaso4} />
                 </div>
               )}
 
@@ -452,84 +370,69 @@ export function OnboardingWizard({
                       {miembros.map((m, i) => (
                         <div key={i} className="flex gap-2 items-start">
                           <div className="flex-1 grid grid-cols-3 gap-2">
-                            <Input
-                              className="h-8 text-sm"
-                              value={m.nombre}
-                              onChange={(e) => {
-                                const c = [...miembros]
-                                c[i] = { ...c[i], nombre: e.target.value }
-                                setMiembros(c)
-                              }}
-                              placeholder="Nombre"
-                            />
-                            <Input
-                              className="h-8 text-sm"
-                              type="email"
-                              value={m.email}
-                              onChange={(e) => {
-                                const c = [...miembros]
-                                c[i] = { ...c[i], email: e.target.value }
-                                setMiembros(c)
-                              }}
-                              placeholder="correo@ejemplo.com"
-                            />
-                            <select
-                              value={m.rol}
-                              onChange={(e) => {
-                                const c = [...miembros]
-                                c[i] = { ...c[i], rol: e.target.value as "doctor" | "supervisor" }
-                                setMiembros(c)
-                              }}
-                              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                            >
+                            <Input className="h-8 text-sm" value={m.nombre}
+                              onChange={(e) => { const c = [...miembros]; c[i] = { ...c[i], nombre: e.target.value }; setMiembros(c) }}
+                              placeholder="Nombre" />
+                            <Input className="h-8 text-sm" type="email" value={m.email}
+                              onChange={(e) => { const c = [...miembros]; c[i] = { ...c[i], email: e.target.value }; setMiembros(c) }}
+                              placeholder="correo@ejemplo.com" />
+                            <select value={m.rol}
+                              onChange={(e) => { const c = [...miembros]; c[i] = { ...c[i], rol: e.target.value as "doctor" | "supervisor" }; setMiembros(c) }}
+                              className="h-8 rounded-md border border-input bg-background px-2 text-sm">
                               <option value="doctor">Doctor</option>
                               <option value="supervisor">Supervisor</option>
                             </select>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setMiembros(miembros.filter((_, j) => j !== i))}
-                            className="mt-1 text-muted-foreground hover:text-destructive transition-colors"
-                            aria-label="Eliminar miembro"
-                          >
+                          <button type="button" onClick={() => setMiembros(miembros.filter((_, j) => j !== i))}
+                            className="mt-1 text-muted-foreground hover:text-destructive transition-colors" aria-label="Eliminar miembro">
                             <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setMiembros([...miembros, { nombre: "", email: "", rol: "doctor" }])
-                    }
-                  >
-                    <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
-                    Agregar miembro
+                  <Button type="button" variant="outline" size="sm"
+                    onClick={() => setMiembros([...miembros, { nombre: "", email: "", rol: "doctor" }])}>
+                    <Plus className="mr-1 h-4 w-4" aria-hidden="true" />Agregar miembro
                   </Button>
                   <p className="text-xs text-muted-foreground">
                     Cada miembro recibira un correo de invitación para crear su acceso.
                   </p>
+                  <BotonesNavegacion paso={paso} isPending={isPending} onAtras={() => setPaso(paso - 1)} onOmitir={omitir} onContinuar={guardarPaso5} />
+                </div>
+              )}
 
-                  {/* Botones finales */}
+              {/* ---- Paso 6: Telegram (obligatorio) ---- */}
+              {paso === 6 && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground space-y-2">
+                    <p className="font-medium text-foreground">Cómo obtener el token de tu bot</p>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>En Telegram, abre una conversación con <strong>@BotFather</strong>.</li>
+                      <li>Envía <strong>/newbot</strong> y sigue las instrucciones (nombre y usuario del bot).</li>
+                      <li>BotFather te dará un token. Cópialo y pégalo aquí abajo.</li>
+                    </ol>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="token">Token del bot de Telegram</Label>
+                    <Input id="token" value={token} onChange={(e) => setToken(e.target.value)}
+                      placeholder="123456789:ABCdEfGhIjKlMnOpQrStUvWxYz" />
+                    <p className="text-xs text-muted-foreground">
+                      Este paso es obligatorio: sin el bot, el asistente no puede responder a tus pacientes.
+                    </p>
+                  </div>
+                  {telegramConectado && (
+                    <p className="text-xs text-primary">Ya tienes un bot conectado. Puedes reemplazarlo pegando un token nuevo.</p>
+                  )}
                   <div className="flex gap-3 pt-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setPaso(paso - 1)}>
-                      <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
-                      Atras
+                    <Button variant="outline" onClick={() => setPaso(paso - 1)} className="shrink-0">
+                      <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />Atras
                     </Button>
-                    <Button variant="ghost" className="flex-1" onClick={finalizar} disabled={isPending}>
-                      Omitir y entrar
-                    </Button>
-                    <Button className="flex-1" onClick={finalizar} disabled={isPending}>
+                    <Button onClick={conectarTelegram} disabled={isPending || !token.trim()} className="flex-1">
                       {isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                          Finalizando...
-                        </>
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Conectando...</>
                       ) : (
-                        "Finalizar"
+                        <><Send className="mr-1 h-4 w-4" aria-hidden="true" />Conectar y finalizar</>
                       )}
                     </Button>
                   </div>
@@ -548,12 +451,7 @@ export function OnboardingWizard({
 // ---------------------------------------------------------------------------
 
 function CampoOnb({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
+  id, label, value, onChange, placeholder, type = "text",
 }: {
   id: string
   label: string
@@ -565,23 +463,13 @@ function CampoOnb({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
+      <Input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
     </div>
   )
 }
 
 function BotonesNavegacion({
-  paso,
-  isPending,
-  onAtras,
-  onOmitir,
-  onContinuar,
+  paso, isPending, onAtras, onOmitir, onContinuar,
 }: {
   paso: number
   isPending: boolean
@@ -593,24 +481,15 @@ function BotonesNavegacion({
     <div className="flex gap-3 pt-2">
       {paso > 1 && (
         <Button variant="outline" onClick={onAtras} className="shrink-0">
-          <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
-          Atras
+          <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />Atras
         </Button>
       )}
-      <Button variant="ghost" onClick={onOmitir} className="flex-1">
-        Omitir este paso
-      </Button>
+      <Button variant="ghost" onClick={onOmitir} className="flex-1">Omitir este paso</Button>
       <Button onClick={onContinuar} disabled={isPending} className="flex-1">
         {isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-            Guardando...
-          </>
+          <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Guardando...</>
         ) : (
-          <>
-            Continuar
-            <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
-          </>
+          <>Continuar<ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" /></>
         )}
       </Button>
     </div>

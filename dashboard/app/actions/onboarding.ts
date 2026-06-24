@@ -4,8 +4,19 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createAuthClient } from "@/lib/supabase/server-auth"
 import { resolverClinicaId } from "@/lib/supabase/server-auth"
 import { verificarLimiteDoctores, verificarLimiteUsuarios } from "@/app/actions/uso"
+import { conectarTelegramBot } from "@/lib/telegram"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+
+// ---------------------------------------------------------------------------
+// Progreso del wizard — se guarda el paso para poder reanudar
+// ---------------------------------------------------------------------------
+
+export async function guardarProgreso(paso: number) {
+  const clinicaId = await resolverClinicaId()
+  const db = createServerClient()
+  await db.from("clinicas").update({ onboarding_paso: paso } as never).eq("id", clinicaId)
+}
 
 // ---------------------------------------------------------------------------
 // Paso 1 — Completar datos de la clinica
@@ -159,13 +170,20 @@ export async function invitarMiembros(miembros: DatosMiembro[]) {
 // Finalizar onboarding
 // ---------------------------------------------------------------------------
 
-export async function completarOnboarding() {
+// Paso final obligatorio: conectar el bot de Telegram. Solo cuando el bot queda
+// conectado se marca el onboarding como completado. No se puede omitir.
+export async function conectarTelegramOnboarding(
+  botToken: string,
+): Promise<{ ok: boolean; error?: string; botUsername?: string | null }> {
   const clinicaId = await resolverClinicaId()
+  const resultado = await conectarTelegramBot(clinicaId, botToken)
+  if (!resultado.ok) return resultado
+
   const db = createServerClient()
   await db
     .from("clinicas")
-    .update({ onboarding_completado: true } as any)
+    .update({ onboarding_completado: true, onboarding_paso: 6 } as never)
     .eq("id", clinicaId)
   revalidatePath("/onboarding")
-  redirect("/conversaciones")
+  return resultado
 }

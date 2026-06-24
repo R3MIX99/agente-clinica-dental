@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
   // Leer datos actuales de la clinica
   const { data: clinica } = await db
     .from("clinicas")
-    .select("id, nombre, telefono, email, direccion, sitio_web, horario, onboarding_completado")
+    .select("id, nombre, telefono, email, direccion, sitio_web, horario, onboarding_completado, onboarding_paso")
     .eq("id", perfil.clinica_id)
     .single()
 
@@ -38,6 +38,16 @@ export default async function OnboardingPage() {
     .eq("clinica_id", perfil.clinica_id)
     .eq("activo", true)
     .limit(10)
+
+  // Estado del canal de Telegram (para el paso final)
+  const { data: canal } = await db
+    .from("clinic_channels")
+    .select("activo, config")
+    .eq("clinica_id", perfil.clinica_id)
+    .eq("canal", "telegram")
+    .maybeSingle()
+  const cfg = canal?.config as { bot_token?: string } | null
+  const telegramConectado = !!canal?.activo && !!cfg?.bot_token
 
   return (
     <OnboardingWizard
@@ -55,6 +65,8 @@ export default async function OnboardingPage() {
         precio: String(s.precio ?? ""),
         duracion_min: String(s.duracion_min ?? "30"),
       }))}
+      pasoInicial={clinica?.onboarding_paso ?? 1}
+      telegramConectado={telegramConectado}
     />
   )
 }
