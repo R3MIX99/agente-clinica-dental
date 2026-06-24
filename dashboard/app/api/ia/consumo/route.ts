@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await db.rpc("registrar_consumo_ia", {
     p_clinica_id:      clinica_id,
-    p_conversacion_id: conversacion_id ?? null,
+    p_conversacion_id: (conversacion_id ?? null) as string,
     p_tokens_entrada:  tokens_entrada,
     p_tokens_salida:   tokens_salida,
     p_modelo:          modelo ?? "claude-haiku-4-5-20251001",

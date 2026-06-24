@@ -7,11 +7,55 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      addons: {
+        Row: {
+          activo: boolean
+          clave: string
+          created_at: string
+          descripcion: string
+          id: string
+          incremento_doctores: number
+          incremento_recordatorios: number
+          incremento_usuarios: number
+          nombre: string
+          precio_mensual_mxn: number
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          clave: string
+          created_at?: string
+          descripcion?: string
+          id?: string
+          incremento_doctores?: number
+          incremento_recordatorios?: number
+          incremento_usuarios?: number
+          nombre: string
+          precio_mensual_mxn: number
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          clave?: string
+          created_at?: string
+          descripcion?: string
+          id?: string
+          incremento_doctores?: number
+          incremento_recordatorios?: number
+          incremento_usuarios?: number
+          nombre?: string
+          precio_mensual_mxn?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           activo: boolean
@@ -133,6 +177,47 @@ export type Database = {
           },
         ]
       }
+      clinic_channels: {
+        Row: {
+          activo: boolean
+          canal: Database["public"]["Enums"]["channel_type"]
+          clinica_id: string
+          config: Json
+          created_at: string
+          id: string
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          activo?: boolean
+          canal: Database["public"]["Enums"]["channel_type"]
+          clinica_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          activo?: boolean
+          canal?: Database["public"]["Enums"]["channel_type"]
+          clinica_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_channels_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_info: {
         Row: {
           created_at: string
@@ -220,47 +305,6 @@ export type Database = {
           },
         ]
       }
-      clinic_channels: {
-        Row: {
-          activo: boolean
-          canal: Database["public"]["Enums"]["channel_type"]
-          clinica_id: string
-          config: Json
-          created_at: string
-          id: string
-          updated_at: string
-          webhook_url: string | null
-        }
-        Insert: {
-          activo?: boolean
-          canal: Database["public"]["Enums"]["channel_type"]
-          clinica_id: string
-          config?: Json
-          created_at?: string
-          id?: string
-          updated_at?: string
-          webhook_url?: string | null
-        }
-        Update: {
-          activo?: boolean
-          canal?: Database["public"]["Enums"]["channel_type"]
-          clinica_id?: string
-          config?: Json
-          created_at?: string
-          id?: string
-          updated_at?: string
-          webhook_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinic_channels_clinica_id_fkey"
-            columns: ["clinica_id"]
-            isOneToOne: false
-            referencedRelation: "clinicas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clinicas: {
         Row: {
           activa: boolean
@@ -277,6 +321,7 @@ export type Database = {
           mapa_url: string | null
           nombre: string | null
           onboarding_completado: boolean
+          onboarding_paso: number
           sitio_web: string | null
           telefono: string | null
           updated_at: string
@@ -297,6 +342,7 @@ export type Database = {
           mapa_url?: string | null
           nombre?: string | null
           onboarding_completado?: boolean
+          onboarding_paso?: number
           sitio_web?: string | null
           telefono?: string | null
           updated_at?: string
@@ -317,6 +363,7 @@ export type Database = {
           mapa_url?: string | null
           nombre?: string | null
           onboarding_completado?: boolean
+          onboarding_paso?: number
           sitio_web?: string | null
           telefono?: string | null
           updated_at?: string
@@ -328,6 +375,104 @@ export type Database = {
             columns: ["cuenta_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      config_sistema: {
+        Row: {
+          clave: string
+          descripcion: string | null
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          clave: string
+          descripcion?: string | null
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          clave?: string
+          descripcion?: string | null
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: []
+      }
+      consumos_ia: {
+        Row: {
+          clinica_id: string
+          conversacion_id: string | null
+          costo_api_usd: number
+          costo_descontado_mxn: number
+          created_at: string
+          cuenta_id: string
+          id: string
+          markup: number
+          modelo: string
+          suscripcion_id: string
+          tipo_cambio: number
+          tokens_entrada: number
+          tokens_salida: number
+        }
+        Insert: {
+          clinica_id: string
+          conversacion_id?: string | null
+          costo_api_usd?: number
+          costo_descontado_mxn?: number
+          created_at?: string
+          cuenta_id: string
+          id?: string
+          markup?: number
+          modelo?: string
+          suscripcion_id: string
+          tipo_cambio?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+        }
+        Update: {
+          clinica_id?: string
+          conversacion_id?: string | null
+          costo_api_usd?: number
+          costo_descontado_mxn?: number
+          created_at?: string
+          cuenta_id?: string
+          id?: string
+          markup?: number
+          modelo?: string
+          suscripcion_id?: string
+          tipo_cambio?: number
+          tokens_entrada?: number
+          tokens_salida?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumos_ia_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumos_ia_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumos_ia_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumos_ia_suscripcion_id_fkey"
+            columns: ["suscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "suscripciones"
             referencedColumns: ["id"]
           },
         ]
@@ -502,6 +647,50 @@ export type Database = {
             columns: ["clinica_id"]
             isOneToOne: false
             referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historial_pagos: {
+        Row: {
+          concepto: string | null
+          created_at: string
+          cuenta_id: string
+          id: string
+          monto_mxn: number | null
+          mp_payment_id: string | null
+          mp_preapproval_id: string | null
+          status: string
+          suscripcion_id: string
+        }
+        Insert: {
+          concepto?: string | null
+          created_at?: string
+          cuenta_id: string
+          id?: string
+          monto_mxn?: number | null
+          mp_payment_id?: string | null
+          mp_preapproval_id?: string | null
+          status: string
+          suscripcion_id: string
+        }
+        Update: {
+          concepto?: string | null
+          created_at?: string
+          cuenta_id?: string
+          id?: string
+          monto_mxn?: number | null
+          mp_payment_id?: string | null
+          mp_preapproval_id?: string | null
+          status?: string
+          suscripcion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historial_pagos_suscripcion_id_fkey"
+            columns: ["suscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "suscripciones"
             referencedColumns: ["id"]
           },
         ]
@@ -714,6 +903,7 @@ export type Database = {
           precio_anual_mxn: number
           precio_mensual_mxn: number
           saldo_ia_incluido_mxn: number
+          saldo_ia_pct: number
         }
         Insert: {
           activo?: boolean
@@ -727,6 +917,7 @@ export type Database = {
           precio_anual_mxn: number
           precio_mensual_mxn: number
           saldo_ia_incluido_mxn: number
+          saldo_ia_pct?: number
         }
         Update: {
           activo?: boolean
@@ -740,6 +931,7 @@ export type Database = {
           precio_anual_mxn?: number
           precio_mensual_mxn?: number
           saldo_ia_incluido_mxn?: number
+          saldo_ia_pct?: number
         }
         Relationships: []
       }
@@ -800,6 +992,67 @@ export type Database = {
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recargas_saldo: {
+        Row: {
+          clinica_id: string
+          created_at: string
+          cuenta_id: string
+          estado: string
+          id: string
+          monto_mxn: number
+          referencia_pago: string | null
+          suscripcion_id: string
+          updated_at: string
+          vigencia_fin: string | null
+        }
+        Insert: {
+          clinica_id: string
+          created_at?: string
+          cuenta_id: string
+          estado?: string
+          id?: string
+          monto_mxn: number
+          referencia_pago?: string | null
+          suscripcion_id: string
+          updated_at?: string
+          vigencia_fin?: string | null
+        }
+        Update: {
+          clinica_id?: string
+          created_at?: string
+          cuenta_id?: string
+          estado?: string
+          id?: string
+          monto_mxn?: number
+          referencia_pago?: string | null
+          suscripcion_id?: string
+          updated_at?: string
+          vigencia_fin?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recargas_saldo_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recargas_saldo_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recargas_saldo_suscripcion_id_fkey"
+            columns: ["suscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "suscripciones"
             referencedColumns: ["id"]
           },
         ]
@@ -893,84 +1146,6 @@ export type Database = {
           },
         ]
       }
-      historial_pagos: {
-        Row: {
-          concepto: string | null
-          cuenta_id: string
-          created_at: string
-          id: string
-          mp_payment_id: string | null
-          mp_preapproval_id: string | null
-          monto_mxn: number | null
-          status: string
-          suscripcion_id: string
-        }
-        Insert: {
-          concepto?: string | null
-          cuenta_id: string
-          created_at?: string
-          id?: string
-          mp_payment_id?: string | null
-          mp_preapproval_id?: string | null
-          monto_mxn?: number | null
-          status: string
-          suscripcion_id: string
-        }
-        Update: {
-          concepto?: string | null
-          cuenta_id?: string
-          created_at?: string
-          id?: string
-          mp_payment_id?: string | null
-          mp_preapproval_id?: string | null
-          monto_mxn?: number | null
-          status?: string
-          suscripcion_id?: string
-        }
-        Relationships: []
-      }
-      addons: {
-        Row: {
-          activo: boolean
-          clave: string
-          created_at: string
-          descripcion: string
-          id: string
-          incremento_doctores: number
-          incremento_recordatorios: number
-          incremento_usuarios: number
-          nombre: string
-          precio_mensual_mxn: number
-          tipo: string
-        }
-        Insert: {
-          activo?: boolean
-          clave: string
-          created_at?: string
-          descripcion?: string
-          id?: string
-          incremento_doctores?: number
-          incremento_recordatorios?: number
-          incremento_usuarios?: number
-          nombre: string
-          precio_mensual_mxn: number
-          tipo: string
-        }
-        Update: {
-          activo?: boolean
-          clave?: string
-          created_at?: string
-          descripcion?: string
-          id?: string
-          incremento_doctores?: number
-          incremento_recordatorios?: number
-          incremento_usuarios?: number
-          nombre?: string
-          precio_mensual_mxn?: number
-          tipo?: string
-        }
-        Relationships: []
-      }
       suscripcion_addons: {
         Row: {
           activo: boolean
@@ -1036,6 +1211,7 @@ export type Database = {
           plan_id: string
           plan_siguiente_id: string | null
           recordatorios_enviados: number
+          recordatorios_extra: number
           saldo_ia_disponible_mxn: number
         }
         Insert: {
@@ -1054,6 +1230,7 @@ export type Database = {
           plan_id: string
           plan_siguiente_id?: string | null
           recordatorios_enviados?: number
+          recordatorios_extra?: number
           saldo_ia_disponible_mxn?: number
         }
         Update: {
@@ -1072,6 +1249,7 @@ export type Database = {
           plan_id?: string
           plan_siguiente_id?: string | null
           recordatorios_enviados?: number
+          recordatorios_extra?: number
           saldo_ia_disponible_mxn?: number
         }
         Relationships: [
@@ -1143,135 +1321,41 @@ export type Database = {
           },
         ]
       }
-      config_sistema: {
-        Row: {
-          clave: string
-          valor: string
-          descripcion: string | null
-          updated_at: string
-        }
-        Insert: {
-          clave: string
-          valor: string
-          descripcion?: string | null
-          updated_at?: string
-        }
-        Update: {
-          clave?: string
-          valor?: string
-          descripcion?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      consumos_ia: {
-        Row: {
-          id: string
-          cuenta_id: string
-          clinica_id: string
-          suscripcion_id: string
-          conversacion_id: string | null
-          modelo: string
-          tokens_entrada: number
-          tokens_salida: number
-          costo_api_usd: number
-          tipo_cambio: number
-          markup: number
-          costo_descontado_mxn: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          cuenta_id: string
-          clinica_id: string
-          suscripcion_id: string
-          conversacion_id?: string | null
-          modelo?: string
-          tokens_entrada?: number
-          tokens_salida?: number
-          costo_api_usd?: number
-          tipo_cambio?: number
-          markup?: number
-          costo_descontado_mxn?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          cuenta_id?: string
-          clinica_id?: string
-          suscripcion_id?: string
-          conversacion_id?: string | null
-          modelo?: string
-          tokens_entrada?: number
-          tokens_salida?: number
-          costo_api_usd?: number
-          tipo_cambio?: number
-          markup?: number
-          costo_descontado_mxn?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      recargas_saldo: {
-        Row: {
-          id: string
-          cuenta_id: string
-          clinica_id: string
-          suscripcion_id: string
-          monto_mxn: number
-          estado: string
-          referencia_pago: string | null
-          vigencia_fin: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          cuenta_id: string
-          clinica_id: string
-          suscripcion_id: string
-          monto_mxn: number
-          estado?: string
-          referencia_pago?: string | null
-          vigencia_fin?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          cuenta_id?: string
-          clinica_id?: string
-          suscripcion_id?: string
-          monto_mxn?: number
-          estado?: string
-          referencia_pago?: string | null
-          vigencia_fin?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      canal_telegram_por_clinica: {
+        Args: { p_clinica_id: string }
+        Returns: {
+          activo: boolean
+          bot_token: string
+          cuenta_id: string
+        }[]
+      }
+      canal_telegram_por_secret_token: {
+        Args: { p_secret: string }
+        Returns: {
+          activo: boolean
+          bot_token: string
+          clinica_id: string
+          cuenta_id: string
+        }[]
+      }
       es_superadmin: { Args: never; Returns: boolean }
-      usuario_en_clinica: { Args: { p_clinica_id: string }; Returns: boolean }
+      ia_disponible: { Args: { p_clinica_id: string }; Returns: Json }
       registrar_consumo_ia: {
         Args: {
           p_clinica_id: string
-          p_conversacion_id: string | null
+          p_conversacion_id: string
+          p_modelo?: string
           p_tokens_entrada: number
           p_tokens_salida: number
-          p_modelo?: string
         }
         Returns: Json
       }
-      ia_disponible: {
-        Args: { p_clinica_id: string }
-        Returns: Json
-      }
+      usuario_en_clinica: { Args: { p_clinica_id: string }; Returns: boolean }
     }
     Enums: {
       agent_role: "admin" | "recepcion" | "odontologo"
@@ -1295,6 +1379,7 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -1307,15 +1392,19 @@ export type Tables<
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1331,7 +1420,9 @@ export type TablesInsert<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
@@ -1354,7 +1445,9 @@ export type TablesUpdate<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
@@ -1377,17 +1470,42 @@ export type Enums<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
       agent_role: ["admin", "recepcion", "odontologo"],
-      appointment_status: ["programada", "confirmada", "cancelada", "completada", "no_asistio"],
+      appointment_status: [
+        "programada",
+        "confirmada",
+        "cancelada",
+        "completada",
+        "no_asistio",
+      ],
       channel_type: ["telegram", "whatsapp"],
       conversation_mode: ["bot", "humano"],
       conversation_status: ["abierta", "pendiente", "cerrada"],
