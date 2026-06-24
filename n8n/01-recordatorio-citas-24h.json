@@ -3,30 +3,13 @@
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 15
-            }
-          ]
-        }
+        "rule": { "interval": [ { "field": "minutes", "minutesInterval": 15 } ] }
       },
-      "id": "6bfb80bb-decd-4ad4-9cbc-5726568d665a",
+      "id": "fb1abd22-3e8c-49fe-b182-c9a3f782c601",
       "name": "Disparador cada 15 minutos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [368, 1392]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ============================================================\n// CONFIGURACION POR CLINICA\n// Al importar para una nueva clinica, reemplaza ambos UUIDs.\n// clinica_id: ID de la clinica en la tabla clinicas.\n// cuenta_id:  ID de la cuenta (tabla cuentas) — necesario para uso_metering.\n// ============================================================\nconst clinica_id = 'REEMPLAZAR_CON_UUID_DE_CLINICA';\nconst cuenta_id  = 'REEMPLAZAR_CON_UUID_DE_CUENTA';\nreturn [{ json: { clinica_id, cuenta_id } }];\n"
-      },
-      "id": "node-contexto-clinica",
-      "name": "Contexto de clinica",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [368, 1200]
+      "position": [-1456, 80]
     },
     {
       "parameters": {
@@ -36,97 +19,88 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {
-              "name": "select",
-              "value": "id,fecha_hora,costo,status,clinica_id,patient_id,service_id,patients(nombre,channel,channel_user_id),services(nombre)"
-            },
-            {
-              "name": "clinica_id",
-              "value": "={{ 'eq.' + $('Contexto de clinica').first().json.clinica_id }}"
-            },
-            {
-              "name": "status",
-              "value": "in.(programada,confirmada)"
-            },
-            {
-              "name": "recordatorio_enviado_at",
-              "value": "is.null"
-            }
+            { "name": "select", "value": "id,fecha_hora,costo,status,clinica_id,patient_id,service_id,patients(nombre,channel,channel_user_id),services(nombre),clinicas(cuenta_id,activa)" },
+            { "name": "status", "value": "in.(programada,confirmada)" },
+            { "name": "recordatorio_enviado_at", "value": "is.null" }
           ]
         },
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
-          ]
-        },
+        "headerParameters": { "parameters": [ { "name": "Accept", "value": "application/json" } ] },
         "options": {}
       },
-      "id": "92c67b06-0c4a-45e1-a41d-52ebab24bcb4",
-      "name": "Buscar citas sin recordatorio",
+      "id": "b0a0baae-bcde-43ec-b9a1-007ea33946ad",
+      "name": "Buscar citas sin recordatorio (todas las clinicas)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [592, 1392],
+      "position": [-1232, 80],
       "credentials": {
-        "supabaseApi": {
-          "id": "tkYN9T844RX9s9K8",
-          "name": "Supabase — Clinica Dental"
-        }
+        "supabaseApi": { "id": "tkYN9T844RX9s9K8", "name": "Supabase — Clinica Dental" }
       }
     },
     {
       "parameters": {
-        "jsCode": "const todos = $input.all();\nlet citas = [];\nif (todos.length === 1 && Array.isArray(todos[0].json)) {\n  citas = todos[0].json;\n} else {\n  citas = todos.map(i => i.json).filter(v => v && typeof v === 'object' && !Array.isArray(v));\n}\n\nconst ahora = Date.now();\nconst min = ahora + 23 * 3600000;\nconst max = ahora + 25 * 3600000;\n\nconst enVentana = citas.filter(c => {\n  const iso = (c.fecha_hora || '').replace(' ', 'T').replace(/\\+(\\d{2})$/, '+$1:00');\n  const t = new Date(iso).getTime();\n  return !isNaN(t) && t >= min && t <= max;\n});\n\nreturn enVentana.map(c => ({ json: c }));"
+        "jsCode": "const todos = $input.all();\nlet citas = [];\nif (todos.length === 1 && Array.isArray(todos[0].json)) {\n  citas = todos[0].json;\n} else {\n  citas = todos.map(i => i.json).filter(v => v && typeof v === 'object' && !Array.isArray(v));\n}\n\nconst ahora = Date.now();\nconst min = ahora + 23 * 3600000;\nconst max = ahora + 25 * 3600000;\n\nconst enVentana = citas.filter(c => {\n  if (!c.clinicas || c.clinicas.activa === false) return false;\n  const iso = (c.fecha_hora || '').replace(' ', 'T').replace(/\\+(\\d{2})$/, '+$1:00');\n  const t = new Date(iso).getTime();\n  return !isNaN(t) && t >= min && t <= max;\n});\n\nreturn enVentana.map(c => ({ json: c }));"
       },
-      "id": "2bda3542-bd6b-4f3c-8865-a3e4400e7c4d",
+      "id": "b172c067-0593-4ce4-abe3-6a2f522cec75",
       "name": "Filtrar ventana 23-25h",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [816, 1392]
+      "position": [-1008, 80]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
           "conditions": [
             {
               "id": "cond-hay",
               "leftValue": "={{ $input.all().length }}",
               "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
-              }
+              "operator": { "type": "number", "operation": "gt" }
             }
           ],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "e01d2010-1ae7-49bd-aa7e-710fd3540a74",
+      "id": "3ac76e74-1c32-46c3-a1d9-ed3be80958da",
       "name": "Hay citas en ventana?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1024, 1392]
+      "position": [-800, 80]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const cita = $input.item.json;\nconst paciente = cita.patients;\nconst servicio = cita.services;\nconst ctx = $('Contexto de clinica').first().json;\n\nconst isoFecha = (cita.fecha_hora || '').replace(' ', 'T').replace(/\\+(\\d{2})$/, '+$1:00');\nconst fecha = new Date(isoFecha);\n\nconst opsFecha = { timeZone: 'America/Mexico_City', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };\nconst opsHora  = { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true };\nconst fechaTxt = fecha.toLocaleDateString('es-MX', opsFecha);\nconst horaTxt  = fecha.toLocaleTimeString('es-MX', opsHora);\n\nconst texto = 'Estimado(a) ' + paciente.nombre + ', le recordamos su cita de ' + servicio.nombre + ' programada para el ' + fechaTxt + ' a las ' + horaTxt + '.';\n\nreturn {\n  json: {\n    id:                 cita.id,\n    clinica_id:         cita.clinica_id || ctx.clinica_id,\n    cuenta_id:          ctx.cuenta_id,\n    channel:            paciente.channel,\n    channel_user_id:    paciente.channel_user_id,\n    texto_recordatorio: texto\n  }\n};"
+        "jsCode": "const cita = $input.item.json;\nconst paciente = cita.patients;\nconst servicio = cita.services;\nconst cuentaId = cita.clinicas ? cita.clinicas.cuenta_id : null;\n\nconst isoFecha = (cita.fecha_hora || '').replace(' ', 'T').replace(/\\+(\\d{2})$/, '+$1:00');\nconst fecha = new Date(isoFecha);\n\nconst opsFecha = { timeZone: 'America/Mexico_City', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };\nconst opsHora  = { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true };\nconst fechaTxt = fecha.toLocaleDateString('es-MX', opsFecha);\nconst horaTxt  = fecha.toLocaleTimeString('es-MX', opsHora);\n\nconst texto = 'Estimado(a) ' + paciente.nombre + ', le recordamos su cita de ' + servicio.nombre + ' programada para el ' + fechaTxt + ' a las ' + horaTxt + '.';\n\nreturn {\n  json: {\n    id:                 cita.id,\n    clinica_id:         cita.clinica_id,\n    cuenta_id:          cuentaId,\n    channel:            paciente.channel,\n    channel_user_id:    paciente.channel_user_id,\n    texto_recordatorio: texto\n  }\n};"
       },
-      "id": "da5a1c93-a170-46d2-8d31-f0f88a4478bf",
+      "id": "d982049e-9029-438c-91b1-77d453e89149",
       "name": "Construir texto del recordatorio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1472, 1312]
+      "position": [-576, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/rpc/canal_telegram_por_clinica",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_clinica_id: $json.clinica_id }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4a00-9000-000000000002",
+      "name": "Resolver token de clinica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-352, 0],
+      "credentials": {
+        "supabaseApi": { "id": "tkYN9T844RX9s9K8", "name": "Supabase — Clinica Dental" }
+      }
     },
     {
       "parameters": {
@@ -134,20 +108,12 @@
           "values": [
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
                 "conditions": [
                   {
                     "id": "c1",
-                    "leftValue": "={{ $json.channel }}",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    },
+                    "leftValue": "={{ $('Construir texto del recordatorio').item.json.channel }}",
+                    "operator": { "type": "string", "operation": "equals" },
                     "rightValue": "telegram"
                   }
                 ],
@@ -158,20 +124,12 @@
             },
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
                 "conditions": [
                   {
                     "id": "c2",
-                    "leftValue": "={{ $json.channel }}",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    },
+                    "leftValue": "={{ $('Construir texto del recordatorio').item.json.channel }}",
+                    "operator": { "type": "string", "operation": "equals" },
                     "rightValue": "whatsapp"
                   }
                 ],
@@ -184,33 +142,27 @@
         },
         "options": {}
       },
-      "id": "9ff206ec-f271-4464-9900-ef32a8cc1f32",
+      "id": "24243932-384f-4c47-8a4b-2c3a1a6f0187",
       "name": "Switch por canal",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [1696, 1312]
+      "position": [-128, 0]
     },
     {
       "parameters": {
-        "chatId": "={{ $json.channel_user_id }}",
-        "text": "={{ $json.texto_recordatorio }}",
-        "additionalFields": {
-          "appendAttribution": false
-        }
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Resolver token de clinica').item.json[0].bot_token }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Construir texto del recordatorio').item.json.channel_user_id, text: $('Construir texto del recordatorio').item.json.texto_recordatorio }) }}",
+        "options": {}
       },
-      "id": "10b4cd6a-0b30-4a4d-8c53-714ef8a29a5f",
+      "id": "8058ebdd-3c46-45be-83d9-aea160e4a938",
       "name": "Telegram: enviar recordatorio",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [1904, 1248],
-      "webhookId": "9c7129f0-9f24-437a-a316-0e17418ed135",
-      "continueOnFail": true,
-      "credentials": {
-        "telegramApi": {
-          "id": "pNvXvZxbpRLsEPIo",
-          "name": "Telegram Bot — Clinica Dental"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [80, -64],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -221,44 +173,28 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {
-              "name": "id",
-              "value": "=eq.{{ $('Construir texto del recordatorio').item.json.id }}"
-            }
+            { "name": "id", "value": "=eq.{{ $('Construir texto del recordatorio').item.json.id }}" }
           ]
         },
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Prefer",
-              "value": "return=minimal"
-            }
-          ]
-        },
+        "headerParameters": { "parameters": [ { "name": "Prefer", "value": "return=minimal" } ] },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "recordatorio_enviado_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
+            { "name": "recordatorio_enviado_at", "value": "={{ new Date().toISOString() }}" }
           ]
         },
         "options": {}
       },
-      "id": "20a13c6d-ee36-4a6c-ba05-7ff12bd5f201",
+      "id": "63d53256-999b-48dc-af6f-556f6d76abf8",
       "name": "Marcar recordatorio enviado",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2128, 1248],
-      "continueOnFail": true,
+      "position": [304, -64],
       "credentials": {
-        "supabaseApi": {
-          "id": "tkYN9T844RX9s9K8",
-          "name": "Supabase — Clinica Dental"
-        }
-      }
+        "supabaseApi": { "id": "tkYN9T844RX9s9K8", "name": "Supabase — Clinica Dental" }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -267,60 +203,50 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ clinica_id: $('Construir texto del recordatorio').item.json.clinica_id, cuenta_id: $('Construir texto del recordatorio').item.json.cuenta_id, tipo: 'recordatorio', cantidad: 1, referencia_id: $('Construir texto del recordatorio').item.json.id }) }}",
         "options": {}
       },
-      "id": "node-metering",
+      "id": "2cddb8eb-bce7-424d-aa7c-7ad371c7811b",
       "name": "Registrar en metering",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2352, 1248],
-      "continueOnFail": true,
+      "position": [528, -64],
       "credentials": {
-        "supabaseApi": {
-          "id": "tkYN9T844RX9s9K8",
-          "name": "Supabase — Clinica Dental"
-        }
-      }
+        "supabaseApi": { "id": "tkYN9T844RX9s9K8", "name": "Supabase — Clinica Dental" }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {},
-      "id": "a164b24d-2f0f-495a-8e36-bc20cd712ee0",
+      "id": "a3c41932-a08a-4b6d-bbdb-df3b53581d79",
       "name": "WhatsApp (pendiente)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1904, 1488]
+      "position": [80, 176]
     },
     {
       "parameters": {
-        "content": "WhatsApp: conectar Cloud API aqui.\nUsar channel_user_id como wa_id.",
+        "content": "Multi-tenant: recorre las citas de TODAS las\nclinicas activas. Por cada cita resuelve el\nbot_token de su clinica (canal_telegram_por_clinica)\ny envia por HTTP a la API de Telegram.",
         "height": 200,
-        "width": 300,
+        "width": 320,
         "color": 0
       },
-      "id": "fa601a61-b44c-4d2e-b335-0371a0c14146",
-      "name": "Sticky Note ba536d6d",
+      "id": "b7c58e08-4f9e-4d9e-942d-329c934bff21",
+      "name": "Nota multi-tenant",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1856, 1440]
+      "position": [32, 176]
     }
   ],
   "pinData": {},
   "connections": {
     "Disparador cada 15 minutos": {
-      "main": [[{ "node": "Contexto de clinica", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Buscar citas sin recordatorio (todas las clinicas)", "type": "main", "index": 0 }]]
     },
-    "Contexto de clinica": {
-      "main": [[{ "node": "Buscar citas sin recordatorio", "type": "main", "index": 0 }]]
-    },
-    "Buscar citas sin recordatorio": {
+    "Buscar citas sin recordatorio (todas las clinicas)": {
       "main": [[{ "node": "Filtrar ventana 23-25h", "type": "main", "index": 0 }]]
     },
     "Filtrar ventana 23-25h": {
@@ -330,6 +256,9 @@
       "main": [[{ "node": "Construir texto del recordatorio", "type": "main", "index": 0 }]]
     },
     "Construir texto del recordatorio": {
+      "main": [[{ "node": "Resolver token de clinica", "type": "main", "index": 0 }]]
+    },
+    "Resolver token de clinica": {
       "main": [[{ "node": "Switch por canal", "type": "main", "index": 0 }]]
     },
     "Switch por canal": {
@@ -348,7 +277,7 @@
       "main": [[{ "node": "Registrar en metering", "type": "main", "index": 0 }]]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
@@ -357,7 +286,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": true
   },
-  "versionId": "e7a10658-8497-4adb-ba42-efe52bc8ccf7",
+  "versionId": "c27bd0d9-a00a-41e5-a6b9-adba474584bd",
   "meta": {
     "aiBuilderAssisted": true,
     "builderVariant": "mcp",

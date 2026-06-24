@@ -10,18 +10,38 @@ Esta carpeta es la **fuente de verdad** de los workflows de n8n, versionados en 
 | `02-asistente-inbound.json` | 02 Asistente Inbound | Recibe mensajes de Telegram, responde FAQ con Claude y hace handoff a agente humano |
 | `03-respuesta-agente-humano.json` | 03 Respuesta de Agente Humano | Webhook POST desde el dashboard — reenvía el mensaje del agente al paciente por Telegram |
 
-## Estrategia de autenticación (sin variables de entorno)
+## Multi-tenant por secret_token (una sola instalación para todas las clínicas)
 
-Los workflows usan **credenciales nativas de n8n** en lugar de variables de entorno:
+Estos workflows son **multi-tenant**: se importan **una sola vez** y atienden a todas
+las clínicas. No hay credencial de Telegram fija ni `clinica_id` quemado.
+
+- **Entrada (WF02):** un Webhook genérico recibe los updates de todos los bots. Telegram
+  envía un `secret_token` por clínica en el header `X-Telegram-Bot-Api-Secret-Token`. El
+  workflow resuelve la clínica con el RPC `canal_telegram_por_secret_token` y obtiene el
+  `bot_token` de esa clínica.
+- **Salida y recordatorios (WF01 y WF03):** obtienen el `bot_token` de la clínica con el
+  RPC `canal_telegram_por_clinica` y envían por HTTP a `api.telegram.org/bot<token>/sendMessage`.
+- El `bot_token` y el `secret_token` viven en `clinic_channels.config` en Supabase (los
+  guarda el dashboard al conectar el bot en el onboarding o desde el panel de superadmin).
+  **Nunca** están en estos JSON.
 
 | Tipo de llamada | Mecanismo |
 |-----------------|-----------|
-| Supabase (todas las operaciones) | HTTP Request + credencial `supabaseApi` |
-| Claude / Anthropic API | HTTP Request + credencial `httpHeaderAuth` |
-| Telegram | Nodo nativo Telegram |
+| Supabase (REST y RPC) | HTTP Request + credencial `supabaseApi` |
+| Claude / Anthropic API | Nodo Anthropic + credencial `anthropicApi` |
+| Telegram (envío) | HTTP Request a la API de Telegram con el `bot_token` de la clínica |
 | Secreto compartido (Workflow 3) | Constante en Code node (editar una sola vez) |
 
-La URL del proyecto Supabase (`https://vbsoujyosifqtazcidul.supabase.co`) está hardcodeada en los nodos HTTP Request — no es un secreto.
+## Variables de entorno del dashboard relacionadas
+
+```
+N8N_OUTBOUND_WEBHOOK_URL=https://n8n-n8n.1wmvpi.easypanel.host/webhook/agente-mensaje
+N8N_TELEGRAM_INBOUND_URL=https://n8n-n8n.1wmvpi.easypanel.host/webhook/telegram-inbound
+N8N_SHARED_SECRET=<mismo valor que el SECRETO del Code node del WF03>
+```
+
+`N8N_TELEGRAM_INBOUND_URL` es la URL del Webhook del WF02; el dashboard la usa al hacer
+`setWebhook` de cada bot (con el `secret_token` de la clínica).
 
 ## Credenciales a crear en n8n antes de importar
 
@@ -33,16 +53,12 @@ Ir a **Settings > Credentials > Add credential** y crear las siguientes:
 - Host: `https://vbsoujyosifqtazcidul.supabase.co`
 - Service Role Secret: `<copiar de Supabase: Project Settings > API > service_role>`
 
-### 2. Telegram Bot — Clinica Dental
-- Tipo: **Telegram API**
-- Nombre exacto: `Telegram Bot — Clinica Dental`
-- Access Token: `<token del BotFather>`
+### 2. Anthropic account
+- Tipo: **Anthropic**
+- Nombre exacto: `Anthropic account`
+- API Key: `<tu API key de Anthropic>`
 
-### 3. Anthropic API Key
-- Tipo: **Header Auth**
-- Nombre exacto: `Anthropic API Key`
-- Name: `x-api-key`
-- Value: `<tu API key de Anthropic>`
+(Ya no se crea una credencial de Telegram: el token de cada clínica se lee de Supabase.)
 
 ## Secreto compartido (Workflow 3)
 
