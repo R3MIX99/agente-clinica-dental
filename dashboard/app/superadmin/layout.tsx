@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 
 export const metadata = { title: "Superadmin — DentalIA" }
 
+// El area de superadmin depende de la sesion: se renderiza en cada peticion.
+export const dynamic = "force-dynamic"
+
 export default async function SuperadminLayout({ children }: { children: React.ReactNode }) {
   // Candado de servidor: correo permitido, verificado y via Google.
   const user = await obtenerSuperadmin()
