@@ -463,6 +463,31 @@ export async function editarSerie(
 }
 
 // ---------------------------------------------------------------------------
+// Resolver la conversacion activa de un paciente (para mensajes del sistema)
+// El WF03 valida el mensaje contra una conversacion real; por eso no se puede
+// usar el id de la cita. Devuelve el id de la conversacion mas reciente del
+// paciente en la clinica, o null si no tiene ninguna.
+// ---------------------------------------------------------------------------
+
+async function resolverConversacionPaciente(
+  supabase: ReturnType<typeof createServerClient>,
+  clinicaId: string,
+  patientId: string | null,
+): Promise<string | null> {
+  if (!patientId) return null
+  const { data } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("clinica_id", clinicaId)
+    .eq("patient_id", patientId)
+    .is("deleted_at", null)
+    .order("last_message_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.id ?? null
+}
+
+// ---------------------------------------------------------------------------
 // Cierre de dia / bloqueo por servicio
 // Bloquea una fecha (toda la clinica o solo un servicio), reagenda las citas
 // afectadas (status por_reagendar) y avisa a cada paciente por su canal.
@@ -497,7 +522,7 @@ export async function cerrarDia(
 
   let q = supabase
     .from("appointments")
-    .select("id, service_id, patients(nombre, channel, channel_user_id), services(nombre)")
+    .select("id, service_id, patient_id, patients(nombre, channel, channel_user_id), services(nombre)")
     .eq("clinica_id", clinicaId)
     .gte("fecha_hora", inicio)
     .lte("fecha_hora", fin)
@@ -539,8 +564,13 @@ export async function cerrarDia(
       .eq("id", cita.id)
       .eq("clinica_id", clinicaId)
 
-    // Avisar al paciente si tiene canal
-    if (paciente?.channel_user_id) {
+    // Avisar al paciente si tiene canal y una conversacion activa
+    const conversacionId = await resolverConversacionPaciente(
+      supabase,
+      clinicaId,
+      (cita as { patient_id: string | null }).patient_id,
+    )
+    if (paciente?.channel_user_id && conversacionId) {
       const motivoTxt = datos.motivo?.trim() ? ` (${datos.motivo.trim()})` : ""
       const comoReagendar = reservaUrl
         ? `Puede reagendar en este enlace: ${reservaUrl}`
@@ -552,7 +582,7 @@ export async function cerrarDia(
 
       try {
         await sendAgentMessage({
-          conversationId: cita.id,
+          conversationId: conversacionId,
           clinicaId,
           channel: paciente.channel as "telegram" | "whatsapp",
           channelUserId: paciente.channel_user_id,
@@ -618,7 +648,7 @@ export async function enviarDatosPago(citaId: string): Promise<{ ok: boolean; er
 
   const { data: cita } = await supabase
     .from("appointments")
-    .select("id, costo, patients(nombre, channel, channel_user_id), services(nombre)")
+    .select("id, costo, patient_id, patients(nombre, channel, channel_user_id), services(nombre)")
     .eq("id", citaId)
     .eq("clinica_id", clinicaId)
     .single()
@@ -630,6 +660,11 @@ export async function enviarDatosPago(citaId: string): Promise<{ ok: boolean; er
     channel_user_id: string | null
   } | null
   if (!paciente?.channel_user_id) return { ok: false, error: "El paciente no tiene canal configurado." }
+
+  const conversacionId = await resolverConversacionPaciente(supabase, clinicaId, cita.patient_id)
+  if (!conversacionId) {
+    return { ok: false, error: "El paciente no tiene una conversación activa para enviarle el mensaje." }
+  }
 
   const { data: clinica } = await supabase
     .from("clinicas")
@@ -652,7 +687,7 @@ export async function enviarDatosPago(citaId: string): Promise<{ ok: boolean; er
 
   try {
     await sendAgentMessage({
-      conversationId: cita.id,
+      conversationId: conversacionId,
       clinicaId,
       channel: paciente.channel as "telegram" | "whatsapp",
       channelUserId: paciente.channel_user_id,
@@ -676,7 +711,7 @@ export async function enviarRecordatorio(citaId: string) {
   const { data: cita, error } = await supabase
     .from("appointments")
     .select(
-      "id, fecha_hora, patients(nombre, channel, channel_user_id), services(nombre)"
+      "id, fecha_hora, patient_id, patients(nombre, channel, channel_user_id), services(nombre)"
     )
     .eq("id", citaId)
     .eq("clinica_id", clinicaId)
@@ -697,6 +732,11 @@ export async function enviarRecordatorio(citaId: string) {
     )
   }
 
+  const conversacionId = await resolverConversacionPaciente(supabase, clinicaId, cita.patient_id)
+  if (!conversacionId) {
+    throw new Error("El paciente no tiene una conversación activa para enviarle el recordatorio.")
+  }
+
   const fecha = new Date(cita.fecha_hora).toLocaleString("es-MX", {
     timeZone: "America/Mexico_City",
     weekday: "long",
@@ -711,7 +751,7 @@ export async function enviarRecordatorio(citaId: string) {
   } programada para el ${fecha}. Si necesita reprogramar o cancelar, por favor comuniquese con anticipacion.`
 
   await sendAgentMessage({
-    conversationId: citaId,
+    conversationId: conversacionId,
     clinicaId,
     channel: paciente.channel as "telegram" | "whatsapp",
     channelUserId: paciente.channel_user_id,
