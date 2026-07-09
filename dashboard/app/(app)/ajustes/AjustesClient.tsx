@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
   guardarIdentidad,
+  guardarReagendaPago,
   guardarFaq,
   agregarServicio,
   actualizarServicio,
@@ -49,6 +50,8 @@ type ClinicaInfo = {
   facturacion: string | null
   mapa_url: string | null
   faq: FaqItem[] | null
+  google_reserva_url: string | null
+  datos_pago: string | null
 }
 
 type Servicio = {
@@ -89,10 +92,11 @@ export function AjustesClient({ clinica, servicios, canalTelegram }: Props) {
 
       {clinica && (
         <Tabs defaultValue="identidad">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="identidad">Identidad</TabsTrigger>
             <TabsTrigger value="servicios">Servicios</TabsTrigger>
             <TabsTrigger value="faq">FAQ</TabsTrigger>
+            <TabsTrigger value="reserva">Reserva y pago</TabsTrigger>
             <TabsTrigger value="canal">Canal</TabsTrigger>
           </TabsList>
 
@@ -106,6 +110,10 @@ export function AjustesClient({ clinica, servicios, canalTelegram }: Props) {
 
           <TabsContent value="faq" className="mt-6">
             <FaqTab faqInicial={clinica.faq ?? []} />
+          </TabsContent>
+
+          <TabsContent value="reserva" className="mt-6">
+            <ReservaPagoTab clinica={clinica} />
           </TabsContent>
 
           <TabsContent value="canal" className="mt-6">
@@ -710,5 +718,75 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
         {isSubmitting ? "Guardando..." : "Guardar configuración de canal"}
       </Button>
     </form>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tab: Reserva y pago
+// ---------------------------------------------------------------------------
+
+function ReservaPagoTab({ clinica }: { clinica: ClinicaInfo }) {
+  const [isPending, startTransition] = useTransition()
+  const [reservaUrl, setReservaUrl] = useState(clinica.google_reserva_url ?? "")
+  const [datosPago, setDatosPago] = useState(clinica.datos_pago ?? "")
+
+  function guardar() {
+    startTransition(async () => {
+      try {
+        await guardarReagendaPago({ google_reserva_url: reservaUrl, datos_pago: datosPago })
+        toast.success("Datos de reserva y pago guardados")
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Error al guardar")
+      }
+    })
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-border p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold">Enlace de reserva de Google</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Pega el enlace de tu pagina de reservas de Google Calendar. Se envia a los
+            pacientes para que reagenden cuando cierras un dia. Si lo dejas vacio, se les
+            pide comunicarse con la clinica.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="reserva-url">Enlace de reserva (opcional)</Label>
+          <Input
+            id="reserva-url"
+            type="url"
+            placeholder="https://calendar.app.google/..."
+            value={reservaUrl}
+            onChange={(e) => setReservaUrl(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold">Datos de pago / transferencia</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Estos datos se envian al paciente cuando usas "Enviar datos de pago" en una cita.
+            Incluye banco, titular, CLABE o cualquier instruccion de pago.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="datos-pago">Datos de pago</Label>
+          <Textarea
+            id="datos-pago"
+            rows={5}
+            placeholder={"Banco: ...\nTitular: ...\nCLABE: ...\nConcepto: nombre del paciente"}
+            value={datosPago}
+            onChange={(e) => setDatosPago(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <Button onClick={guardar} disabled={isPending}>
+        {isPending ? "Guardando..." : "Guardar reserva y pago"}
+      </Button>
+    </div>
   )
 }

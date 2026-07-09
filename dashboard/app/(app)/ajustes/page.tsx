@@ -29,7 +29,7 @@ export default async function AjustesPage() {
     db
       .from("clinicas")
       .select(
-        "nombre, logo_url, direccion, telefono, email, sitio_web, horario, formas_pago, facturacion, mapa_url, faq"
+        "nombre, logo_url, direccion, telefono, email, sitio_web, horario, formas_pago, facturacion, mapa_url, faq, google_reserva_url, datos_pago"
       )
       .eq("id", clinicaId)
       .single(),

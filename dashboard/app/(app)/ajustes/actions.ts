@@ -72,6 +72,30 @@ export async function guardarIdentidad(datos: DatosIdentidad) {
   revalidatePath("/ajustes")
 }
 
+// ---------------------------------------------------------------------------
+// Reagenda (enlace de reserva de Google) y datos de pago
+// ---------------------------------------------------------------------------
+
+export type DatosReagendaPago = {
+  google_reserva_url: string
+  datos_pago: string
+}
+
+export async function guardarReagendaPago(datos: DatosReagendaPago) {
+  const clinicaId = await resolverClinicaId()
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("clinicas")
+    .update({
+      google_reserva_url: datos.google_reserva_url.trim() || null,
+      datos_pago:         datos.datos_pago.trim() || null,
+      updated_at:         new Date().toISOString(),
+    })
+    .eq("id", clinicaId)
+  if (error) throw new Error(error.message)
+  revalidatePath("/ajustes")
+}
+
 // Mantener compatibilidad con el nombre anterior
 export async function guardarAjustes(datos: DatosIdentidad & { faq: FaqItem[] }) {
   const clinicaId = await resolverClinicaId()
