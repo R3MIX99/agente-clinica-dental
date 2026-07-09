@@ -716,19 +716,27 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
           }
           setConvs((prev) =>
             ordenarPorUltimo(
-              prev.map((c) =>
-                c.id === upd.id
-                  ? {
-                      ...c,
-                      mode: upd.mode !== undefined ? upd.mode : c.mode,
-                      status: upd.status !== undefined ? upd.status : c.status,
-                      assigned_agent_id:
-                        upd.assigned_agent_id !== undefined ? upd.assigned_agent_id : c.assigned_agent_id,
-                      last_message_at:
-                        upd.last_message_at !== undefined ? upd.last_message_at : c.last_message_at,
-                    }
-                  : c
-              )
+              prev.map((c) => {
+                if (c.id !== upd.id) return c
+                const assignedAgentId =
+                  upd.assigned_agent_id !== undefined ? upd.assigned_agent_id : c.assigned_agent_id
+                // El payload de postgres_changes no trae el join "agents" — se recalcula
+                // localmente contra la lista de agentes para que el nombre no se quede pegado
+                // cuando assigned_agent_id cambia (ej. al devolver la conversacion al bot).
+                const agents =
+                  upd.assigned_agent_id !== undefined
+                    ? agentes.find((a) => a.id === assignedAgentId) ?? null
+                    : c.agents
+                return {
+                  ...c,
+                  mode: upd.mode !== undefined ? upd.mode : c.mode,
+                  status: upd.status !== undefined ? upd.status : c.status,
+                  assigned_agent_id: assignedAgentId,
+                  agents,
+                  last_message_at:
+                    upd.last_message_at !== undefined ? upd.last_message_at : c.last_message_at,
+                }
+              })
             )
           )
           if (upd.mode === "humano" && upd.id !== selectedIdRef.current) addAtencion(upd.id)

@@ -165,7 +165,7 @@ Instrucciones:
       headers: {
         "Content-Type": "application/json",
         "x-api-key": anthropicKey,
-        "anthropic-versión": "2023-06-01",
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
