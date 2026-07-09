@@ -463,6 +463,209 @@ export async function editarSerie(
 }
 
 // ---------------------------------------------------------------------------
+// Cierre de dia / bloqueo por servicio
+// Bloquea una fecha (toda la clinica o solo un servicio), reagenda las citas
+// afectadas (status por_reagendar) y avisa a cada paciente por su canal.
+// ---------------------------------------------------------------------------
+
+export type DatosCerrarDia = {
+  fecha: string          // YYYY-MM-DD (hora local Mexico)
+  service_id?: string    // vacio = toda la clinica ese dia
+  motivo?: string
+}
+
+export async function cerrarDia(
+  datos: DatosCerrarDia,
+): Promise<{ ok: boolean; error?: string; afectadas?: number; avisadas?: number }> {
+  const clinicaId = await resolverClinicaId()
+  const supabase = createServerClient()
+
+  if (!datos.fecha) return { ok: false, error: "Selecciona la fecha a cerrar." }
+
+  // 1. Registrar el bloqueo
+  const { error: errB } = await supabase.from("bloqueos").insert({
+    clinica_id: clinicaId,
+    fecha: datos.fecha,
+    service_id: datos.service_id || null,
+    motivo: datos.motivo?.trim() || null,
+  })
+  if (errB) return { ok: false, error: errB.message }
+
+  // 2. Rango del dia en zona horaria de Mexico
+  const inicio = mexLocalToISO(datos.fecha + "T00:00")
+  const fin = mexLocalToISO(datos.fecha + "T23:59")
+
+  let q = supabase
+    .from("appointments")
+    .select("id, service_id, patients(nombre, channel, channel_user_id), services(nombre)")
+    .eq("clinica_id", clinicaId)
+    .gte("fecha_hora", inicio)
+    .lte("fecha_hora", fin)
+    .in("status", ["programada", "confirmada"])
+  if (datos.service_id) q = q.eq("service_id", datos.service_id)
+
+  const { data: citas, error: errC } = await q
+  if (errC) return { ok: false, error: errC.message }
+
+  // 3. Datos de la clinica para el mensaje de reagenda
+  const { data: clinica } = await supabase
+    .from("clinicas")
+    .select("google_reserva_url, telefono, nombre")
+    .eq("id", clinicaId)
+    .single()
+
+  const reservaUrl = clinica?.google_reserva_url?.trim() || null
+  const fechaTxt = new Date(inicio).toLocaleDateString("es-MX", {
+    timeZone: "America/Mexico_City",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+
+  let avisadas = 0
+
+  for (const cita of citas ?? []) {
+    const paciente = cita.patients as {
+      nombre: string
+      channel: string
+      channel_user_id: string | null
+    } | null
+    const servicio = cita.services as { nombre: string } | null
+
+    // Marcar la cita como por reagendar
+    await supabase
+      .from("appointments")
+      .update({ status: "por_reagendar" })
+      .eq("id", cita.id)
+      .eq("clinica_id", clinicaId)
+
+    // Avisar al paciente si tiene canal
+    if (paciente?.channel_user_id) {
+      const motivoTxt = datos.motivo?.trim() ? ` (${datos.motivo.trim()})` : ""
+      const comoReagendar = reservaUrl
+        ? `Puede reagendar en este enlace: ${reservaUrl}`
+        : `Por favor comuniquese con la clinica${clinica?.telefono ? ` al ${clinica.telefono}` : ""} para reagendar.`
+      const texto =
+        `Hola ${paciente.nombre}, le informamos que su cita` +
+        `${servicio ? ` de ${servicio.nombre}` : ""} del ${fechaTxt} necesita reprogramarse${motivoTxt}. ` +
+        comoReagendar
+
+      try {
+        await sendAgentMessage({
+          conversationId: cita.id,
+          clinicaId,
+          channel: paciente.channel as "telegram" | "whatsapp",
+          channelUserId: paciente.channel_user_id,
+          texto,
+          agenteId: "sistema",
+        })
+        avisadas++
+      } catch {
+        // Si falla el envio a un paciente, continuar con los demas
+      }
+    }
+  }
+
+  // 4. Marcar el bloqueo como notificado
+  await supabase
+    .from("bloqueos")
+    .update({ notificado_at: new Date().toISOString() })
+    .eq("clinica_id", clinicaId)
+    .eq("fecha", datos.fecha)
+    .is("notificado_at", null)
+
+  revalidatePath("/citas")
+  return { ok: true, afectadas: citas?.length ?? 0, avisadas }
+}
+
+export async function reabrirDia(bloqueoId: string): Promise<{ ok: boolean; error?: string }> {
+  const clinicaId = await resolverClinicaId()
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("bloqueos")
+    .delete()
+    .eq("id", bloqueoId)
+    .eq("clinica_id", clinicaId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath("/citas")
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Estado de pago de una cita
+// ---------------------------------------------------------------------------
+
+export async function marcarPago(
+  citaId: string,
+  estado: "pendiente" | "pagado",
+): Promise<{ ok: boolean; error?: string }> {
+  const clinicaId = await resolverClinicaId()
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from("appointments")
+    .update({ estado_pago: estado })
+    .eq("id", citaId)
+    .eq("clinica_id", clinicaId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath("/citas")
+  return { ok: true }
+}
+
+// Envia al paciente los datos de pago/transferencia de la clinica.
+export async function enviarDatosPago(citaId: string): Promise<{ ok: boolean; error?: string }> {
+  const clinicaId = await resolverClinicaId()
+  const supabase = createServerClient()
+
+  const { data: cita } = await supabase
+    .from("appointments")
+    .select("id, costo, patients(nombre, channel, channel_user_id), services(nombre)")
+    .eq("id", citaId)
+    .eq("clinica_id", clinicaId)
+    .single()
+  if (!cita) return { ok: false, error: "Cita no encontrada." }
+
+  const paciente = cita.patients as {
+    nombre: string
+    channel: string
+    channel_user_id: string | null
+  } | null
+  if (!paciente?.channel_user_id) return { ok: false, error: "El paciente no tiene canal configurado." }
+
+  const { data: clinica } = await supabase
+    .from("clinicas")
+    .select("datos_pago, nombre")
+    .eq("id", clinicaId)
+    .single()
+
+  if (!clinica?.datos_pago?.trim()) {
+    return { ok: false, error: "No hay datos de pago configurados. Agregalos en Ajustes." }
+  }
+
+  const servicio = cita.services as { nombre: string } | null
+  const montoTxt = cita.costo != null
+    ? ` por un monto de $${Number(cita.costo).toLocaleString("es-MX")} MXN`
+    : ""
+  const texto =
+    `Hola ${paciente.nombre}, aqui estan los datos para el pago de su cita` +
+    `${servicio ? ` de ${servicio.nombre}` : ""}${montoTxt}:\n\n${clinica.datos_pago.trim()}\n\n` +
+    `Una vez realizado el pago, por favor envienos su comprobante. Gracias.`
+
+  try {
+    await sendAgentMessage({
+      conversationId: cita.id,
+      clinicaId,
+      channel: paciente.channel as "telegram" | "whatsapp",
+      channelUserId: paciente.channel_user_id,
+      texto,
+      agenteId: "sistema",
+    })
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo enviar el mensaje." }
+  }
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
 // Recordatorio manual via canal
 // ---------------------------------------------------------------------------
 

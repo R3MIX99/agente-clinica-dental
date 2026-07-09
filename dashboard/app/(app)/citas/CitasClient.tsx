@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie, editarSerie, type DatosEditarSerie } from "./actions"
+import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie, editarSerie, cerrarDia, reabrirDia, marcarPago, enviarDatosPago, type DatosEditarSerie } from "./actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,7 +38,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, X, BadgeDollarSign, Send } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -55,6 +55,7 @@ type Cita = {
   doctor_id: string | null
   fecha_hora: string
   status: string
+  estado_pago: string
   costo: number | null
   duracion_min: number | null
   recordatorio_enviado_at: string | null
@@ -65,6 +66,14 @@ type Cita = {
   patients: Paciente | null
   services: Servicio | null
   doctors: Doctor | null
+}
+
+type Bloqueo = {
+  id: string
+  fecha: string
+  motivo: string | null
+  service_id: string | null
+  servicio_nombre: string | null
 }
 
 type FormCita = {
@@ -87,6 +96,7 @@ interface Props {
   pacientes: Paciente[]
   servicios: Servicio[]
   doctores: Doctor[]
+  bloqueos: Bloqueo[]
   esDoctor?: boolean
   doctorId?: string | null
 }
@@ -115,6 +125,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelada: "Cancelada",
   completada: "Completada",
   no_asistio: "No asistió",
+  por_reagendar: "Por reagendar",
 }
 
 const ESTADO_ESTILO: Record<string, string> = {
@@ -123,6 +134,7 @@ const ESTADO_ESTILO: Record<string, string> = {
   cancelada: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
   completada: "bg-muted text-muted-foreground",
   no_asistio: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+  por_reagendar: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +152,13 @@ function formatFecha(raw: string): string {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+// Fecha (YYYY-MM-DD) a texto corto, sin problemas de zona horaria
+function formatearFechaCorta(fecha: string): string {
+  const d = new Date(fecha + "T12:00:00")
+  if (isNaN(d.getTime())) return fecha
+  return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })
 }
 
 function formatFechaCompleta(raw: string): string {
@@ -224,10 +243,11 @@ function isoAInputDatetime(iso: string): string {
 // Componente
 // ---------------------------------------------------------------------------
 
-export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores, esDoctor = false, doctorId }: Props) {
+export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores, bloqueos, esDoctor = false, doctorId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [citas, setCitas] = useState<Cita[]>(citasIniciales)
+  const [cerrarDiaOpen, setCerrarDiaOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [eliminarId, setEliminarId] = useState<string | null>(null)
   const [citaEditando, setCitaEditando] = useState<Cita | null>(null)
@@ -447,6 +467,37 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   }
 
   // -------------------------------------------------------------------------
+  // Handlers — cierre de dia y pago
+  // -------------------------------------------------------------------------
+
+  function handleReabrir(bloqueoId: string) {
+    startTransition(async () => {
+      const r = await reabrirDia(bloqueoId)
+      if (!r.ok) { toast.error(r.error ?? "No se pudo reabrir el día."); return }
+      toast.success("Día reabierto")
+      router.refresh()
+    })
+  }
+
+  function handleMarcarPago(citaId: string, estado: "pendiente" | "pagado") {
+    startTransition(async () => {
+      const r = await marcarPago(citaId, estado)
+      if (!r.ok) { toast.error(r.error ?? "No se pudo actualizar el pago."); return }
+      setCitas((prev) => prev.map((c) => (c.id === citaId ? { ...c, estado_pago: estado } : c)))
+      setCitaDrawer((d) => (d && d.id === citaId ? { ...d, estado_pago: estado } : d))
+      toast.success(estado === "pagado" ? "Cita marcada como pagada" : "Cita marcada como pendiente")
+    })
+  }
+
+  function handleEnviarDatosPago(citaId: string) {
+    startTransition(async () => {
+      const r = await enviarDatosPago(citaId)
+      if (!r.ok) { toast.error(r.error ?? "No se pudo enviar los datos de pago."); return }
+      toast.success("Datos de pago enviados al paciente")
+    })
+  }
+
+  // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
@@ -459,11 +510,44 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
           <span className="hidden sm:inline text-sm text-muted-foreground">
             {citasVisibles.length} {citasVisibles.length === 1 ? "registro" : "registros"}
           </span>
+          <Button size="sm" variant="outline" onClick={() => setCerrarDiaOpen(true)}>
+            <CalendarX className="mr-1 h-4 w-4" aria-hidden="true" />
+            Cerrar día
+          </Button>
           <Button size="sm" onClick={abrirFormNuevo}>
             Nueva cita
           </Button>
         </div>
       </div>
+
+      {/* Dias bloqueados proximos */}
+      {bloqueos.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 p-3">
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-2">
+            Días cerrados próximos
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {bloqueos.map((b) => (
+              <span key={b.id} className="inline-flex items-center gap-2 rounded-md bg-background border border-border px-2 py-1 text-xs">
+                <span className="font-medium">{formatearFechaCorta(b.fecha)}</span>
+                <span className="text-muted-foreground">
+                  {b.servicio_nombre ? `Solo ${b.servicio_nombre}` : "Toda la clínica"}
+                  {b.motivo ? ` · ${b.motivo}` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleReabrir(b.id)}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="Reabrir día"
+                  disabled={isPending}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* Vista mobile — lista de filas                                        */}
@@ -717,6 +801,41 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               />
             </button>
             <button
+              onClick={() => handleEnviarDatosPago(citaDrawer.id)}
+              disabled={!citaDrawer.patients?.channel_user_id || isPending}
+              title={
+                citaDrawer.patients?.channel_user_id
+                  ? "Enviar datos de pago al paciente"
+                  : "Sin ID de canal configurado"
+              }
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                citaDrawer.patients?.channel_user_id
+                  ? "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+            >
+              <Send size={16} />
+            </button>
+            <button
+              onClick={() =>
+                handleMarcarPago(
+                  citaDrawer.id,
+                  citaDrawer.estado_pago === "pagado" ? "pendiente" : "pagado",
+                )
+              }
+              disabled={isPending}
+              title={citaDrawer.estado_pago === "pagado" ? "Marcar como pendiente" : "Marcar como pagada"}
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                citaDrawer.estado_pago === "pagado"
+                  ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              )}
+            >
+              <BadgeDollarSign size={16} />
+            </button>
+            <button
               onClick={() => {
                 setEliminarId(citaDrawer.id)
                 setCitaDrawer(null)
@@ -885,15 +1004,27 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
 
         const cabeceraBadgeAcciones = citaDrawer && (
           <div className="flex items-center justify-between gap-2 mt-1.5">
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                ESTADO_ESTILO[citaDrawer.status] ??
-                  "bg-muted text-muted-foreground"
-              )}
-            >
-              {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                  ESTADO_ESTILO[citaDrawer.status] ??
+                    "bg-muted text-muted-foreground"
+                )}
+              >
+                {STATUS_LABELS[citaDrawer.status] ?? citaDrawer.status}
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                  citaDrawer.estado_pago === "pagado"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                )}
+              >
+                {citaDrawer.estado_pago === "pagado" ? "Pagado" : "Pago pendiente"}
+              </span>
+            </div>
             {accionesDetalle}
           </div>
         )
@@ -1252,6 +1383,14 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         isPending={isPending}
       />
 
+      {/* Dialog — cerrar día / bloquear por servicio */}
+      <DialogCerrarDia
+        open={cerrarDiaOpen}
+        servicios={servicios}
+        onCerrar={() => setCerrarDiaOpen(false)}
+        onListo={() => { setCerrarDiaOpen(false); router.refresh() }}
+      />
+
       {/* Drawer — confirmar eliminación */}
       <Drawer
         open={eliminarId !== null}
@@ -1410,6 +1549,111 @@ function DialogEditarSerie({
           </Button>
           <Button onClick={handleGuardar} disabled={isPending}>
             {isPending ? "Aplicando..." : "Aplicar cambios"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Dialog — Cerrar día / bloquear por servicio
+// ---------------------------------------------------------------------------
+
+function DialogCerrarDia({
+  open, servicios, onCerrar, onListo,
+}: {
+  open: boolean
+  servicios: Servicio[]
+  onCerrar: () => void
+  onListo: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [fecha, setFecha] = useState("")
+  const [alcance, setAlcance] = useState<"todo" | "servicio">("todo")
+  const [serviceId, setServiceId] = useState("")
+  const [motivo, setMotivo] = useState("")
+
+  function confirmar() {
+    startTransition(async () => {
+      const r = await cerrarDia({
+        fecha,
+        service_id: alcance === "servicio" ? serviceId : undefined,
+        motivo,
+      })
+      if (!r.ok) { toast.error(r.error ?? "No se pudo cerrar el día."); return }
+      const avisadas = r.avisadas ?? 0
+      const afectadas = r.afectadas ?? 0
+      toast.success(
+        afectadas === 0
+          ? "Día cerrado. No había citas ese día."
+          : `Día cerrado. ${afectadas} cita(s) marcadas por reagendar, ${avisadas} paciente(s) avisados.`,
+      )
+      setFecha(""); setMotivo(""); setAlcance("todo"); setServiceId("")
+      onListo()
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onCerrar() }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cerrar un día</DialogTitle>
+          <DialogDescription>
+            Bloquea la fecha y avisa a los pacientes con cita ese día para que reagenden.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="cerrar-fecha">Fecha a cerrar</Label>
+            <Input id="cerrar-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Alcance</Label>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" checked={alcance === "todo"} onChange={() => setAlcance("todo")} />
+                Toda la clínica (no habrá atención ese día)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" checked={alcance === "servicio"} onChange={() => setAlcance("servicio")} />
+                Solo un servicio (ej. equipo descompuesto)
+              </label>
+            </div>
+          </div>
+
+          {alcance === "servicio" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="cerrar-servicio">Servicio a bloquear</Label>
+              <select
+                id="cerrar-servicio"
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Selecciona un servicio</option>
+                {servicios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cerrar-motivo">Motivo (opcional)</Label>
+            <Input id="cerrar-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Vacaciones, mantenimiento, etc." />
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Nota: si tienes página de reserva de Google, recuerda marcar también ese día como ocupado en tu Google Calendar para que no se ofrezca en tu página de reservas.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCerrar}>Cancelar</Button>
+          <Button
+            onClick={confirmar}
+            disabled={isPending || !fecha || (alcance === "servicio" && !serviceId)}
+          >
+            {isPending ? "Cerrando..." : "Cerrar día y avisar"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -41,6 +41,7 @@ export default async function CitasPage() {
         pacientes={[]}
         servicios={[]}
         doctores={[]}
+        bloqueos={[]}
         esDoctor={esDoctor}
         doctorId={doctorId}
       />
@@ -62,7 +63,7 @@ export default async function CitasPage() {
   let citasQuery = db
     .from("appointments")
     .select(
-      "id, patient_id, service_id, doctor_id, fecha_hora, costo, duracion_min, status, recordatorio_enviado_at, notas, serie_id, recurrencia_tipo, recurrencia_fin, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio, duracion_min), doctors(id, nombre)"
+      "id, patient_id, service_id, doctor_id, fecha_hora, costo, duracion_min, status, estado_pago, recordatorio_enviado_at, notas, serie_id, recurrencia_tipo, recurrencia_fin, patients(id, nombre, channel, channel_user_id), services(id, nombre, precio, duracion_min), doctors(id, nombre)"
     )
     .eq("clinica_id", clinicaId)
     .order("fecha_hora", { ascending: false })
@@ -72,12 +73,28 @@ export default async function CitasPage() {
     citasQuery = citasQuery.eq("doctor_id", doctorId)
   }
 
-  const [{ data: citas }, { data: asignaciones }] = await Promise.all([
+  const hoyIso = new Date().toISOString().slice(0, 10)
+
+  const [{ data: citas }, { data: asignaciones }, { data: bloqueosRaw }] = await Promise.all([
     citasQuery,
     esDoctor && doctorId
       ? db.from("patient_doctors").select("patient_id").eq("clinica_id", clinicaId).eq("doctor_id", doctorId)
       : Promise.resolve({ data: null, error: null }),
+    db
+      .from("bloqueos")
+      .select("id, fecha, motivo, service_id, services(nombre)")
+      .eq("clinica_id", clinicaId)
+      .gte("fecha", hoyIso)
+      .order("fecha"),
   ])
+
+  const bloqueos = (bloqueosRaw ?? []).map((b) => ({
+    id: b.id,
+    fecha: b.fecha,
+    motivo: b.motivo,
+    service_id: b.service_id,
+    servicio_nombre: (b.services as { nombre: string } | null)?.nombre ?? null,
+  }))
 
   // Filtrar pacientes y doctores visibles segun el rol
   const idsPermitidos =
@@ -99,6 +116,7 @@ export default async function CitasPage() {
       pacientes={pacientes}
       servicios={(serviciosRaw ?? []) as Parameters<typeof CitasClient>[0]["servicios"]}
       doctores={doctores}
+      bloqueos={bloqueos}
       esDoctor={esDoctor}
       doctorId={doctorId}
     />
