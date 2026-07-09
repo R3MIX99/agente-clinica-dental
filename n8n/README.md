@@ -9,6 +9,7 @@ Esta carpeta es la **fuente de verdad** de los workflows de n8n, versionados en 
 | `01-recordatorio-citas-24h.json` | 01 Recordatorio de Citas 24h | Cron cada 15 min — busca citas en ventana 23-25h y envía recordatorio por Telegram |
 | `02-asistente-inbound.json` | 02 Asistente Inbound | Recibe mensajes de Telegram, responde FAQ con Claude y hace handoff a agente humano |
 | `03-respuesta-agente-humano.json` | 03 Respuesta de Agente Humano | Webhook POST desde el dashboard — reenvía el mensaje del agente al paciente por Telegram |
+| `05-recordatorio-pago-2h.json` | 05 Recordatorio de Pago 2h | Cron cada 15 min — 2h después de una cita Completada con Pago pendiente, envía una sola vez los datos de pago de la clínica por el canal del paciente |
 
 ## Multi-tenant por secret_token (una sola instalación para todas las clínicas)
 

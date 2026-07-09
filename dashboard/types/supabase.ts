@@ -105,6 +105,7 @@ export type Database = {
           fecha_hora: string
           id: string
           notas: string | null
+          pago_recordatorio_enviado_at: string | null
           patient_id: string | null
           recordatorio_enviado_at: string | null
           recurrencia_fin: string | null
@@ -123,6 +124,7 @@ export type Database = {
           fecha_hora: string
           id?: string
           notas?: string | null
+          pago_recordatorio_enviado_at?: string | null
           patient_id?: string | null
           recordatorio_enviado_at?: string | null
           recurrencia_fin?: string | null
@@ -141,6 +143,7 @@ export type Database = {
           fecha_hora?: string
           id?: string
           notas?: string | null
+          pago_recordatorio_enviado_at?: string | null
           patient_id?: string | null
           recordatorio_enviado_at?: string | null
           recurrencia_fin?: string | null
