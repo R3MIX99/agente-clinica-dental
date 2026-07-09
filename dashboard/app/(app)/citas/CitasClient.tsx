@@ -37,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, X, BadgeDollarSign, Send } from "lucide-react"
 
@@ -159,6 +160,48 @@ function formatearFechaCorta(fecha: string): string {
   const d = new Date(fecha + "T12:00:00")
   if (isNaN(d.getTime())) return fecha
   return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })
+}
+
+// Boton de accion accesible (area de toque grande) con tooltip al mantener/hover
+function AccionBtn({
+  label, onClick, children, disabled, tono,
+}: {
+  label: string
+  onClick: () => void
+  children: React.ReactNode
+  disabled?: boolean
+  tono?: "azul" | "verde" | "rojo"
+}) {
+  const tonoClase =
+    tono === "azul"
+      ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+      : tono === "verde"
+      ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+      : tono === "rojo"
+      ? "text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={label}
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-lg transition-colors",
+              disabled ? "text-muted-foreground/30 cursor-not-allowed" : tonoClase,
+            )}
+          >
+            {children}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
 }
 
 function formatFechaCompleta(raw: string): string {
@@ -758,93 +801,55 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       {(() => {
         const tituloDetalle = citaDrawer?.services?.nombre ?? "Cita sin servicio"
 
+        const recordatorioDeshabilitado =
+          !citaDrawer?.patients?.channel_user_id ||
+          !!citaDrawer?.recordatorio_enviado_at ||
+          enviandoId === citaDrawer?.id
+
         const accionesDetalle = citaDrawer && (
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={() => {
-                abrirFormEdicion(citaDrawer)
-                setCitaDrawer(null)
-              }}
-              title="Editar cita"
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          <div className="flex items-center justify-between gap-1">
+            <AccionBtn
+              label="Editar cita"
+              onClick={() => { abrirFormEdicion(citaDrawer); setCitaDrawer(null) }}
             >
-              <SquarePen size={16} />
-            </button>
-            <button
-              onClick={() => {
-                handleEnviarRecordatorio(citaDrawer)
-                setCitaDrawer(null)
-              }}
-              disabled={
-                !citaDrawer.patients?.channel_user_id ||
-                !!citaDrawer.recordatorio_enviado_at ||
-                enviandoId === citaDrawer.id
-              }
-              title={
+              <SquarePen size={20} />
+            </AccionBtn>
+            <AccionBtn
+              label={
                 !citaDrawer.patients?.channel_user_id
                   ? "Sin ID de canal configurado"
                   : citaDrawer.recordatorio_enviado_at
                   ? "Recordatorio ya enviado"
                   : "Enviar recordatorio"
               }
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                citaDrawer.patients?.channel_user_id &&
-                  !citaDrawer.recordatorio_enviado_at
-                  ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                  : "text-muted-foreground/30 cursor-not-allowed"
-              )}
+              disabled={recordatorioDeshabilitado}
+              onClick={() => { handleEnviarRecordatorio(citaDrawer); setCitaDrawer(null) }}
+              tono={!recordatorioDeshabilitado ? "azul" : undefined}
             >
-              <Clock
-                size={16}
-                className={enviandoId === citaDrawer.id ? "animate-spin" : ""}
-              />
-            </button>
-            <button
-              onClick={() => handleEnviarDatosPago(citaDrawer.id)}
+              <Clock size={20} className={enviandoId === citaDrawer.id ? "animate-spin" : ""} />
+            </AccionBtn>
+            <AccionBtn
+              label={citaDrawer.patients?.channel_user_id ? "Enviar datos de pago" : "Sin ID de canal configurado"}
               disabled={!citaDrawer.patients?.channel_user_id || isPending}
-              title={
-                citaDrawer.patients?.channel_user_id
-                  ? "Enviar datos de pago al paciente"
-                  : "Sin ID de canal configurado"
-              }
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                citaDrawer.patients?.channel_user_id
-                  ? "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  : "text-muted-foreground/30 cursor-not-allowed"
-              )}
+              onClick={() => handleEnviarDatosPago(citaDrawer.id)}
             >
-              <Send size={16} />
-            </button>
-            <button
-              onClick={() =>
-                handleMarcarPago(
-                  citaDrawer.id,
-                  citaDrawer.estado_pago === "pagado" ? "pendiente" : "pagado",
-                )
-              }
+              <Send size={20} />
+            </AccionBtn>
+            <AccionBtn
+              label={citaDrawer.estado_pago === "pagado" ? "Marcar como pendiente" : "Marcar como pagada"}
               disabled={isPending}
-              title={citaDrawer.estado_pago === "pagado" ? "Marcar como pendiente" : "Marcar como pagada"}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                citaDrawer.estado_pago === "pagado"
-                  ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              )}
+              onClick={() => handleMarcarPago(citaDrawer.id, citaDrawer.estado_pago === "pagado" ? "pendiente" : "pagado")}
+              tono={citaDrawer.estado_pago === "pagado" ? "verde" : undefined}
             >
-              <BadgeDollarSign size={16} />
-            </button>
-            <button
-              onClick={() => {
-                setEliminarId(citaDrawer.id)
-                setCitaDrawer(null)
-              }}
-              title="Eliminar cita"
-              className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              <BadgeDollarSign size={20} />
+            </AccionBtn>
+            <AccionBtn
+              label="Eliminar cita"
+              tono="rojo"
+              onClick={() => { setEliminarId(citaDrawer.id); setCitaDrawer(null) }}
             >
-              <Trash2 size={16} />
-            </button>
+              <Trash2 size={20} />
+            </AccionBtn>
           </div>
         )
 
@@ -1003,11 +1008,11 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         )
 
         const cabeceraBadgeAcciones = citaDrawer && (
-          <div className="flex items-center justify-between gap-2 mt-1.5">
-            <div className="flex items-center gap-1.5">
+          <div className="mt-2 space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                  "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
                   ESTADO_ESTILO[citaDrawer.status] ??
                     "bg-muted text-muted-foreground"
                 )}
@@ -1016,7 +1021,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               </span>
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                  "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
                   citaDrawer.estado_pago === "pagado"
                     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
                     : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
@@ -1383,9 +1388,10 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         isPending={isPending}
       />
 
-      {/* Dialog — cerrar día / bloquear por servicio */}
-      <DialogCerrarDia
+      {/* Cerrar día / bloquear por servicio (Drawer en movil, Dialog en escritorio) */}
+      <CerrarDiaModal
         open={cerrarDiaOpen}
+        isDesktop={isDesktop}
         servicios={servicios}
         onCerrar={() => setCerrarDiaOpen(false)}
         onListo={() => { setCerrarDiaOpen(false); router.refresh() }}
@@ -1557,13 +1563,14 @@ function DialogEditarSerie({
 }
 
 // ---------------------------------------------------------------------------
-// Dialog — Cerrar día / bloquear por servicio
+// Cerrar día / bloquear por servicio (Drawer en movil, Dialog en escritorio)
 // ---------------------------------------------------------------------------
 
-function DialogCerrarDia({
-  open, servicios, onCerrar, onListo,
+function CerrarDiaModal({
+  open, isDesktop, servicios, onCerrar, onListo,
 }: {
   open: boolean
+  isDesktop: boolean
   servicios: Servicio[]
   onCerrar: () => void
   onListo: () => void
@@ -1594,69 +1601,106 @@ function DialogCerrarDia({
     })
   }
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onCerrar() }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Cerrar un día</DialogTitle>
-          <DialogDescription>
-            Bloquea la fecha y avisa a los pacientes con cita ese día para que reagenden.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="cerrar-fecha">Fecha a cerrar</Label>
-            <Input id="cerrar-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-          </div>
+  const puedeConfirmar = !isPending && !!fecha && !(alcance === "servicio" && !serviceId)
 
-          <div className="space-y-1.5">
-            <Label>Alcance</Label>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="radio" checked={alcance === "todo"} onChange={() => setAlcance("todo")} />
-                Toda la clínica (no habrá atención ese día)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="radio" checked={alcance === "servicio"} onChange={() => setAlcance("servicio")} />
-                Solo un servicio (ej. equipo descompuesto)
-              </label>
-            </div>
-          </div>
+  const campos = (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="cerrar-fecha">Fecha a cerrar</Label>
+        <Input id="cerrar-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+      </div>
 
-          {alcance === "servicio" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="cerrar-servicio">Servicio a bloquear</Label>
-              <select
-                id="cerrar-servicio"
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Selecciona un servicio</option>
-                {servicios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-              </select>
-            </div>
+      <div className="space-y-2">
+        <Label>Alcance</Label>
+        <button
+          type="button"
+          onClick={() => setAlcance("todo")}
+          className={cn(
+            "w-full text-left rounded-lg border p-3 text-sm transition-colors",
+            alcance === "todo" ? "border-primary bg-primary/5" : "border-border",
           )}
+        >
+          <span className="font-medium">Toda la clínica</span>
+          <span className="block text-xs text-muted-foreground">No habrá atención ese día</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setAlcance("servicio")}
+          className={cn(
+            "w-full text-left rounded-lg border p-3 text-sm transition-colors",
+            alcance === "servicio" ? "border-primary bg-primary/5" : "border-border",
+          )}
+        >
+          <span className="font-medium">Solo un servicio</span>
+          <span className="block text-xs text-muted-foreground">Ej. equipo descompuesto</span>
+        </button>
+      </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="cerrar-motivo">Motivo (opcional)</Label>
-            <Input id="cerrar-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Vacaciones, mantenimiento, etc." />
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Nota: si tienes página de reserva de Google, recuerda marcar también ese día como ocupado en tu Google Calendar para que no se ofrezca en tu página de reservas.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCerrar}>Cancelar</Button>
-          <Button
-            onClick={confirmar}
-            disabled={isPending || !fecha || (alcance === "servicio" && !serviceId)}
+      {alcance === "servicio" && (
+        <div className="space-y-1.5">
+          <Label htmlFor="cerrar-servicio">Servicio a bloquear</Label>
+          <select
+            id="cerrar-servicio"
+            value={serviceId}
+            onChange={(e) => setServiceId(e.target.value)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
           >
-            {isPending ? "Cerrando..." : "Cerrar día y avisar"}
+            <option value="">Selecciona un servicio</option>
+            {servicios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        <Label htmlFor="cerrar-motivo">Motivo (opcional)</Label>
+        <Input id="cerrar-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Vacaciones, mantenimiento, etc." />
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Nota: si tienes página de reserva de Google, recuerda marcar también ese día como
+        ocupado en tu Google Calendar para que no se ofrezca en tu página de reservas.
+      </p>
+    </div>
+  )
+
+  // Escritorio — Dialog centrado
+  if (isDesktop) {
+    return (
+      <Dialog open={open} onOpenChange={(o) => { if (!o) onCerrar() }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cerrar un día</DialogTitle>
+            <DialogDescription>
+              Bloquea la fecha y avisa a los pacientes con cita ese día para que reagenden.
+            </DialogDescription>
+          </DialogHeader>
+          {campos}
+          <DialogFooter>
+            <Button variant="outline" onClick={onCerrar}>Cancelar</Button>
+            <Button onClick={confirmar} disabled={!puedeConfirmar}>
+              {isPending ? "Cerrando..." : "Cerrar día y avisar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // Movil — Drawer inferior con margenes
+  return (
+    <Drawer open={open} onOpenChange={(o) => { if (!o) onCerrar() }} shouldScaleBackground>
+      <DrawerContent>
+        <DrawerHeader className="text-left">
+          <DrawerTitle>Cerrar un día</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 pb-2 overflow-y-auto">{campos}</div>
+        <DrawerFooter className="border-t border-border pt-3 flex-row gap-2">
+          <Button variant="outline" className="flex-1" onClick={onCerrar}>Cancelar</Button>
+          <Button className="flex-1" onClick={confirmar} disabled={!puedeConfirmar}>
+            {isPending ? "Cerrando..." : "Cerrar día"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }

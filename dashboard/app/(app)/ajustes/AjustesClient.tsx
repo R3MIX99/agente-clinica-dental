@@ -92,12 +92,12 @@ export function AjustesClient({ clinica, servicios, canalTelegram }: Props) {
 
       {clinica && (
         <Tabs defaultValue="identidad">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="identidad">Identidad</TabsTrigger>
-            <TabsTrigger value="servicios">Servicios</TabsTrigger>
-            <TabsTrigger value="faq">FAQ</TabsTrigger>
-            <TabsTrigger value="reserva">Reserva y pago</TabsTrigger>
-            <TabsTrigger value="canal">Canal</TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-5">
+            <TabsTrigger value="identidad" className="whitespace-nowrap">Identidad</TabsTrigger>
+            <TabsTrigger value="servicios" className="whitespace-nowrap">Servicios</TabsTrigger>
+            <TabsTrigger value="faq" className="whitespace-nowrap">FAQ</TabsTrigger>
+            <TabsTrigger value="reserva" className="whitespace-nowrap">Reserva y pago</TabsTrigger>
+            <TabsTrigger value="canal" className="whitespace-nowrap">Canal</TabsTrigger>
           </TabsList>
 
           <TabsContent value="identidad" className="mt-6">
