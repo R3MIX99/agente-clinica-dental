@@ -101,6 +101,7 @@ export type Database = {
           created_at: string
           doctor_id: string | null
           duracion_min: number | null
+          estado_pago: string
           fecha_hora: string
           id: string
           notas: string | null
@@ -118,6 +119,7 @@ export type Database = {
           created_at?: string
           doctor_id?: string | null
           duracion_min?: number | null
+          estado_pago?: string
           fecha_hora: string
           id?: string
           notas?: string | null
@@ -135,6 +137,7 @@ export type Database = {
           created_at?: string
           doctor_id?: string | null
           duracion_min?: number | null
+          estado_pago?: string
           fecha_hora?: string
           id?: string
           notas?: string | null
@@ -170,6 +173,61 @@ export type Database = {
           },
           {
             foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bloqueos: {
+        Row: {
+          clinica_id: string
+          created_at: string
+          doctor_id: string | null
+          fecha: string
+          id: string
+          motivo: string | null
+          notificado_at: string | null
+          service_id: string | null
+        }
+        Insert: {
+          clinica_id: string
+          created_at?: string
+          doctor_id?: string | null
+          fecha: string
+          id?: string
+          motivo?: string | null
+          notificado_at?: string | null
+          service_id?: string | null
+        }
+        Update: {
+          clinica_id?: string
+          created_at?: string
+          doctor_id?: string | null
+          fecha?: string
+          id?: string
+          motivo?: string | null
+          notificado_at?: string | null
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueos_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
@@ -310,11 +368,13 @@ export type Database = {
           activa: boolean
           created_at: string
           cuenta_id: string
+          datos_pago: string | null
           direccion: string | null
           email: string | null
           facturacion: string | null
           faq: Json | null
           formas_pago: string | null
+          google_reserva_url: string | null
           horario: string | null
           id: string
           logo_url: string | null
@@ -331,11 +391,13 @@ export type Database = {
           activa?: boolean
           created_at?: string
           cuenta_id: string
+          datos_pago?: string | null
           direccion?: string | null
           email?: string | null
           facturacion?: string | null
           faq?: Json | null
           formas_pago?: string | null
+          google_reserva_url?: string | null
           horario?: string | null
           id?: string
           logo_url?: string | null
@@ -352,11 +414,13 @@ export type Database = {
           activa?: boolean
           created_at?: string
           cuenta_id?: string
+          datos_pago?: string | null
           direccion?: string | null
           email?: string | null
           facturacion?: string | null
           faq?: Json | null
           formas_pago?: string | null
+          google_reserva_url?: string | null
           horario?: string | null
           id?: string
           logo_url?: string | null
@@ -1365,6 +1429,7 @@ export type Database = {
         | "cancelada"
         | "completada"
         | "no_asistio"
+        | "por_reagendar"
       channel_type: "telegram" | "whatsapp"
       conversation_mode: "bot" | "humano"
       conversation_status: "abierta" | "pendiente" | "cerrada"
@@ -1505,6 +1570,7 @@ export const Constants = {
         "cancelada",
         "completada",
         "no_asistio",
+        "por_reagendar",
       ],
       channel_type: ["telegram", "whatsapp"],
       conversation_mode: ["bot", "humano"],
