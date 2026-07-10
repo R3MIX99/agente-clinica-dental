@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { ArrowLeft, Plus, Copy, Download } from "lucide-react"
+import { ArrowLeft, Plus, Copy, Download, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -81,9 +81,16 @@ export function ClinicaDetalleClient({
           </Badge>
           {!detalle.telegram_conectado && <Badge variant="outline">Sin Telegram</Badge>}
           {!detalle.onboarding_completado && <Badge variant="outline">Onboarding pendiente</Badge>}
-          <Button size="sm" variant="outline" className="ml-auto" disabled={isPending} onClick={handleReenviar}>
-            Reenviar acceso
-          </Button>
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/superadmin/${detalle.clinica_id}/vista`}>
+                <Eye className="mr-1 h-4 w-4" aria-hidden="true" /> Vista de soporte
+              </Link>
+            </Button>
+            <Button size="sm" variant="outline" disabled={isPending} onClick={handleReenviar}>
+              Reenviar acceso
+            </Button>
+          </div>
         </div>
       </div>
 

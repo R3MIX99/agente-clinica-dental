@@ -206,6 +206,76 @@ export async function listarClinicasAdmin(): Promise<ClinicaAdmin[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Vista de soporte (solo lectura) de una clinica
+// ---------------------------------------------------------------------------
+
+export type VistaSoporte = {
+  clinica_nombre: string | null
+  conversaciones: Array<{
+    id: string
+    paciente: string
+    mode: string
+    status: string
+    last_message_at: string
+    intencion: string | null
+    sentimiento: string | null
+  }>
+  proximas_citas: Array<{
+    id: string
+    fecha_hora: string
+    paciente: string | null
+    servicio: string | null
+    status: string
+    estado_pago: string
+  }>
+}
+
+export async function obtenerVistaSoporte(clinicaId: string): Promise<VistaSoporte | null> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const { data: clinica } = await db.from("clinicas").select("nombre").eq("id", clinicaId).maybeSingle()
+  if (!clinica) return null
+
+  const ahora = new Date().toISOString()
+  const [convRes, citasRes] = await Promise.all([
+    db.from("conversations")
+      .select("id, mode, status, last_message_at, intencion, sentimiento, patients(nombre)")
+      .eq("clinica_id", clinicaId)
+      .is("deleted_at", null)
+      .order("last_message_at", { ascending: false })
+      .limit(25),
+    db.from("appointments")
+      .select("id, fecha_hora, status, estado_pago, patients(nombre), services(nombre)")
+      .eq("clinica_id", clinicaId)
+      .gte("fecha_hora", ahora)
+      .order("fecha_hora")
+      .limit(15),
+  ])
+
+  return {
+    clinica_nombre: clinica.nombre,
+    conversaciones: (convRes.data ?? []).map((c) => ({
+      id: c.id,
+      paciente: (c.patients as { nombre: string } | null)?.nombre ?? "Desconocido",
+      mode: c.mode,
+      status: c.status,
+      last_message_at: c.last_message_at,
+      intencion: c.intencion,
+      sentimiento: c.sentimiento,
+    })),
+    proximas_citas: (citasRes.data ?? []).map((a) => ({
+      id: a.id,
+      fecha_hora: a.fecha_hora,
+      paciente: (a.patients as { nombre: string } | null)?.nombre ?? null,
+      servicio: (a.services as { nombre: string } | null)?.nombre ?? null,
+      status: a.status,
+      estado_pago: a.estado_pago,
+    })),
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Reenviar acceso/onboarding a la administradora (enlace magico)
 // ---------------------------------------------------------------------------
 
