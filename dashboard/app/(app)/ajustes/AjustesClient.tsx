@@ -655,22 +655,43 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
           </div>
         </div>
 
+        {/* Bots configurados (sin mostrar el token) */}
+        <div className="space-y-1.5">
+          <Label>Bots configurados</Label>
+          {canalTelegram?.tiene_token ? (
+            <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span className="font-medium">
+                  {canalTelegram.bot_username ? `@${canalTelegram.bot_username}` : "Bot de Telegram"}
+                </span>
+                <Badge variant="secondary">Configurado</Badge>
+              </div>
+              <span className="text-xs text-muted-foreground">Token oculto</span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aún no hay ningún bot configurado.</p>
+          )}
+        </div>
+
         {/* Token del bot */}
         <div className="space-y-1.5">
-          <Label htmlFor="bot_token">Token del bot</Label>
+          <Label htmlFor="bot_token">
+            {canalTelegram?.tiene_token ? "Cambiar token del bot" : "Token del bot"}
+          </Label>
           <Input
             id="bot_token"
             type="password"
             autoComplete="off"
             placeholder={
               canalTelegram?.tiene_token
-                ? "Token configurado — escribe uno nuevo para reemplazarlo"
+                ? "Escribe un token nuevo para reemplazar el actual"
                 : "123456:ABCdef..."
             }
             {...register("bot_token")}
           />
           <p className="text-xs text-muted-foreground">
-            Obtenlo en @BotFather de Telegram. Se almacena de forma segura en el servidor y nunca se muestra completo.
+            Obtenlo en @BotFather de Telegram. Se almacena de forma segura en el servidor y nunca se muestra ni se puede copiar.
           </p>
         </div>
 

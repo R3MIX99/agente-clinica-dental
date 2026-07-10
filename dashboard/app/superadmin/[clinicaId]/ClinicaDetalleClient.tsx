@@ -19,7 +19,7 @@ import {
 import {
   crearUsuarioConPassword, cambiarActivoMiembro, fijarPrecioVencimiento, registrarPago,
   recargarSaldoIA, sumarRecordatorios, cambiarPlan, cambiarEstadoCuenta, activarClinica, conectarTelegram,
-  reenviarOnboarding, guardarNotasAdmin,
+  reenviarOnboarding, guardarNotasAdmin, desconectarTelegram,
   type ClinicaDetalle, type PlanResumen, type MiembroDetalle,
 } from "../actions"
 import { Textarea } from "@/components/ui/textarea"
@@ -191,7 +191,12 @@ export function ClinicaDetalleClient({
 
       {/* Canal */}
       <Seccion titulo="Telegram">
-        <ConectarTelegram clinicaId={detalle.clinica_id} conectado={detalle.telegram_conectado} onListo={() => router.refresh()} />
+        <ConectarTelegram
+          clinicaId={detalle.clinica_id}
+          conectado={detalle.telegram_conectado}
+          botUsername={detalle.telegram_bot_username}
+          onListo={() => router.refresh()}
+        />
       </Seccion>
 
       {/* Metricas de IA */}
@@ -569,10 +574,11 @@ function NotasInternas({
 }
 
 function ConectarTelegram({
-  clinicaId, conectado, onListo,
+  clinicaId, conectado, botUsername, onListo,
 }: {
   clinicaId: string
   conectado: boolean
+  botUsername: string | null
   onListo: () => void
 }) {
   const [isPending, startTransition] = useTransition()
@@ -588,12 +594,39 @@ function ConectarTelegram({
     })
   }
 
+  function quitar() {
+    startTransition(async () => {
+      const r = await desconectarTelegram(clinicaId)
+      if (!r.ok) { toast.error(r.error ?? "No se pudo quitar el bot."); return }
+      toast.success("Bot desconectado. Ya no recibe ni envía mensajes.")
+      onListo()
+    })
+  }
+
   return (
-    <div className="space-y-2">
-      {conectado && <Badge variant="secondary">Conectado</Badge>}
-      <div className="flex gap-2">
-        <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Token del bot (BotFather)" className="h-9" />
-        <Button size="sm" disabled={isPending || !token.trim()} onClick={conectar}>Conectar</Button>
+    <div className="space-y-3">
+      {conectado ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">Conectado</Badge>
+          {botUsername && <span className="text-sm font-medium">@{botUsername}</span>}
+          <Button size="sm" variant="outline" className="ml-auto text-destructive hover:text-destructive"
+            disabled={isPending} onClick={quitar}>
+            Quitar bot
+          </Button>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Sin bot conectado.</p>
+      )}
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">
+          {conectado ? "Reemplazar el bot: pega un token nuevo." : "Conectar un bot: pega el token de BotFather."}
+        </p>
+        <div className="flex gap-2">
+          <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Token del bot (BotFather)" className="h-9" />
+          <Button size="sm" disabled={isPending || !token.trim()} onClick={conectar}>
+            {conectado ? "Reemplazar" : "Conectar"}
+          </Button>
+        </div>
       </div>
     </div>
   )

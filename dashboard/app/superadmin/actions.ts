@@ -2,7 +2,7 @@
 
 import { createServerClient } from "@/lib/supabase/server"
 import { assertSuperadmin } from "@/lib/auth/superadmin"
-import { conectarTelegramBot } from "@/lib/telegram"
+import { conectarTelegramBot, desconectarTelegramBot } from "@/lib/telegram"
 import { revalidatePath } from "next/cache"
 import { randomBytes } from "crypto"
 
@@ -767,6 +767,18 @@ export async function conectarTelegram(
   return resultado
 }
 
+export async function desconectarTelegram(
+  clinicaId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const resultado = await desconectarTelegramBot(clinicaId)
+  if (resultado.ok) {
+    revalidatePath("/superadmin")
+    revalidatePath(`/superadmin/${clinicaId}`)
+  }
+  return resultado
+}
+
 // ===========================================================================
 // Detalle de una clinica (para la pagina dedicada)
 // ===========================================================================
@@ -795,6 +807,7 @@ export type ClinicaDetalle = {
   cuenta_estado: string
   onboarding_completado: boolean
   telegram_conectado: boolean
+  telegram_bot_username: string | null
   suscripcion: {
     id: string
     estado: string
@@ -905,6 +918,7 @@ export async function obtenerClinicaDetalle(clinicaId: string): Promise<ClinicaD
     cuenta_estado: (clinica.cuentas as { estado: string } | null)?.estado ?? "prueba",
     onboarding_completado: !!clinica.onboarding_completado,
     telegram_conectado: !!channelRes.data?.activo && !!(channelRes.data?.config as { bot_token?: string } | null)?.bot_token,
+    telegram_bot_username: (channelRes.data?.config as { bot_username?: string } | null)?.bot_username ?? null,
     suscripcion: s ? {
       id: s.id,
       estado: s.estado,

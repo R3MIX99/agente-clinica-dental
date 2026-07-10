@@ -39,6 +39,7 @@ export type CanalTelegramPublico = {
   activo: boolean
   webhook_url: string | null
   bot_url: string | null
+  bot_username: string | null
   tiene_token: boolean
   updated_at: string
 } | null

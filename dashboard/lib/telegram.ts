@@ -105,6 +105,38 @@ export async function conectarTelegramBot(
   return { ok: true, botUsername }
 }
 
+// Revoca/quita el bot de una clinica: borra el webhook en Telegram y limpia el
+// token y el secret_token de clinic_channels, dejando el canal inactivo. A partir
+// de ahi ese bot ya no puede recibir ni enviar por el sistema.
+export async function desconectarTelegramBot(
+  clinicaId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const db = createServerClient()
+  const { data } = await db
+    .from("clinic_channels")
+    .select("config")
+    .eq("clinica_id", clinicaId)
+    .eq("canal", "telegram")
+    .maybeSingle()
+
+  const token = (data?.config as { bot_token?: string } | null)?.bot_token
+  if (token) {
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`, { method: "POST" })
+    } catch {
+      // Si falla el borrado del webhook, igual limpiamos nuestra config
+    }
+  }
+
+  const { error } = await db
+    .from("clinic_channels")
+    .update({ activo: false, config: {} } as never)
+    .eq("clinica_id", clinicaId)
+    .eq("canal", "telegram")
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
 // Indica si una clinica ya tiene su canal de Telegram conectado (token + activo).
 export async function telegramConectado(clinicaId: string): Promise<boolean> {
   const db = createServerClient()

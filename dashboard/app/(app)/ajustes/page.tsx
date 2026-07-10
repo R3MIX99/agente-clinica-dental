@@ -61,6 +61,7 @@ export default async function AjustesPage() {
         activo:      canalData.activo,
         webhook_url: canalData.webhook_url ?? null,
         bot_url:     (configData.bot_url as string | undefined) ?? null,
+        bot_username: (configData.bot_username as string | undefined) ?? null,
         tiene_token: !!configData.bot_token,
         updated_at:  canalData.updated_at,
       }
