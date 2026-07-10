@@ -62,6 +62,80 @@ export async function listarPlanes(): Promise<PlanResumen[]> {
   }))
 }
 
+// ---------------------------------------------------------------------------
+// CRUD de planes
+// ---------------------------------------------------------------------------
+
+export type PlanAdmin = {
+  id: string
+  nombre: string
+  precio_mensual_mxn: number
+  precio_anual_mxn: number
+  max_doctores: number
+  max_usuarios: number
+  max_clinicas: number
+  max_recordatorios_mes: number
+  saldo_ia_incluido_mxn: number
+  activo: boolean
+}
+
+export async function listarPlanesAdmin(): Promise<PlanAdmin[]> {
+  await assertSuperadmin()
+  const db = createServerClient()
+  const { data } = await db
+    .from("planes")
+    .select("id, nombre, precio_mensual_mxn, precio_anual_mxn, max_doctores, max_usuarios, max_clinicas, max_recordatorios_mes, saldo_ia_incluido_mxn, activo")
+    .order("precio_mensual_mxn")
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    precio_mensual_mxn: Number(p.precio_mensual_mxn),
+    precio_anual_mxn: Number(p.precio_anual_mxn),
+    max_doctores: p.max_doctores,
+    max_usuarios: p.max_usuarios,
+    max_clinicas: p.max_clinicas,
+    max_recordatorios_mes: p.max_recordatorios_mes,
+    saldo_ia_incluido_mxn: Number(p.saldo_ia_incluido_mxn),
+    activo: p.activo,
+  }))
+}
+
+export type DatosPlan = Omit<PlanAdmin, "id" | "activo"> & { id?: string }
+
+export async function guardarPlan(datos: DatosPlan): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+  if (!datos.nombre.trim()) return { ok: false, error: "El nombre es obligatorio." }
+
+  const fila = {
+    nombre: datos.nombre.trim(),
+    precio_mensual_mxn: datos.precio_mensual_mxn,
+    precio_anual_mxn: datos.precio_anual_mxn,
+    max_doctores: datos.max_doctores,
+    max_usuarios: datos.max_usuarios,
+    max_clinicas: datos.max_clinicas,
+    max_recordatorios_mes: datos.max_recordatorios_mes,
+    saldo_ia_incluido_mxn: datos.saldo_ia_incluido_mxn,
+  }
+
+  const { error } = datos.id
+    ? await db.from("planes").update(fila as never).eq("id", datos.id)
+    : await db.from("planes").insert(fila as never)
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath("/superadmin/planes")
+  return { ok: true }
+}
+
+export async function cambiarActivoPlan(id: string, activo: boolean): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+  const { error } = await db.from("planes").update({ activo } as never).eq("id", id)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath("/superadmin/planes")
+  return { ok: true }
+}
+
 export async function listarClinicasAdmin(): Promise<ClinicaAdmin[]> {
   await assertSuperadmin()
   const db = createServerClient()
