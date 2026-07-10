@@ -19,9 +19,10 @@ import {
 import {
   crearUsuarioConPassword, cambiarActivoMiembro, fijarPrecioVencimiento, registrarPago,
   recargarSaldoIA, sumarRecordatorios, cambiarPlan, cambiarEstadoCuenta, activarClinica, conectarTelegram,
-  reenviarOnboarding,
+  reenviarOnboarding, guardarNotasAdmin,
   type ClinicaDetalle, type PlanResumen, type MiembroDetalle,
 } from "../actions"
+import { Textarea } from "@/components/ui/textarea"
 
 const moneda = (n: number) =>
   n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 })
@@ -184,6 +185,26 @@ export function ClinicaDetalleClient({
       {/* Canal */}
       <Seccion titulo="Telegram">
         <ConectarTelegram clinicaId={detalle.clinica_id} conectado={detalle.telegram_conectado} onListo={() => router.refresh()} />
+      </Seccion>
+
+      {/* Metricas de IA */}
+      <Seccion titulo="Métricas de IA (costo vs cobrado)">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <Dato titulo="Costo API (mes)" valor={`$${detalle.metricas_ia.costo_api_usd_mes.toFixed(4)} USD`} />
+          <Dato titulo="Cobrado (mes)" valor={moneda(detalle.metricas_ia.cobrado_mxn_mes)} />
+          <Dato titulo="Llamadas (mes)" valor={String(detalle.metricas_ia.llamadas_mes)} />
+          <Dato titulo="Costo API (total)" valor={`$${detalle.metricas_ia.costo_api_usd_total.toFixed(4)} USD`} />
+          <Dato titulo="Cobrado (total)" valor={moneda(detalle.metricas_ia.cobrado_mxn_total)} />
+          <Dato titulo="Llamadas (total)" valor={String(detalle.metricas_ia.llamadas_total)} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          "Costo API" es lo que paga la cuenta de Anthropic; "Cobrado" es lo descontado del saldo de la clínica (con markup).
+        </p>
+      </Seccion>
+
+      {/* Notas internas */}
+      <Seccion titulo="Notas internas">
+        <NotasInternas cuentaId={detalle.cuenta_id} notasIniciales={detalle.notas_admin ?? ""} onListo={() => router.refresh()} />
       </Seccion>
 
       {/* Backup */}
@@ -506,6 +527,36 @@ function CambiarPlan({
         </select>
       </div>
       <Button size="sm" variant="outline" disabled={isPending} onClick={() => onCambiar(planId)}>Aplicar plan</Button>
+    </div>
+  )
+}
+
+function NotasInternas({
+  cuentaId, notasIniciales, onListo,
+}: {
+  cuentaId: string
+  notasIniciales: string
+  onListo: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [notas, setNotas] = useState(notasIniciales)
+
+  function guardar() {
+    startTransition(async () => {
+      const r = await guardarNotasAdmin(cuentaId, notas)
+      if (!r.ok) { toast.error(r.error ?? "No se pudo guardar."); return }
+      toast.success("Notas guardadas.")
+      onListo()
+    })
+  }
+
+  return (
+    <div className="space-y-2">
+      <Textarea rows={4} value={notas} onChange={(e) => setNotas(e.target.value)}
+        placeholder="Acuerdos, contactos, recordatorios internos... (solo visible para el superadmin)" />
+      <Button size="sm" onClick={guardar} disabled={isPending}>
+        {isPending ? "Guardando..." : "Guardar notas"}
+      </Button>
     </div>
   )
 }

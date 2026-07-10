@@ -670,6 +670,15 @@ export type ClinicaDetalle = {
   usuarios: number
   miembros: MiembroDetalle[]
   historial: PagoHistorial[]
+  notas_admin: string | null
+  metricas_ia: {
+    costo_api_usd_total: number
+    cobrado_mxn_total: number
+    llamadas_total: number
+    costo_api_usd_mes: number
+    cobrado_mxn_mes: number
+    llamadas_mes: number
+  }
 }
 
 export async function obtenerClinicaDetalle(clinicaId: string): Promise<ClinicaDetalle | null> {
@@ -685,7 +694,7 @@ export async function obtenerClinicaDetalle(clinicaId: string): Promise<ClinicaD
 
   const [suscRes, membRes, channelRes] = await Promise.all([
     db.from("suscripciones")
-      .select("id, estado, plan_id, precio_personalizado_mxn, fecha_vencimiento, saldo_ia_disponible_mxn, recordatorios_enviados, recordatorios_extra, planes!plan_id(nombre, precio_mensual_mxn, max_doctores, max_usuarios, max_recordatorios_mes)")
+      .select("id, estado, plan_id, precio_personalizado_mxn, fecha_vencimiento, saldo_ia_disponible_mxn, recordatorios_enviados, recordatorios_extra, notas_admin, planes!plan_id(nombre, precio_mensual_mxn, max_doctores, max_usuarios, max_recordatorios_mes)")
       .eq("cuenta_id", clinica.cuenta_id)
       .order("created_at")
       .limit(1)
@@ -693,6 +702,24 @@ export async function obtenerClinicaDetalle(clinicaId: string): Promise<ClinicaD
     db.from("membresias").select("user_id, rol, activa").eq("clinica_id", clinicaId),
     db.from("clinic_channels").select("activo, config").eq("clinica_id", clinicaId).eq("canal", "telegram").maybeSingle(),
   ])
+
+  // Metricas de IA: costo real de la API vs lo cobrado a la clinica
+  const inicioMes = new Date()
+  inicioMes.setDate(1)
+  inicioMes.setHours(0, 0, 0, 0)
+  const { data: consumos } = await db
+    .from("consumos_ia")
+    .select("costo_api_usd, costo_descontado_mxn, created_at")
+    .eq("clinica_id", clinicaId)
+
+  let costoApiTotal = 0, cobradoTotal = 0, llamadasTotal = 0
+  let costoApiMes = 0, cobradoMes = 0, llamadasMes = 0
+  for (const c of consumos ?? []) {
+    const api = Number(c.costo_api_usd)
+    const mxn = Number(c.costo_descontado_mxn)
+    costoApiTotal += api; cobradoTotal += mxn; llamadasTotal++
+    if (new Date(c.created_at) >= inicioMes) { costoApiMes += api; cobradoMes += mxn; llamadasMes++ }
+  }
 
   const membresias = membRes.data ?? []
   const userIds = membresias.map((m) => m.user_id)
@@ -760,7 +787,38 @@ export async function obtenerClinicaDetalle(clinicaId: string): Promise<ClinicaD
       concepto: h.concepto,
       status: h.status,
     })),
+    notas_admin: (s as { notas_admin?: string | null } | null)?.notas_admin ?? null,
+    metricas_ia: {
+      costo_api_usd_total: costoApiTotal,
+      cobrado_mxn_total: cobradoTotal,
+      llamadas_total: llamadasTotal,
+      costo_api_usd_mes: costoApiMes,
+      cobrado_mxn_mes: cobradoMes,
+      llamadas_mes: llamadasMes,
+    },
   }
+}
+
+export async function guardarNotasAdmin(
+  cuentaId: string,
+  notas: string,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+  const { data: susc } = await db
+    .from("suscripciones")
+    .select("id")
+    .eq("cuenta_id", cuentaId)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle()
+  if (!susc) return { ok: false, error: "La cuenta no tiene suscripción." }
+  const { error } = await db
+    .from("suscripciones")
+    .update({ notas_admin: notas.trim() || null } as never)
+    .eq("id", susc.id)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
 // ===========================================================================
