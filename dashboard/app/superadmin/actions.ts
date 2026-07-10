@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { assertSuperadmin } from "@/lib/auth/superadmin"
 import { conectarTelegramBot } from "@/lib/telegram"
 import { revalidatePath } from "next/cache"
+import { randomBytes } from "crypto"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -568,6 +569,314 @@ export async function conectarTelegram(
 ): Promise<{ ok: boolean; error?: string; botUsername?: string | null }> {
   await assertSuperadmin()
   const resultado = await conectarTelegramBot(clinicaId, botToken)
-  if (resultado.ok) revalidatePath("/superadmin")
+  if (resultado.ok) {
+    revalidatePath("/superadmin")
+    revalidatePath(`/superadmin/${clinicaId}`)
+  }
   return resultado
+}
+
+// ===========================================================================
+// Detalle de una clinica (para la pagina dedicada)
+// ===========================================================================
+
+export type MiembroDetalle = {
+  user_id: string
+  nombre: string
+  email: string | null
+  rol: string
+  activa: boolean
+}
+
+export type PagoHistorial = {
+  id: string
+  created_at: string
+  monto_mxn: number | null
+  metodo: string | null
+  concepto: string | null
+  status: string
+}
+
+export type ClinicaDetalle = {
+  clinica_id: string
+  clinica_nombre: string | null
+  cuenta_id: string
+  cuenta_estado: string
+  onboarding_completado: boolean
+  telegram_conectado: boolean
+  suscripcion: {
+    id: string
+    estado: string
+    plan_id: string | null
+    plan_nombre: string | null
+    precio_efectivo_mxn: number
+    precio_personalizado_mxn: number | null
+    precio_plan_mxn: number
+    fecha_vencimiento: string | null
+    saldo_ia_disponible_mxn: number
+    recordatorios_enviados: number
+    recordatorios_tope: number
+    max_doctores: number
+    max_usuarios: number
+  } | null
+  doctores: number
+  usuarios: number
+  miembros: MiembroDetalle[]
+  historial: PagoHistorial[]
+}
+
+export async function obtenerClinicaDetalle(clinicaId: string): Promise<ClinicaDetalle | null> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const { data: clinica } = await db
+    .from("clinicas")
+    .select("id, nombre, cuenta_id, onboarding_completado, cuentas(estado)")
+    .eq("id", clinicaId)
+    .maybeSingle()
+  if (!clinica) return null
+
+  const [suscRes, membRes, channelRes] = await Promise.all([
+    db.from("suscripciones")
+      .select("id, estado, plan_id, precio_personalizado_mxn, fecha_vencimiento, saldo_ia_disponible_mxn, recordatorios_enviados, recordatorios_extra, planes!plan_id(nombre, precio_mensual_mxn, max_doctores, max_usuarios, max_recordatorios_mes)")
+      .eq("cuenta_id", clinica.cuenta_id)
+      .order("created_at")
+      .limit(1)
+      .maybeSingle(),
+    db.from("membresias").select("user_id, rol, activa").eq("clinica_id", clinicaId),
+    db.from("clinic_channels").select("activo, config").eq("clinica_id", clinicaId).eq("canal", "telegram").maybeSingle(),
+  ])
+
+  const membresias = membRes.data ?? []
+  const userIds = membresias.map((m) => m.user_id)
+  const { data: perfiles } = userIds.length > 0
+    ? await db.from("profiles").select("id, nombre, email").in("id", userIds)
+    : { data: [] as { id: string; nombre: string; email: string | null }[] }
+  const perfilMap = new Map((perfiles ?? []).map((p) => [p.id, p]))
+
+  const miembros: MiembroDetalle[] = membresias.map((m) => {
+    const p = perfilMap.get(m.user_id)
+    return {
+      user_id: m.user_id,
+      nombre: p?.nombre ?? "—",
+      email: p?.email ?? null,
+      rol: m.rol,
+      activa: m.activa,
+    }
+  })
+
+  const doctores = miembros.filter((m) => m.rol === "doctor" && m.activa).length
+  const usuarios = miembros.filter((m) => m.rol !== "doctor" && m.activa).length
+
+  const { data: historial } = await db
+    .from("historial_pagos")
+    .select("id, created_at, monto_mxn, metodo, concepto, status")
+    .eq("cuenta_id", clinica.cuenta_id)
+    .order("created_at", { ascending: false })
+    .limit(20)
+
+  const s = suscRes.data
+  const plan = s?.planes as { nombre: string; precio_mensual_mxn: number; max_doctores: number; max_usuarios: number; max_recordatorios_mes: number } | null
+  const precioPlan = Number(plan?.precio_mensual_mxn ?? 0)
+  const precioPers = s?.precio_personalizado_mxn != null ? Number(s.precio_personalizado_mxn) : null
+
+  return {
+    clinica_id: clinica.id,
+    clinica_nombre: clinica.nombre,
+    cuenta_id: clinica.cuenta_id,
+    cuenta_estado: (clinica.cuentas as { estado: string } | null)?.estado ?? "prueba",
+    onboarding_completado: !!clinica.onboarding_completado,
+    telegram_conectado: !!channelRes.data?.activo && !!(channelRes.data?.config as { bot_token?: string } | null)?.bot_token,
+    suscripcion: s ? {
+      id: s.id,
+      estado: s.estado,
+      plan_id: s.plan_id,
+      plan_nombre: plan?.nombre ?? null,
+      precio_efectivo_mxn: precioPers ?? precioPlan,
+      precio_personalizado_mxn: precioPers,
+      precio_plan_mxn: precioPlan,
+      fecha_vencimiento: s.fecha_vencimiento,
+      saldo_ia_disponible_mxn: Number(s.saldo_ia_disponible_mxn ?? 0),
+      recordatorios_enviados: Number(s.recordatorios_enviados ?? 0),
+      recordatorios_tope: Number(plan?.max_recordatorios_mes ?? 0) + Number(s.recordatorios_extra ?? 0),
+      max_doctores: Number(plan?.max_doctores ?? 0),
+      max_usuarios: Number(plan?.max_usuarios ?? 0),
+    } : null,
+    doctores,
+    usuarios,
+    miembros,
+    historial: (historial ?? []).map((h) => ({
+      id: h.id,
+      created_at: h.created_at,
+      monto_mxn: h.monto_mxn != null ? Number(h.monto_mxn) : null,
+      metodo: h.metodo,
+      concepto: h.concepto,
+      status: h.status,
+    })),
+  }
+}
+
+// ===========================================================================
+// Crear usuario con contrasena temporal
+// ===========================================================================
+
+function generarPasswordTemporal(): string {
+  const bytes = randomBytes(6).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8)
+  return `Dental-${bytes}`
+}
+
+export async function crearUsuarioConPassword(
+  clinicaId: string,
+  datos: { nombre: string; email: string; rol: "doctor" | "supervisor" | "administrador" },
+): Promise<{ ok: boolean; error?: string; password?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const email = datos.email.trim().toLowerCase()
+  if (!email) return { ok: false, error: "El correo es obligatorio." }
+  if (!datos.nombre.trim()) return { ok: false, error: "El nombre es obligatorio." }
+
+  const { data: clinica } = await db.from("clinicas").select("cuenta_id").eq("id", clinicaId).single()
+  if (!clinica) return { ok: false, error: "Clínica no encontrada." }
+
+  const password = generarPasswordTemporal()
+
+  const { data: creado, error: errCrear } = await db.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { nombre: datos.nombre.trim(), rol: datos.rol, password_temporal: true },
+  })
+  if (errCrear || !creado?.user) {
+    return { ok: false, error: errCrear?.message ?? "No se pudo crear el usuario." }
+  }
+
+  const userId = creado.user.id
+  await db.from("profiles").update({
+    nombre: datos.nombre.trim(),
+    rol: datos.rol,
+    clinica_id: clinicaId,
+    cuenta_id: clinica.cuenta_id,
+    email,
+  } as never).eq("id", userId)
+
+  await db.from("membresias").insert({
+    user_id: userId,
+    clinica_id: clinicaId,
+    cuenta_id: clinica.cuenta_id,
+    rol: datos.rol,
+    activa: true,
+  } as never)
+
+  revalidatePath(`/superadmin/${clinicaId}`)
+  return { ok: true, password }
+}
+
+export async function cambiarActivoMiembro(
+  clinicaId: string,
+  userId: string,
+  activa: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+  const { error } = await db
+    .from("membresias")
+    .update({ activa } as never)
+    .eq("clinica_id", clinicaId)
+    .eq("user_id", userId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath(`/superadmin/${clinicaId}`)
+  return { ok: true }
+}
+
+// ===========================================================================
+// Facturacion manual: precio, vencimiento y registro de pagos
+// ===========================================================================
+
+export async function fijarPrecioVencimiento(
+  cuentaId: string,
+  datos: { precio_mxn: number | null; fecha_vencimiento: string | null },
+): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const { data: susc } = await db
+    .from("suscripciones")
+    .select("id")
+    .eq("cuenta_id", cuentaId)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle()
+  if (!susc) return { ok: false, error: "La cuenta no tiene suscripción." }
+
+  const { error } = await db
+    .from("suscripciones")
+    .update({
+      precio_personalizado_mxn: datos.precio_mxn,
+      fecha_vencimiento: datos.fecha_vencimiento,
+    } as never)
+    .eq("id", susc.id)
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath("/superadmin")
+  return { ok: true }
+}
+
+export async function registrarPago(
+  cuentaId: string,
+  datos: { monto_mxn: number; metodo: string; nota?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = await assertSuperadmin()
+  const db = createServerClient()
+
+  if (!Number.isFinite(datos.monto_mxn) || datos.monto_mxn <= 0) {
+    return { ok: false, error: "El monto debe ser mayor a 0." }
+  }
+
+  const { data: susc } = await db
+    .from("suscripciones")
+    .select("id, fecha_vencimiento")
+    .eq("cuenta_id", cuentaId)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle()
+  if (!susc) return { ok: false, error: "La cuenta no tiene suscripción." }
+
+  // Registrar el pago
+  const { error: errPago } = await db.from("historial_pagos").insert({
+    suscripcion_id: susc.id,
+    cuenta_id: cuentaId,
+    status: "pagado",
+    monto_mxn: datos.monto_mxn,
+    metodo: datos.metodo.trim() || "manual",
+    concepto: datos.nota?.trim() || "Pago de suscripción",
+    registrado_por: admin.email ?? "superadmin",
+  } as never)
+  if (errPago) return { ok: false, error: errPago.message }
+
+  // Avanzar el vencimiento un mes (desde el vencimiento actual si es futuro, si no desde hoy)
+  const base = susc.fecha_vencimiento
+    ? new Date(susc.fecha_vencimiento + "T12:00:00")
+    : new Date()
+  const ahora = new Date()
+  const desde = base > ahora ? base : ahora
+  desde.setMonth(desde.getMonth() + 1)
+  const nuevoVenc = desde.toISOString().slice(0, 10)
+
+  const { error: errSusc } = await db
+    .from("suscripciones")
+    .update({
+      estado: "activa",
+      fecha_vencimiento: nuevoVenc,
+      recordatorio_2d_at: null,
+      recordatorio_vencido_at: null,
+    } as never)
+    .eq("id", susc.id)
+  if (errSusc) return { ok: false, error: errSusc.message }
+
+  await db.from("cuentas").update({ estado: "activa" } as never).eq("id", cuentaId)
+
+  revalidatePath("/superadmin")
+  revalidatePath(`/superadmin`)
+  return { ok: true }
 }

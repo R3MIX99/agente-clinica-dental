@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { toast } from "sonner"
-import { Plus, Trash2, Settings } from "lucide-react"
+import { Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,12 +15,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import { Separator } from "@/components/ui/separator"
-import {
-  crearClinica, agregarMiembros, recargarSaldoIA, sumarRecordatorios,
-  cambiarPlan, cambiarEstadoCuenta, activarClinica, conectarTelegram,
-  type ClinicaAdmin, type PlanResumen, type MiembroNuevo,
-} from "./actions"
+import { crearClinica, type ClinicaAdmin, type PlanResumen } from "./actions"
 
 const moneda = (n: number) =>
   n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 })
@@ -33,7 +29,6 @@ export function SuperadminClient({
 }) {
   const router = useRouter()
   const [nuevaAbierta, setNuevaAbierta] = useState(false)
-  const [gestion, setGestion] = useState<ClinicaAdmin | null>(null)
 
   return (
     <div className="space-y-6">
@@ -86,9 +81,11 @@ export function SuperadminClient({
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => setGestion(c)}>
-                    <Settings className="mr-1 h-4 w-4" aria-hidden="true" />
-                    Gestionar
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/superadmin/${c.clinica_id}`}>
+                      <Settings className="mr-1 h-4 w-4" aria-hidden="true" />
+                      Gestionar
+                    </Link>
                   </Button>
                 </TableCell>
               </TableRow>
@@ -110,15 +107,6 @@ export function SuperadminClient({
         planes={planes}
         onListo={() => { setNuevaAbierta(false); router.refresh() }}
       />
-
-      {gestion && (
-        <DialogGestion
-          clinica={gestion}
-          planes={planes}
-          onCerrar={() => setGestion(null)}
-          onCambio={() => router.refresh()}
-        />
-      )}
     </div>
   )
 }
@@ -197,194 +185,6 @@ function DialogNuevaClinica({
           <Button onClick={guardar} disabled={isPending || !nombre.trim() || !emailAdmin.trim() || !planId}>
             {isPending ? "Creando..." : "Crear clínica"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Dialogo: gestionar una clinica
-// ---------------------------------------------------------------------------
-
-function DialogGestion({
-  clinica, planes, onCerrar, onCambio,
-}: {
-  clinica: ClinicaAdmin
-  planes: PlanResumen[]
-  onCerrar: () => void
-  onCambio: () => void
-}) {
-  const [isPending, startTransition] = useTransition()
-
-  // Miembros
-  const [miembros, setMiembros] = useState<MiembroNuevo[]>([])
-  // Recarga
-  const [monto, setMonto] = useState("")
-  // Recordatorios
-  const [recs, setRecs] = useState("")
-  // Plan
-  const [planId, setPlanId] = useState(clinica.plan_id ?? planes[0]?.id ?? "")
-  // Telegram
-  const [token, setToken] = useState("")
-
-  const correr = (fn: () => Promise<{ ok: boolean; error?: string }>, exito: string) => {
-    startTransition(async () => {
-      const r = await fn()
-      if (!r.ok) toast.error(r.error ?? "Ocurrió un error.")
-      else { toast.success(exito); onCambio() }
-    })
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) onCerrar() }}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{clinica.clinica_nombre ?? "Clínica"}</DialogTitle>
-          <DialogDescription>{clinica.cuenta_nombre} · {clinica.plan_nombre ?? "Sin plan"}</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-5">
-          {/* Agregar miembros */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium text-foreground">Agregar usuarios y doctores</h3>
-            {miembros.map((m, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <Input className="col-span-4 h-8 text-sm" placeholder="Nombre" value={m.nombre}
-                  onChange={(e) => { const c = [...miembros]; c[i] = { ...c[i], nombre: e.target.value }; setMiembros(c) }} />
-                <Input className="col-span-5 h-8 text-sm" placeholder="correo@ejemplo.com" type="email" value={m.email}
-                  onChange={(e) => { const c = [...miembros]; c[i] = { ...c[i], email: e.target.value }; setMiembros(c) }} />
-                <select className="col-span-2 h-8 rounded-md border border-input bg-background px-1 text-sm" value={m.rol}
-                  onChange={(e) => { const c = [...miembros]; c[i] = { ...c[i], rol: e.target.value as MiembroNuevo["rol"] }; setMiembros(c) }}>
-                  <option value="doctor">Doctor</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="administrador">Admin</option>
-                </select>
-                <button type="button" className="col-span-1 text-muted-foreground hover:text-destructive"
-                  onClick={() => setMiembros(miembros.filter((_, j) => j !== i))} aria-label="Quitar">
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setMiembros([...miembros, { nombre: "", email: "", rol: "doctor" }])}>
-                <Plus className="mr-1 h-4 w-4" aria-hidden="true" />Agregar fila
-              </Button>
-              {miembros.length > 0 && (
-                <Button size="sm" disabled={isPending}
-                  onClick={() => correr(async () => {
-                    const validos = miembros.filter((m) => m.email.trim())
-                    const r = await agregarMiembros(clinica.clinica_id, validos)
-                    if (r.ok) setMiembros([])
-                    return r
-                  }, "Invitaciones enviadas.")}>
-                  Invitar
-                </Button>
-              )}
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Recargar saldo IA */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium text-foreground">Recargar saldo de IA</h3>
-            <p className="text-xs text-muted-foreground">Saldo actual: {moneda(clinica.saldo_disponible_mxn)}</p>
-            <div className="flex gap-2">
-              <Input className="h-8 text-sm" type="number" placeholder="Monto MXN" value={monto} onChange={(e) => setMonto(e.target.value)} />
-              <Button size="sm" disabled={isPending}
-                onClick={() => correr(() => recargarSaldoIA(clinica.clinica_id, Number(monto)), "Saldo recargado.")}>
-                Recargar
-              </Button>
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Sumar recordatorios */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium text-foreground">Sumar recordatorios</h3>
-            <p className="text-xs text-muted-foreground">Tope actual: {clinica.recordatorios_tope} / mes</p>
-            <div className="flex gap-2">
-              <Input className="h-8 text-sm" type="number" placeholder="Cantidad" value={recs} onChange={(e) => setRecs(e.target.value)} />
-              <Button size="sm" disabled={isPending}
-                onClick={() => correr(() => sumarRecordatorios(clinica.clinica_id, Number(recs)), "Recordatorios agregados.")}>
-                Agregar
-              </Button>
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Cambiar plan */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium text-foreground">Cambiar de plan</h3>
-            <div className="flex gap-2">
-              <select className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm" value={planId} onChange={(e) => setPlanId(e.target.value)}>
-                {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre} — {moneda(p.precio_mensual_mxn)}/mes</option>)}
-              </select>
-              <Button size="sm" variant="outline" disabled={isPending}
-                onClick={() => correr(() => cambiarPlan(clinica.cuenta_id, planId), "Plan actualizado.")}>
-                Aplicar
-              </Button>
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Conectar Telegram */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium text-foreground">
-              Telegram {clinica.telegram_conectado && <Badge variant="secondary" className="ml-1">conectado</Badge>}
-            </h3>
-            <div className="flex gap-2">
-              <Input className="h-8 text-sm" placeholder="Token del bot (BotFather)" value={token} onChange={(e) => setToken(e.target.value)} />
-              <Button size="sm" disabled={isPending}
-                onClick={() => correr(async () => {
-                  const r = await conectarTelegram(clinica.clinica_id, token)
-                  if (r.ok) setToken("")
-                  return r
-                }, "Bot de Telegram conectado.")}>
-                Conectar
-              </Button>
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Estado de la cuenta */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium text-foreground">Estado de la cuenta</h3>
-            <p className="text-xs text-muted-foreground">
-              Estado actual: <span className="font-medium text-foreground capitalize">{clinica.cuenta_estado}</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {clinica.cuenta_estado !== "activa" && (
-                <Button size="sm" disabled={isPending}
-                  onClick={() => correr(() => activarClinica(clinica.cuenta_id), "Clínica activada.")}>
-                  Activar clínica
-                </Button>
-              )}
-              {clinica.cuenta_estado === "suspendida" ? (
-                <Button size="sm" variant="outline" disabled={isPending}
-                  onClick={() => correr(() => cambiarEstadoCuenta(clinica.cuenta_id, "activa"), "Cuenta reactivada.")}>
-                  Reactivar cuenta
-                </Button>
-              ) : (
-                <Button size="sm" variant="destructive" disabled={isPending}
-                  onClick={() => correr(() => cambiarEstadoCuenta(clinica.cuenta_id, "suspendida"), "Cuenta suspendida.")}>
-                  Suspender cuenta
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              "Activar clínica" pasa la cuenta de prueba a activa y fija el vencimiento a un mes. Suspender restringe el acceso sin borrar datos.
-            </p>
-          </section>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onCerrar}>Cerrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
