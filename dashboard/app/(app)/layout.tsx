@@ -8,6 +8,8 @@ import type { EstadoSuscripcion } from "@/app/actions/facturacion"
 export type Rol = "administrador" | "supervisor" | "doctor"
 export type { ClinicaBasica }
 
+export type AvisoPago = { tipo: "vence_pronto" | "vencido"; fecha: string } | null
+
 const ROLES_VALIDOS: Rol[] = ["administrador", "supervisor", "doctor"]
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let rol: Rol = "supervisor"
   let doctorId: string | null = null
   let estadoSuscripcion: EstadoSuscripcion = "prueba"
+  let avisoPago: AvisoPago = null
 
   if (user) {
     const db = createServerClient()
@@ -76,7 +79,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       if (clinicaRow?.cuenta_id) {
         const { data: sus } = await db
           .from("suscripciones")
-          .select("id, estado, periodo_gracia_fin")
+          .select("id, estado, periodo_gracia_fin, fecha_vencimiento")
           .eq("cuenta_id", clinicaRow.cuenta_id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -96,6 +99,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }
 
           estadoSuscripcion = estado
+
+          // Aviso de pago (facturacion manual): 2 dias antes / vencido.
+          // No aplica si la cuenta ya esta suspendida o cancelada.
+          const venc = (sus as any).fecha_vencimiento as string | null
+          if (venc && !["suspendida", "cancelada"].includes(estado)) {
+            const hoy = new Date()
+            hoy.setHours(0, 0, 0, 0)
+            const fVenc = new Date(venc + "T00:00:00")
+            const dias = Math.round((fVenc.getTime() - hoy.getTime()) / 86400000)
+            if (dias < 0) avisoPago = { tipo: "vencido", fecha: venc }
+            else if (dias <= 2) avisoPago = { tipo: "vence_pronto", fecha: venc }
+          }
         }
       }
     }
@@ -108,6 +123,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       clinicaActual={clinicaActual}
       clinicas={clinicas}
       estadoSuscripcion={estadoSuscripcion}
+      avisoPago={avisoPago}
     >
       {children}
     </AppLayoutClient>

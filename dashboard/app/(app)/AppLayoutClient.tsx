@@ -9,7 +9,8 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { AtencionProvider } from "@/lib/atencion-context"
 import { GlobalAtencionListener } from "@/components/global-atencion-listener"
 import { SuspendidaScreen } from "./SuspendidaScreen"
-import type { Rol } from "./layout"
+import { AvisoPagoBanner } from "./AvisoPagoBanner"
+import type { Rol, AvisoPago } from "./layout"
 import type { ClinicaBasica } from "@/components/clinica-selector"
 import type { EstadoSuscripcion } from "@/app/actions/facturacion"
 
@@ -20,6 +21,7 @@ export function AppLayoutClient({
   clinicaActual,
   clinicas,
   estadoSuscripcion = "prueba",
+  avisoPago = null,
 }: {
   children: React.ReactNode
   rol: Rol
@@ -27,6 +29,7 @@ export function AppLayoutClient({
   clinicaActual: ClinicaBasica
   clinicas: ClinicaBasica[]
   estadoSuscripcion?: EstadoSuscripcion
+  avisoPago?: AvisoPago
 }) {
   const pathname = usePathname()
 
@@ -63,6 +66,9 @@ export function AppLayoutClient({
             </span>
             <ThemeToggle />
           </header>
+
+          {/* Aviso de pago (solo admin/supervisor) */}
+          {rol !== "doctor" && <AvisoPagoBanner aviso={avisoPago} />}
 
           {/* Contenido con animacion de ruta */}
           <main className={esRutaFullscreen ? "flex-1 overflow-hidden" : "flex-1 overflow-auto"}>
