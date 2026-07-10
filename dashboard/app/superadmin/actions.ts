@@ -120,6 +120,135 @@ export async function listarClinicasAdmin(): Promise<ClinicaAdmin[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Resumen del panel (KPIs + graficas)
+// ---------------------------------------------------------------------------
+
+export type ResumenSuperadmin = {
+  mrr_mxn: number
+  total_clinicas: number
+  activas: number
+  prueba: number
+  suspendidas: number
+  por_vencer: number
+  vencidas: number
+  ingresos_por_mes: { mes: string; monto: number }[]
+  clinicas_por_mes: { mes: string; nuevas: number }[]
+  por_estado: { name: string; value: number; color: string }[]
+  por_plan: { plan: string; clinicas: number }[]
+}
+
+const ESTADO_COLORES: Record<string, string> = {
+  activa: "#10b981",
+  prueba: "#3b82f6",
+  pago_pendiente: "#f59e0b",
+  vencida: "#ef4444",
+  suspendida: "#f97316",
+  cancelada: "#94a3b8",
+}
+
+const ESTADO_ETIQUETAS: Record<string, string> = {
+  activa: "Activa",
+  prueba: "Prueba",
+  pago_pendiente: "Pago pendiente",
+  vencida: "Vencida",
+  suspendida: "Suspendida",
+  cancelada: "Cancelada",
+}
+
+// Devuelve las claves YYYY-MM de los ultimos n meses (incluye el actual)
+function ultimosMeses(n: number): { clave: string; etiqueta: string }[] {
+  const salida: { clave: string; etiqueta: string }[] = []
+  const hoy = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1)
+    const clave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const etiqueta = d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" })
+    salida.push({ clave, etiqueta })
+  }
+  return salida
+}
+
+function claveMes(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+}
+
+export async function obtenerResumenSuperadmin(): Promise<ResumenSuperadmin> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const [suscRes, clinicasRes, pagosRes] = await Promise.all([
+    db.from("suscripciones").select("estado, precio_personalizado_mxn, fecha_vencimiento, planes!plan_id(nombre, precio_mensual_mxn)"),
+    db.from("clinicas").select("id, created_at"),
+    db.from("historial_pagos").select("monto_mxn, created_at"),
+  ])
+
+  const suscripciones = suscRes.data ?? []
+  const hoy = new Date()
+  const en7dias = new Date(hoy.getTime() + 7 * 86400000)
+
+  let mrr = 0
+  let activas = 0, prueba = 0, suspendidas = 0, porVencer = 0, vencidas = 0
+  const estadoCount = new Map<string, number>()
+  const planCount = new Map<string, number>()
+
+  for (const s of suscripciones) {
+    const plan = s.planes as { nombre: string; precio_mensual_mxn: number } | null
+    const precio = s.precio_personalizado_mxn != null
+      ? Number(s.precio_personalizado_mxn)
+      : Number(plan?.precio_mensual_mxn ?? 0)
+
+    estadoCount.set(s.estado, (estadoCount.get(s.estado) ?? 0) + 1)
+
+    if (s.estado === "activa") { activas++; mrr += precio }
+    if (s.estado === "prueba") prueba++
+    if (s.estado === "suspendida") suspendidas++
+
+    if (["activa", "prueba"].includes(s.estado)) {
+      planCount.set(plan?.nombre ?? "Sin plan", (planCount.get(plan?.nombre ?? "Sin plan") ?? 0) + 1)
+    }
+
+    if (s.fecha_vencimiento && s.estado !== "cancelada") {
+      const venc = new Date(s.fecha_vencimiento + "T12:00:00")
+      if (venc < hoy) vencidas++
+      else if (venc <= en7dias) porVencer++
+    }
+  }
+
+  // Ingresos por mes (ultimos 6)
+  const meses = ultimosMeses(6)
+  const ingresoMap = new Map<string, number>()
+  for (const p of pagosRes.data ?? []) {
+    if (p.monto_mxn == null) continue
+    const k = claveMes(p.created_at)
+    ingresoMap.set(k, (ingresoMap.get(k) ?? 0) + Number(p.monto_mxn))
+  }
+  const nuevaMap = new Map<string, number>()
+  for (const c of clinicasRes.data ?? []) {
+    const k = claveMes(c.created_at)
+    nuevaMap.set(k, (nuevaMap.get(k) ?? 0) + 1)
+  }
+
+  return {
+    mrr_mxn: mrr,
+    total_clinicas: clinicasRes.data?.length ?? 0,
+    activas,
+    prueba,
+    suspendidas,
+    por_vencer: porVencer,
+    vencidas,
+    ingresos_por_mes: meses.map((m) => ({ mes: m.etiqueta, monto: ingresoMap.get(m.clave) ?? 0 })),
+    clinicas_por_mes: meses.map((m) => ({ mes: m.etiqueta, nuevas: nuevaMap.get(m.clave) ?? 0 })),
+    por_estado: [...estadoCount.entries()].map(([estado, value]) => ({
+      name: ESTADO_ETIQUETAS[estado] ?? estado,
+      value,
+      color: ESTADO_COLORES[estado] ?? "#94a3b8",
+    })),
+    por_plan: [...planCount.entries()].map(([plan, clinicas]) => ({ plan, clinicas })),
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Alta de clinica nueva (cuenta + clinica + suscripcion + admin invitada)
 // ---------------------------------------------------------------------------
 

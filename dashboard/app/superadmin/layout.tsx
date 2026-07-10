@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react"
 import { obtenerSuperadmin } from "@/lib/auth/superadmin"
 import { logoutAction } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
+import { SuperadminNav } from "./SuperadminNav"
 
 export const metadata = { title: "Superadmin — DentalIA" }
 
@@ -31,6 +32,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
             <Button type="submit" variant="ghost" size="sm">Cerrar sesión</Button>
           </form>
         </div>
+        <SuperadminNav />
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
     </div>

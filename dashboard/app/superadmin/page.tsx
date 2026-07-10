@@ -1,10 +1,10 @@
-import { listarClinicasAdmin, listarPlanes } from "./actions"
-import { SuperadminClient } from "./SuperadminClient"
+import { obtenerResumenSuperadmin } from "./actions"
+import { ResumenClient } from "./ResumenClient"
 
 // Depende de la sesion (cookies): nunca se prerenderiza en build.
 export const dynamic = "force-dynamic"
 
-export default async function SuperadminPage() {
-  const [clinicas, planes] = await Promise.all([listarClinicasAdmin(), listarPlanes()])
-  return <SuperadminClient clinicasIniciales={clinicas} planes={planes} />
+export default async function SuperadminResumenPage() {
+  const resumen = await obtenerResumenSuperadmin()
+  return <ResumenClient resumen={resumen} />
 }
