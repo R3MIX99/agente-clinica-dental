@@ -60,10 +60,63 @@ function BadgeEstado({ estado }: { estado: EstadoSaldo }) {
 // ---------------------------------------------------------------------------
 
 export function UsoClient({ uso }: { uso: UsoClinica }) {
-  const { saldo, recordatorios, equipo } = uso
+  const { saldo, recordatorios, equipo, facturacion } = uso
+
+  const moneda = (n: number) =>
+    n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 })
+  const fechaLarga = (iso: string | null) =>
+    iso ? new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }) : "Sin definir"
 
   return (
     <div className="space-y-6">
+
+      {/* --- Facturacion --- */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Facturación</CardTitle>
+          <CardDescription>Tu suscripción mensual y pagos.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <p className="text-muted-foreground text-xs">Pago mensual</p>
+              <p className="font-semibold text-foreground">{moneda(facturacion.precio_mensual_mxn)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Próximo pago</p>
+              <p className="font-semibold text-foreground">{fechaLarga(facturacion.fecha_vencimiento)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Estado</p>
+              <p className="font-semibold text-foreground capitalize">{facturacion.estado}</p>
+            </div>
+          </div>
+
+          {facturacion.historial.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Últimos pagos</p>
+              <div className="divide-y divide-border rounded-md border border-border">
+                {facturacion.historial.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <div>
+                      <p className="text-foreground">{h.concepto ?? "Pago"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(h.created_at).toLocaleDateString("es-MX")}
+                        {h.metodo ? ` · ${h.metodo}` : ""}
+                      </p>
+                    </div>
+                    <span className="font-medium">{h.monto_mxn != null ? moneda(h.monto_mxn) : "—"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            El cobro lo gestiona la administración. Si tienes dudas sobre tu pago, contacta a soporte.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* --- Saldo de IA --- */}
       <Card>

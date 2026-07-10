@@ -1,7 +1,7 @@
 import { obtenerUsoClinica } from "@/app/actions/uso"
 import { UsoClient } from "./UsoClient"
 
-export const metadata = { title: "Uso" }
+export const metadata = { title: "Uso y facturación" }
 
 export default async function UsoPage() {
   const uso = await obtenerUsoClinica()
@@ -9,9 +9,9 @@ export default async function UsoPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Uso</h1>
+        <h1 className="text-xl font-semibold text-foreground">Uso y facturación</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Saldo de IA disponible, recordatorios y equipo configurado.
+          Tu suscripción, saldo de IA, recordatorios y equipo configurado.
         </p>
       </div>
 

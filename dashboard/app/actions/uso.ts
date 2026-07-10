@@ -54,6 +54,19 @@ export type UsoClinica = {
     costo_descontado_mxn: number
     modelo: string
   }>
+  facturacion: {
+    precio_mensual_mxn: number
+    es_personalizado: boolean
+    estado: string
+    fecha_vencimiento: string | null
+    historial: Array<{
+      id: string
+      created_at: string
+      monto_mxn: number | null
+      metodo: string | null
+      concepto: string | null
+    }>
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +92,7 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
     .select(`
       id, estado, periodo, inicio_periodo, fin_periodo,
       saldo_ia_disponible_mxn, recordatorios_enviados,
+      precio_personalizado_mxn, fecha_vencimiento,
       planes!plan_id (
         id, nombre, precio_mensual_mxn, saldo_ia_incluido_mxn,
         max_doctores, max_usuarios, max_recordatorios_mes
@@ -89,6 +103,14 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
     .order("created_at", { ascending: false })
     .limit(1)
     .single()
+
+  // Historial de pagos (facturacion manual)
+  const { data: historialPagos } = await db
+    .from("historial_pagos")
+    .select("id, created_at, monto_mxn, metodo, concepto")
+    .eq("cuenta_id", cuentaId)
+    .order("created_at", { ascending: false })
+    .limit(6)
 
   // Umbral de saldo bajo desde config_sistema
   const { data: configRows } = await db
@@ -202,6 +224,21 @@ export async function obtenerUsoClinica(): Promise<UsoClinica> {
       costo_descontado_mxn: Number(c.costo_descontado_mxn),
       modelo:               c.modelo,
     })),
+    facturacion: {
+      precio_mensual_mxn: (susData as any)?.precio_personalizado_mxn != null
+        ? Number((susData as any).precio_personalizado_mxn)
+        : Number(plan.precio_mensual_mxn ?? 0),
+      es_personalizado: (susData as any)?.precio_personalizado_mxn != null,
+      estado: susData?.estado ?? "prueba",
+      fecha_vencimiento: (susData as any)?.fecha_vencimiento ?? null,
+      historial: (historialPagos ?? []).map((h) => ({
+        id:         h.id,
+        created_at: h.created_at,
+        monto_mxn:  h.monto_mxn != null ? Number(h.monto_mxn) : null,
+        metodo:     h.metodo,
+        concepto:   h.concepto,
+      })),
+    },
   }
 }
 
