@@ -513,6 +513,48 @@ export async function cambiarEstadoCuenta(
   const { error } = await db.from("cuentas").update({ estado } as never).eq("id", cuentaId)
   if (error) return { ok: false, error: error.message }
   revalidatePath("/superadmin")
+  revalidatePath("/superadmin/clinicas")
+  return { ok: true }
+}
+
+// Activa una clinica que estaba en prueba: pone cuenta y suscripcion en "activa"
+// y, si no tiene fecha de vencimiento, la fija a un mes desde hoy.
+export async function activarClinica(
+  cuentaId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const { error: errCuenta } = await db
+    .from("cuentas")
+    .update({ estado: "activa" } as never)
+    .eq("id", cuentaId)
+  if (errCuenta) return { ok: false, error: errCuenta.message }
+
+  const { data: susc } = await db
+    .from("suscripciones")
+    .select("id, fecha_vencimiento")
+    .eq("cuenta_id", cuentaId)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle()
+
+  if (susc) {
+    const update: Record<string, unknown> = { estado: "activa" }
+    if (!susc.fecha_vencimiento) {
+      const venc = new Date()
+      venc.setMonth(venc.getMonth() + 1)
+      update.fecha_vencimiento = venc.toISOString().slice(0, 10)
+    }
+    const { error: errSusc } = await db
+      .from("suscripciones")
+      .update(update as never)
+      .eq("id", susc.id)
+    if (errSusc) return { ok: false, error: errSusc.message }
+  }
+
+  revalidatePath("/superadmin")
+  revalidatePath("/superadmin/clinicas")
   return { ok: true }
 }
 

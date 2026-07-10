@@ -17,7 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import {
   crearClinica, agregarMiembros, recargarSaldoIA, sumarRecordatorios,
-  cambiarPlan, cambiarEstadoCuenta, conectarTelegram,
+  cambiarPlan, cambiarEstadoCuenta, activarClinica, conectarTelegram,
   type ClinicaAdmin, type PlanResumen, type MiembroNuevo,
 } from "./actions"
 
@@ -352,21 +352,34 @@ function DialogGestion({
 
           <Separator />
 
-          {/* Suspender / reactivar */}
+          {/* Estado de la cuenta */}
           <section className="space-y-2">
             <h3 className="text-sm font-medium text-foreground">Estado de la cuenta</h3>
-            {clinica.cuenta_estado === "suspendida" ? (
-              <Button size="sm" variant="outline" disabled={isPending}
-                onClick={() => correr(() => cambiarEstadoCuenta(clinica.cuenta_id, "activa"), "Cuenta reactivada.")}>
-                Reactivar cuenta
-              </Button>
-            ) : (
-              <Button size="sm" variant="destructive" disabled={isPending}
-                onClick={() => correr(() => cambiarEstadoCuenta(clinica.cuenta_id, "suspendida"), "Cuenta suspendida.")}>
-                Suspender cuenta
-              </Button>
-            )}
-            <p className="text-xs text-muted-foreground">Suspender restringe el acceso sin borrar datos.</p>
+            <p className="text-xs text-muted-foreground">
+              Estado actual: <span className="font-medium text-foreground capitalize">{clinica.cuenta_estado}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {clinica.cuenta_estado !== "activa" && (
+                <Button size="sm" disabled={isPending}
+                  onClick={() => correr(() => activarClinica(clinica.cuenta_id), "Clínica activada.")}>
+                  Activar clínica
+                </Button>
+              )}
+              {clinica.cuenta_estado === "suspendida" ? (
+                <Button size="sm" variant="outline" disabled={isPending}
+                  onClick={() => correr(() => cambiarEstadoCuenta(clinica.cuenta_id, "activa"), "Cuenta reactivada.")}>
+                  Reactivar cuenta
+                </Button>
+              ) : (
+                <Button size="sm" variant="destructive" disabled={isPending}
+                  onClick={() => correr(() => cambiarEstadoCuenta(clinica.cuenta_id, "suspendida"), "Cuenta suspendida.")}>
+                  Suspender cuenta
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              "Activar clínica" pasa la cuenta de prueba a activa y fija el vencimiento a un mes. Suspender restringe el acceso sin borrar datos.
+            </p>
           </section>
         </div>
 
