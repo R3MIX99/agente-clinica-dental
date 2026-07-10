@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, X, BadgeDollarSign, Send } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -563,30 +563,36 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         </div>
       </div>
 
-      {/* Dias bloqueados proximos */}
+      {/* Dias cerrados proximos */}
       {bloqueos.length > 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 p-3">
           <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-2">
             Días cerrados próximos
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {bloqueos.map((b) => (
-              <span key={b.id} className="inline-flex items-center gap-2 rounded-md bg-background border border-border px-2 py-1 text-xs">
-                <span className="font-medium">{formatearFechaCorta(b.fecha)}</span>
-                <span className="text-muted-foreground">
-                  {b.servicio_nombre ? `Solo ${b.servicio_nombre}` : "Toda la clínica"}
-                  {b.motivo ? ` · ${b.motivo}` : ""}
-                </span>
-                <button
-                  type="button"
+              <div
+                key={b.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium capitalize truncate">{formatearFechaCorta(b.fecha)}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {b.servicio_nombre ? `Solo ${b.servicio_nombre}` : "Toda la clínica"}
+                    {b.motivo ? ` · ${b.motivo}` : ""}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
                   onClick={() => handleReabrir(b.id)}
-                  className="text-muted-foreground hover:text-destructive"
-                  aria-label="Reabrir día"
                   disabled={isPending}
                 >
-                  <X className="h-3.5 w-3.5" aria-hidden="true" />
-                </button>
-              </span>
+                  <RotateCcw className="mr-1 h-4 w-4" aria-hidden="true" />
+                  Reabrir día
+                </Button>
+              </div>
             ))}
           </div>
         </div>
