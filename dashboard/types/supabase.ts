@@ -725,8 +725,10 @@ export type Database = {
           cuenta_id: string
           id: string
           monto_mxn: number | null
+          metodo: string | null
           mp_payment_id: string | null
           mp_preapproval_id: string | null
+          registrado_por: string | null
           status: string
           suscripcion_id: string
         }
@@ -735,9 +737,10 @@ export type Database = {
           created_at?: string
           cuenta_id: string
           id?: string
-          monto_mxn?: number | null
+          metodo?: string | null
           mp_payment_id?: string | null
           mp_preapproval_id?: string | null
+          registrado_por?: string | null
           status: string
           suscripcion_id: string
         }
@@ -746,9 +749,10 @@ export type Database = {
           created_at?: string
           cuenta_id?: string
           id?: string
-          monto_mxn?: number | null
+          metodo?: string | null
           mp_payment_id?: string | null
           mp_preapproval_id?: string | null
+          registrado_por?: string | null
           status?: string
           suscripcion_id?: string
         }
@@ -1273,13 +1277,18 @@ export type Database = {
           mp_next_payment_date: string | null
           mp_payer_email: string | null
           mp_subscription_id: string | null
+          notas_admin: string | null
           periodo: string
           periodo_gracia_fin: string | null
           plan_id: string
           plan_siguiente_id: string | null
+          precio_personalizado_mxn: number | null
+          recordatorio_2d_at: string | null
+          recordatorio_vencido_at: string | null
           recordatorios_enviados: number
           recordatorios_extra: number
           saldo_ia_disponible_mxn: number
+          fecha_vencimiento: string | null
         }
         Insert: {
           created_at?: string
@@ -1292,13 +1301,18 @@ export type Database = {
           mp_next_payment_date?: string | null
           mp_payer_email?: string | null
           mp_subscription_id?: string | null
+          notas_admin?: string | null
           periodo?: string
           periodo_gracia_fin?: string | null
           plan_id: string
           plan_siguiente_id?: string | null
+          precio_personalizado_mxn?: number | null
+          recordatorio_2d_at?: string | null
+          recordatorio_vencido_at?: string | null
           recordatorios_enviados?: number
           recordatorios_extra?: number
           saldo_ia_disponible_mxn?: number
+          fecha_vencimiento?: string | null
         }
         Update: {
           created_at?: string
@@ -1311,13 +1325,18 @@ export type Database = {
           mp_next_payment_date?: string | null
           mp_payer_email?: string | null
           mp_subscription_id?: string | null
+          notas_admin?: string | null
           periodo?: string
           periodo_gracia_fin?: string | null
           plan_id?: string
           plan_siguiente_id?: string | null
+          precio_personalizado_mxn?: number | null
+          recordatorio_2d_at?: string | null
+          recordatorio_vencido_at?: string | null
           recordatorios_enviados?: number
           recordatorios_extra?: number
           saldo_ia_disponible_mxn?: number
+          fecha_vencimiento?: string | null
         }
         Relationships: [
           {
