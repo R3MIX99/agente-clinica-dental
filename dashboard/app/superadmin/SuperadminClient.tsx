@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { Plus, Settings } from "lucide-react"
+import { Plus, Settings, Search, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,18 +29,61 @@ export function SuperadminClient({
 }) {
   const router = useRouter()
   const [nuevaAbierta, setNuevaAbierta] = useState(false)
+  const [busqueda, setBusqueda] = useState("")
+  const [filtroEstado, setFiltroEstado] = useState("")
+
+  const q = busqueda.trim().toLowerCase()
+  const clinicas = clinicasIniciales.filter((c) => {
+    const coincideTexto = !q ||
+      (c.clinica_nombre ?? "").toLowerCase().includes(q) ||
+      c.cuenta_nombre.toLowerCase().includes(q)
+    const coincideEstado = !filtroEstado || c.cuenta_estado === filtroEstado
+    return coincideTexto && coincideEstado
+  })
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Clínicas</h1>
-          <p className="text-sm text-muted-foreground">{clinicasIniciales.length} en total</p>
+          <p className="text-sm text-muted-foreground">{clinicas.length} de {clinicasIniciales.length}</p>
         </div>
-        <Button onClick={() => setNuevaAbierta(true)}>
-          <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
-          Nueva clínica
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <a href="/superadmin/clinicas/export" download>
+              <Download className="mr-1 h-4 w-4" aria-hidden="true" />
+              Exportar
+            </a>
+          </Button>
+          <Button onClick={() => setNuevaAbierta(true)}>
+            <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+            Nueva clínica
+          </Button>
+        </div>
+      </div>
+
+      {/* Buscador y filtro */}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            className="pl-8"
+            placeholder="Buscar por clínica o cuenta..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+        <select
+          value={filtroEstado}
+          onChange={(e) => setFiltroEstado(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">Todos los estados</option>
+          <option value="activa">Activa</option>
+          <option value="prueba">Prueba</option>
+          <option value="suspendida">Suspendida</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
       </div>
 
       <div className="rounded-lg border border-border bg-background overflow-x-auto">
@@ -54,11 +97,12 @@ export function SuperadminClient({
               <TableHead>Recordatorios</TableHead>
               <TableHead>Saldo IA</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Últ. actividad</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clinicasIniciales.map((c) => (
+            {clinicas.map((c) => (
               <TableRow key={c.clinica_id}>
                 <TableCell>
                   <div className="font-medium text-foreground">{c.clinica_nombre ?? "Sin nombre"}</div>
@@ -80,6 +124,9 @@ export function SuperadminClient({
                     </span>
                   </div>
                 </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {c.ultima_actividad ? new Date(c.ultima_actividad).toLocaleDateString("es-MX") : "—"}
+                </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" asChild>
                     <Link href={`/superadmin/${c.clinica_id}`}>
@@ -90,10 +137,12 @@ export function SuperadminClient({
                 </TableCell>
               </TableRow>
             ))}
-            {clinicasIniciales.length === 0 && (
+            {clinicas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                  Aún no hay clínicas. Crea la primera con "Nueva clínica".
+                <TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-8">
+                  {clinicasIniciales.length === 0
+                    ? 'Aún no hay clínicas. Crea la primera con "Nueva clínica".'
+                    : "Ninguna clínica coincide con la búsqueda."}
                 </TableCell>
               </TableRow>
             )}

@@ -19,6 +19,7 @@ import {
 import {
   crearUsuarioConPassword, cambiarActivoMiembro, fijarPrecioVencimiento, registrarPago,
   recargarSaldoIA, sumarRecordatorios, cambiarPlan, cambiarEstadoCuenta, activarClinica, conectarTelegram,
+  reenviarOnboarding,
   type ClinicaDetalle, type PlanResumen, type MiembroDetalle,
 } from "../actions"
 
@@ -52,6 +53,19 @@ export function ClinicaDetalleClient({
     })
   }
 
+  function handleReenviar() {
+    startTransition(async () => {
+      const r = await reenviarOnboarding(detalle.clinica_id)
+      if (!r.ok) { toast.error(r.error ?? "No se pudo generar el enlace."); return }
+      if (r.enlace) {
+        await navigator.clipboard.writeText(r.enlace).catch(() => {})
+        toast.success("Enlace de acceso copiado. Compártelo con la administradora.")
+      } else {
+        toast.success("Enlace generado.")
+      }
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Encabezado */}
@@ -66,6 +80,9 @@ export function ClinicaDetalleClient({
           </Badge>
           {!detalle.telegram_conectado && <Badge variant="outline">Sin Telegram</Badge>}
           {!detalle.onboarding_completado && <Badge variant="outline">Onboarding pendiente</Badge>}
+          <Button size="sm" variant="outline" className="ml-auto" disabled={isPending} onClick={handleReenviar}>
+            Reenviar acceso
+          </Button>
         </div>
       </div>
 

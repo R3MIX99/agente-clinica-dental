@@ -36,6 +36,7 @@ export type ClinicaAdmin = {
   usuarios: number
   onboarding_completado: boolean
   telegram_conectado: boolean
+  ultima_actividad: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -65,12 +66,21 @@ export async function listarClinicasAdmin(): Promise<ClinicaAdmin[]> {
   await assertSuperadmin()
   const db = createServerClient()
 
-  const [clinicasRes, suscRes, membRes, channelsRes] = await Promise.all([
+  const [clinicasRes, suscRes, membRes, channelsRes, convRes] = await Promise.all([
     db.from("clinicas").select("id, nombre, cuenta_id, onboarding_completado, cuentas(nombre, estado)").order("created_at"),
     db.from("suscripciones").select("id, cuenta_id, plan_id, saldo_ia_disponible_mxn, recordatorios_enviados, recordatorios_extra, estado, planes!plan_id(nombre, max_recordatorios_mes)"),
     db.from("membresias").select("clinica_id, rol, activa"),
     db.from("clinic_channels").select("clinica_id, activo, config").eq("canal", "telegram"),
+    db.from("conversations").select("clinica_id, last_message_at"),
   ])
+
+  // Ultima actividad por clinica (mayor last_message_at de sus conversaciones)
+  const actividadPorClinica = new Map<string, string>()
+  for (const c of convRes.data ?? []) {
+    if (!c.clinica_id || !c.last_message_at) continue
+    const prev = actividadPorClinica.get(c.clinica_id)
+    if (!prev || c.last_message_at > prev) actividadPorClinica.set(c.clinica_id, c.last_message_at)
+  }
 
   // Primera suscripcion por cuenta (activa/prueba preferente)
   const suscPorCuenta = new Map<string, any>()
@@ -116,8 +126,45 @@ export async function listarClinicasAdmin(): Promise<ClinicaAdmin[]> {
       usuarios: usrPorClinica.get(c.id) ?? 0,
       onboarding_completado: !!c.onboarding_completado,
       telegram_conectado: tgPorClinica.get(c.id) ?? false,
+      ultima_actividad: actividadPorClinica.get(c.id) ?? null,
     }
   })
+}
+
+// ---------------------------------------------------------------------------
+// Reenviar acceso/onboarding a la administradora (enlace magico)
+// ---------------------------------------------------------------------------
+
+export async function reenviarOnboarding(
+  clinicaId: string,
+): Promise<{ ok: boolean; error?: string; enlace?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  // Buscar el administrador de la clinica
+  const { data: membresias } = await db
+    .from("membresias")
+    .select("user_id")
+    .eq("clinica_id", clinicaId)
+    .eq("rol", "administrador")
+    .eq("activa", true)
+    .limit(1)
+  const userId = membresias?.[0]?.user_id
+  if (!userId) return { ok: false, error: "La clínica no tiene una administradora activa." }
+
+  const { data: perfil } = await db.from("profiles").select("email").eq("id", userId).single()
+  const email = perfil?.email
+  if (!email) return { ok: false, error: "La administradora no tiene correo registrado." }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
+  const { data, error } = await db.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: { redirectTo: `${appUrl}/api/auth/callback?next=/onboarding` },
+  })
+  if (error) return { ok: false, error: error.message }
+
+  return { ok: true, enlace: data.properties?.action_link }
 }
 
 // ---------------------------------------------------------------------------
