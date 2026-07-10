@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { ArrowLeft, Plus, Copy } from "lucide-react"
+import { ArrowLeft, Plus, Copy, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -172,8 +172,20 @@ export function ClinicaDetalleClient({
       {/* Backup */}
       <Seccion titulo="Copia de seguridad">
         <p className="text-sm text-muted-foreground">
-          La descarga de respaldo (JSON y Excel) se habilitará en la siguiente fase.
+          Descarga todos los datos de la clínica (pacientes, citas, doctores, servicios, notas, estudios y conversaciones).
         </p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" asChild>
+            <a href={`/superadmin/${detalle.clinica_id}/backup?formato=json`} download>
+              <Download className="mr-1 h-4 w-4" aria-hidden="true" /> Descargar JSON
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <a href={`/superadmin/${detalle.clinica_id}/backup?formato=xlsx`} download>
+              <Download className="mr-1 h-4 w-4" aria-hidden="true" /> Descargar Excel
+            </a>
+          </Button>
+        </div>
       </Seccion>
     </div>
   )
