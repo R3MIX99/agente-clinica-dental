@@ -54,27 +54,26 @@ export async function obtenerAnalitica(
   const clinicaId = await resolverClinicaId()
   const db = createServerClient()
 
-  // Conversaciones en el periodo
-  const { data: convs } = await db
-    .from("conversations")
-    .select("id, patient_id, mode, status, intencion, sentimiento")
-    .eq("clinica_id", clinicaId)
-    .is("deleted_at", null)
+  // Mensajes con actividad en el periodo (una conversacion puede llevar
+  // meses abierta, asi que el periodo se define por la fecha del mensaje,
+  // no por la fecha de creacion de la conversacion).
+  const { data: msgsConConv } = await db
+    .from("messages")
+    .select("conversation_id, sender, created_at, conversations!inner(id, patient_id, mode, status, intencion, sentimiento, clinica_id, deleted_at)")
+    .eq("conversations.clinica_id", clinicaId)
+    .is("conversations.deleted_at", null)
     .gte("created_at", inicio)
     .lte("created_at", fin)
 
-  const listaConvs = convs ?? []
-  const convIds = listaConvs.map((c) => c.id)
+  const listaMsgs = msgsConConv ?? []
 
-  // Mensajes de esas conversaciones
-  const { data: msgs } = convIds.length > 0
-    ? await db
-        .from("messages")
-        .select("conversation_id, sender, created_at")
-        .in("conversation_id", convIds)
-    : { data: [] }
-
-  const listaMsgs = msgs ?? []
+  // Conversaciones distintas que tuvieron actividad en el periodo
+  const convsMap = new Map<string, { id: string; patient_id: string | null; mode: string; status: string; intencion: string | null; sentimiento: string | null }>()
+  for (const m of listaMsgs) {
+    const c = Array.isArray(m.conversations) ? m.conversations[0] : m.conversations
+    if (c && !convsMap.has(c.id)) convsMap.set(c.id, c)
+  }
+  const listaConvs = Array.from(convsMap.values())
 
   // Recordatorios enviados en el periodo
   const { count: recordatorios } = await db
