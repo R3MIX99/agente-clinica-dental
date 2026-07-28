@@ -8,6 +8,7 @@ import { AlertTriangle, Loader2, Lock, Mail, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -337,9 +338,8 @@ function PasswordCard({
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="password_actual">Contraseña actual</Label>
-            <Input
+            <PasswordInput
               id="password_actual"
-              type="password"
               autoComplete="current-password"
               {...register("password_actual", { required: "Ingresa tu contraseña actual" })}
               disabled={isPending}
@@ -351,9 +351,8 @@ function PasswordCard({
 
           <div className="space-y-1.5">
             <Label htmlFor="password_nuevo">Contraseña nueva</Label>
-            <Input
+            <PasswordInput
               id="password_nuevo"
-              type="password"
               autoComplete="new-password"
               {...register("password_nuevo", {
                 required: "Ingresa la contraseña nueva",
@@ -368,9 +367,8 @@ function PasswordCard({
 
           <div className="space-y-1.5">
             <Label htmlFor="password_confirmar">Confirmar contraseña nueva</Label>
-            <Input
+            <PasswordInput
               id="password_confirmar"
-              type="password"
               autoComplete="new-password"
               {...register("password_confirmar", {
                 required: "Repite la contraseña nueva",
