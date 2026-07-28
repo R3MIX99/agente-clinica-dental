@@ -10,6 +10,7 @@ import {
   eliminarNotaClinica,
   eliminarCitaFicha,
 } from "./actions"
+import { actualizarPaciente, type DatosPaciente } from "../actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -400,6 +401,22 @@ export function PacienteFichaClient({
   const [agendarOpen, setAgendarOpen] = useState(false)
   const [formCita, setFormCita] = useState(FORM_CITA_INICIAL)
 
+  // Dialog/Drawer — editar paciente
+  const [editarPacienteOpen, setEditarPacienteOpen] = useState(false)
+  const [formPaciente, setFormPaciente] = useState<DatosPaciente>({
+    nombre: paciente.nombre,
+    telefono: paciente.telefono ?? "",
+    email: paciente.email ?? "",
+    channel: paciente.channel,
+    channel_user_id: paciente.channel_user_id ?? "",
+    notas: paciente.notas ?? "",
+    laboratorio: paciente.laboratorio ?? "",
+    tiempo_cita_min:
+      paciente.tiempo_cita_min != null ? String(paciente.tiempo_cita_min) : "",
+    fecha_ingreso: paciente.fecha_ingreso ?? "",
+    doctores: doctoresAsignados.map((d) => d.id),
+  })
+
   // Dialog/Drawer — editar doctores
   const [editarDoctoresOpen, setEditarDoctoresOpen] = useState(false)
   const [formDoctores, setFormDoctores] = useState({
@@ -481,6 +498,53 @@ export function PacienteFichaClient({
         router.refresh()
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : "Error al agendar la cita")
+      }
+    })
+  }
+
+  // ---------------------------------------------------------------------------
+  // Handlers — editar paciente
+  // ---------------------------------------------------------------------------
+
+  function abrirEditarPaciente() {
+    setFormPaciente({
+      nombre: paciente.nombre,
+      telefono: paciente.telefono ?? "",
+      email: paciente.email ?? "",
+      channel: paciente.channel,
+      channel_user_id: paciente.channel_user_id ?? "",
+      notas: paciente.notas ?? "",
+      laboratorio: paciente.laboratorio ?? "",
+      tiempo_cita_min:
+        paciente.tiempo_cita_min != null ? String(paciente.tiempo_cita_min) : "",
+      fecha_ingreso: paciente.fecha_ingreso ?? "",
+      doctores: doctoresAsignados.map((d) => d.id),
+    })
+    setEditarPacienteOpen(true)
+  }
+
+  function actualizarCampoPaciente<K extends keyof DatosPaciente>(
+    key: K,
+    value: DatosPaciente[K]
+  ) {
+    setFormPaciente((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function handleGuardarPaciente() {
+    if (!formPaciente.nombre.trim()) {
+      toast.error("El nombre del paciente es requerido")
+      return
+    }
+    startTransition(async () => {
+      try {
+        await actualizarPaciente(paciente.id, formPaciente)
+        toast.success("Paciente actualizado correctamente")
+        setEditarPacienteOpen(false)
+        router.refresh()
+      } catch (e: unknown) {
+        toast.error(
+          e instanceof Error ? e.message : "Error al actualizar el paciente"
+        )
       }
     })
   }
@@ -644,16 +708,21 @@ export function PacienteFichaClient({
               </div>
             </div>
 
-            <Button
-              onClick={() => {
-                setFormCita(FORM_CITA_INICIAL)
-                setAgendarOpen(true)
-              }}
-              className="sm:flex-shrink-0"
-            >
-              <CalendarPlus size={16} className="mr-2" />
-              Agendar cita
-            </Button>
+            <div className="flex items-center gap-2 sm:flex-shrink-0">
+              <Button variant="outline" onClick={abrirEditarPaciente}>
+                <SquarePen size={16} className="mr-2" />
+                Editar
+              </Button>
+              <Button
+                onClick={() => {
+                  setFormCita(FORM_CITA_INICIAL)
+                  setAgendarOpen(true)
+                }}
+              >
+                <CalendarPlus size={16} className="mr-2" />
+                Agendar cita
+              </Button>
+            </div>
           </div>
 
           {paciente.notas && (
@@ -1232,6 +1301,175 @@ export function PacienteFichaClient({
                 </DialogHeader>
                 {camposCita}
                 <DialogFooter>{botonesCita}</DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )
+      })()}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Editar paciente — Drawer (movil) / Dialog (escritorio)                */}
+      {/* ------------------------------------------------------------------ */}
+      {(() => {
+        const camposPaciente = (
+          <div className="space-y-4 py-2 px-4 overflow-y-auto flex-1">
+            <div className="space-y-1.5">
+              <Label>
+                Nombre <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                placeholder="Nombre completo"
+                value={formPaciente.nombre}
+                onChange={(e) =>
+                  actualizarCampoPaciente("nombre", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Teléfono</Label>
+                <Input
+                  placeholder="55 1234 5678"
+                  value={formPaciente.telefono}
+                  onChange={(e) =>
+                    actualizarCampoPaciente("telefono", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="correo@ejemplo.com"
+                  value={formPaciente.email}
+                  onChange={(e) =>
+                    actualizarCampoPaciente("email", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Fecha de ingreso</Label>
+                <Input
+                  type="date"
+                  value={formPaciente.fecha_ingreso}
+                  onChange={(e) =>
+                    actualizarCampoPaciente("fecha_ingreso", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Laboratorio</Label>
+                <Input
+                  placeholder="Nombre del laboratorio"
+                  value={formPaciente.laboratorio}
+                  onChange={(e) =>
+                    actualizarCampoPaciente("laboratorio", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Duración estándar de cita (minutos)</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="45"
+                value={formPaciente.tiempo_cita_min}
+                onChange={(e) =>
+                  actualizarCampoPaciente("tiempo_cita_min", e.target.value)
+                }
+                className="max-w-[180px]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Canal de mensajería</Label>
+              <Select
+                value={formPaciente.channel}
+                onValueChange={(v) => actualizarCampoPaciente("channel", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="telegram">Telegram</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>ID de canal</Label>
+              <Input
+                placeholder="ID del usuario en Telegram o WhatsApp"
+                value={formPaciente.channel_user_id}
+                onChange={(e) =>
+                  actualizarCampoPaciente("channel_user_id", e.target.value)
+                }
+                className="font-mono text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Requerido para enviar recordatorios y mensajes automáticos.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Notas</Label>
+              <Textarea
+                placeholder="Notas generales del paciente..."
+                value={formPaciente.notas}
+                onChange={(e) =>
+                  actualizarCampoPaciente("notas", e.target.value)
+                }
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+          </div>
+        )
+        const botonesPaciente = (
+          <>
+            <Button variant="ghost" onClick={() => setEditarPacienteOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleGuardarPaciente} disabled={isPending}>
+              {isPending ? "Guardando..." : "Guardar"}
+            </Button>
+          </>
+        )
+        return (
+          <>
+            {/* Drawer — solo movil */}
+            <Drawer
+              open={editarPacienteOpen && !isDesktop}
+              onOpenChange={(o) => { if (!o) setEditarPacienteOpen(false) }}
+              shouldScaleBackground
+            >
+              <DrawerContent style={{ height: "90svh" }}>
+                <DrawerHeader className="border-b border-border pb-3 shrink-0">
+                  <DrawerTitle>Editar paciente</DrawerTitle>
+                </DrawerHeader>
+                {camposPaciente}
+                <DrawerFooter className="border-t border-border shrink-0 flex-row justify-end gap-2">
+                  {botonesPaciente}
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Dialog — solo escritorio */}
+            <Dialog open={editarPacienteOpen && isDesktop} onOpenChange={(o) => { if (!o) setEditarPacienteOpen(false) }}>
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Editar paciente</DialogTitle>
+                </DialogHeader>
+                {camposPaciente}
+                <DialogFooter>{botonesPaciente}</DialogFooter>
               </DialogContent>
             </Dialog>
           </>

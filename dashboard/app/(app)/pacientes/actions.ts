@@ -200,6 +200,7 @@ export async function actualizarPaciente(id: string, datos: DatosPaciente) {
   }
 
   revalidatePath("/pacientes")
+  revalidatePath(`/pacientes/${id}`)
 }
 
 export async function eliminarPaciente(id: string) {
