@@ -23,8 +23,17 @@ export default async function PacientesPage() {
   const esDoctor = perfil?.rol === "doctor"
   const doctorId = perfil?.doctor_id ?? null
 
-  if (!clinicaId) {
-    return <PacientesClient pacientes={[]} servicios={[]} doctores={[]} />
+  // Cuenta de doctor sin vincular a un registro de "doctors": por seguridad
+  // no se le muestra nada en vez de mostrarle todos los pacientes de la clinica.
+  if (!clinicaId || (esDoctor && !doctorId)) {
+    return (
+      <PacientesClient
+        pacientes={[]}
+        servicios={[]}
+        doctores={[]}
+        esDoctor={esDoctor}
+      />
+    )
   }
 
   const [
@@ -127,6 +136,7 @@ export default async function PacientesPage() {
       pacientes={pacientes}
       servicios={servicios ?? []}
       doctores={doctores ?? []}
+      esDoctor={esDoctor}
     />
   )
 }

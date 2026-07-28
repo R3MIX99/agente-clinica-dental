@@ -1,7 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
-import { resolverClinicaId } from "@/lib/supabase/server-auth"
+import { resolverClinicaId, requireRol } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 
@@ -161,6 +161,7 @@ export async function crearPaciente(datos: DatosPaciente) {
 }
 
 export async function actualizarPaciente(id: string, datos: DatosPaciente) {
+  await requireRol(["administrador", "supervisor"])
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
@@ -204,6 +205,7 @@ export async function actualizarPaciente(id: string, datos: DatosPaciente) {
 }
 
 export async function eliminarPaciente(id: string) {
+  await requireRol(["administrador", "supervisor"])
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
@@ -318,6 +320,7 @@ export type ResultadoImport = {
 export async function importarPacientes(
   filas: PacienteImport[],
 ): Promise<ResultadoImport> {
+  await requireRol(["administrador", "supervisor"])
   const clinicaId = await resolverClinicaId()
   const supabase  = createServerClient()
 

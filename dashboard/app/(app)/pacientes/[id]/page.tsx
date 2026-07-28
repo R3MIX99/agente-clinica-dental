@@ -75,8 +75,11 @@ export default async function PacienteFichaPage({
     redirect("/pacientes")
   }
 
-  // Verificar acceso si es doctor: debe estar asignado a este paciente
-  if (perfil?.rol === "doctor" && perfil.doctor_id) {
+  // Verificar acceso si es doctor: debe estar asignado a este paciente.
+  // Sin doctor_id vinculado no se le permite ver ninguna ficha (fail closed).
+  if (perfil?.rol === "doctor") {
+    if (!perfil.doctor_id) redirect("/pacientes")
+
     const asignadoAEste = await db
       .from("patient_doctors")
       .select("id")
@@ -137,6 +140,7 @@ export default async function PacienteFichaPage({
       notas={notas ?? []}
       todosDoctores={doctoresFiltrados}
       todosServicios={todosServicios ?? []}
+      esDoctor={perfil?.rol === "doctor"}
     />
   )
 }

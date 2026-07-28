@@ -34,7 +34,9 @@ export default async function CitasPage() {
   const esDoctor = perfil?.rol === "doctor"
   const doctorId = perfil?.doctor_id ?? null
 
-  if (!clinicaId) {
+  // Cuenta de doctor sin vincular a un registro de "doctors": por seguridad
+  // no se le muestra nada en vez de mostrarle todas las citas de la clinica.
+  if (!clinicaId || (esDoctor && !doctorId)) {
     return (
       <CitasClient
         citas={[]}

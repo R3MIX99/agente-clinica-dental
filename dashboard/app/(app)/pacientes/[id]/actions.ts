@@ -1,7 +1,7 @@
 "use server"
 
 import { createServerClient } from "@/lib/supabase/server"
-import { resolverClinicaId } from "@/lib/supabase/server-auth"
+import { resolverClinicaId, requireRol } from "@/lib/supabase/server-auth"
 import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 
@@ -124,6 +124,7 @@ export async function actualizarDoctoresFicha(
   patientId: string,
   doctores: string[]
 ) {
+  await requireRol(["administrador", "supervisor"])
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error: errDel } = await supabase

@@ -1093,56 +1093,73 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       {/* Formulario — campos compartidos mobile y desktop                   */}
       {/* ------------------------------------------------------------------ */}
       {(() => {
+        // Un doctor editando una cita existente solo puede reagendar
+        // (cambiar fecha y hora) — el resto de los campos se muestra de
+        // solo lectura. Al crear una cita nueva si puede llenarlos.
+        const soloLectura = esDoctor && !!citaEditando
+
         const camposForm = (
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
             {/* Paciente */}
             <div className="space-y-1.5">
               <Label>Paciente</Label>
-              <Select
-                value={form.patient_id}
-                onValueChange={(v) => actualizarCampo("patient_id", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccióna un paciente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pacientes.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {soloLectura ? (
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {pacientes.find((p) => p.id === form.patient_id)?.nombre ?? "—"}
+                </div>
+              ) : (
+                <Select
+                  value={form.patient_id}
+                  onValueChange={(v) => actualizarCampo("patient_id", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccióna un paciente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pacientes.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Servicio */}
             <div className="space-y-1.5">
               <Label>Servicio</Label>
-              <Select
-                value={form.service_id}
-                onValueChange={(v) => {
-                  const servicio = servicios.find((s) => s.id === v)
-                  setForm((prev) => ({
-                    ...prev,
-                    service_id: v,
-                    duracion_min:
-                      servicio?.duracion_min != null
-                        ? String(servicio.duracion_min)
-                        : prev.duracion_min,
-                  }))
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccióna un servicio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {servicios.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {soloLectura ? (
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {servicios.find((s) => s.id === form.service_id)?.nombre ?? "—"}
+                </div>
+              ) : (
+                <Select
+                  value={form.service_id}
+                  onValueChange={(v) => {
+                    const servicio = servicios.find((s) => s.id === v)
+                    setForm((prev) => ({
+                      ...prev,
+                      service_id: v,
+                      duracion_min:
+                        servicio?.duracion_min != null
+                          ? String(servicio.duracion_min)
+                          : prev.duracion_min,
+                    }))
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccióna un servicio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {servicios.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Doctor */}
@@ -1185,48 +1202,66 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             {/* Estado */}
             <div className="space-y-1.5">
               <Label>Estado</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) => actualizarCampo("status", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {soloLectura ? (
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {STATUS_LABELS[form.status as keyof typeof STATUS_LABELS] ?? form.status}
+                </div>
+              ) : (
+                <Select
+                  value={form.status}
+                  onValueChange={(v) => actualizarCampo("status", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Duración */}
             <div className="space-y-1.5">
               <Label>Duración (min)</Label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                placeholder="Ej. 60"
-                value={form.duracion_min}
-                onChange={(e) =>
-                  actualizarCampo("duracion_min", e.target.value)
-                }
-              />
+              {soloLectura ? (
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {form.duracion_min || "—"}
+                </div>
+              ) : (
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Ej. 60"
+                  value={form.duracion_min}
+                  onChange={(e) =>
+                    actualizarCampo("duracion_min", e.target.value)
+                  }
+                />
+              )}
             </div>
 
             {/* Notas */}
             <div className="space-y-1.5">
               <Label>Notas</Label>
-              <Textarea
-                placeholder="Observaciones adicionales..."
-                value={form.notas}
-                onChange={(e) => actualizarCampo("notas", e.target.value)}
-                rows={3}
-                className="resize-none"
-              />
+              {soloLectura ? (
+                <div className="min-h-9 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                  {form.notas || "—"}
+                </div>
+              ) : (
+                <Textarea
+                  placeholder="Observaciones adicionales..."
+                  value={form.notas}
+                  onChange={(e) => actualizarCampo("notas", e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              )}
             </div>
 
             {/* Recurrencia mensual — solo en creacion */}

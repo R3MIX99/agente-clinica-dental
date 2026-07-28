@@ -129,6 +129,7 @@ interface Props {
   pacientes: PacienteConDatos[]
   servicios: Servicio[]
   doctores: Doctor[]
+  esDoctor?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -428,6 +429,7 @@ export function PacientesClient({
   pacientes: pacientesIniciales,
   servicios,
   doctores,
+  esDoctor = false,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -817,15 +819,17 @@ export function PacientesClient({
               ? `${pacientesFiltrados.length} de ${pacientes.length} registros`
               : `${pacientes.length} registros`}
           </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setImportarOpen(true)}
-            title="Importar pacientes desde Excel o Google Sheets (CSV)"
-          >
-            <Upload className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
-            <span className="hidden sm:inline">Importar</span>
-          </Button>
+          {!esDoctor && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setImportarOpen(true)}
+              title="Importar pacientes desde Excel o Google Sheets (CSV)"
+            >
+              <Upload className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Importar</span>
+            </Button>
+          )}
           <Button size="sm" onClick={abrirFormNuevo}>
             Nuevo paciente
           </Button>
@@ -995,20 +999,24 @@ export function PacientesClient({
                     >
                       <CalendarPlus size={15} />
                     </button>
-                    <button
-                      onClick={() => abrirFormEdicion(p)}
-                      title="Editar paciente"
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                    >
-                      <SquarePen size={15} />
-                    </button>
-                    <button
-                      onClick={() => setEliminarId(p.id)}
-                      title="Eliminar paciente"
-                      className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {!esDoctor && (
+                      <>
+                        <button
+                          onClick={() => abrirFormEdicion(p)}
+                          title="Editar paciente"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                        >
+                          <SquarePen size={15} />
+                        </button>
+                        <button
+                          onClick={() => setEliminarId(p.id)}
+                          title="Eliminar paciente"
+                          className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -114,7 +114,10 @@ function generarFechasMensuales(
 // Guard de permisos para doctores
 // ---------------------------------------------------------------------------
 
-async function verificarPermisosCita(datos: DatosCita, clinicaId: string) {
+async function verificarPermisosCita(
+  datos: DatosCita,
+  clinicaId: string
+): Promise<{ esDoctor: boolean }> {
   const authClient = await createAuthClient()
   const { data: { session } } = await authClient.auth.getSession()
   if (!session?.user) throw new Error("No autenticado")
@@ -126,7 +129,7 @@ async function verificarPermisosCita(datos: DatosCita, clinicaId: string) {
     .single()
 
   // Admin y supervisor no tienen restricciones
-  if (perfil?.rol !== "doctor") return
+  if (perfil?.rol !== "doctor") return { esDoctor: false }
 
   const doctorId = perfil.doctor_id
   if (!doctorId) throw new Error("Tu cuenta no tiene un doctor vinculado")
@@ -148,6 +151,8 @@ async function verificarPermisosCita(datos: DatosCita, clinicaId: string) {
       throw new Error("Solo puedes crear citas para tus pacientes asignados")
     }
   }
+
+  return { esDoctor: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -255,7 +260,7 @@ export async function crearCita(datos: DatosCita) {
 
 export async function actualizarCita(id: string, datos: DatosCita) {
   const clinicaId = await resolverClinicaId()
-  await verificarPermisosCita(datos, clinicaId)
+  const { esDoctor } = await verificarPermisosCita(datos, clinicaId)
   const supabase = createServerClient()
 
   const nuevaFechaIso = mexLocalToISO(datos.fecha_hora)
@@ -263,16 +268,37 @@ export async function actualizarCita(id: string, datos: DatosCita) {
   // Estado actual y fecha original de la cita
   const { data: actual } = await supabase
     .from("appointments")
-    .select("status, fecha_hora")
+    .select("patient_id, service_id, doctor_id, status, fecha_hora, duracion_min, notas")
     .eq("id", id)
     .eq("clinica_id", clinicaId)
     .single()
 
+  // Un doctor solo puede reagendar (cambiar fecha y hora); el resto de los
+  // campos se preservan del registro original sin importar lo que llegue
+  // en el formulario.
+  const datosAplicados = esDoctor && actual
+    ? {
+        patient_id:   actual.patient_id,
+        service_id:   actual.service_id,
+        doctor_id:    actual.doctor_id,
+        status:       actual.status,
+        duracion_min: actual.duracion_min,
+        notas:        actual.notas,
+      }
+    : {
+        patient_id:   datos.patient_id || null,
+        service_id:   datos.service_id || null,
+        doctor_id:    datos.doctor_id || null,
+        status:       datos.status,
+        duracion_min: datos.duracion_min ? Number(datos.duracion_min) : null,
+        notas:        datos.notas || null,
+      }
+
   // Si la cita estaba "por reagendar" y se le cambia la fecha, vuelve a "programada":
   // reagendar una cita cerrada la reactiva automaticamente.
-  let statusFinal = datos.status
+  let statusFinal = datosAplicados.status
   const estabaPorReagendar =
-    actual?.status === "por_reagendar" || datos.status === "por_reagendar"
+    actual?.status === "por_reagendar" || datosAplicados.status === "por_reagendar"
   const cambioFecha = !!actual && actual.fecha_hora !== nuevaFechaIso
   if (estabaPorReagendar && cambioFecha) {
     statusFinal = "programada"
@@ -281,14 +307,14 @@ export async function actualizarCita(id: string, datos: DatosCita) {
   const { error } = await supabase
     .from("appointments")
     .update({
-      patient_id: datos.patient_id || null,
-      service_id: datos.service_id || null,
-      doctor_id: datos.doctor_id || null,
+      patient_id: datosAplicados.patient_id,
+      service_id: datosAplicados.service_id,
+      doctor_id: datosAplicados.doctor_id,
       fecha_hora: nuevaFechaIso,
       status: statusFinal as
         "programada" | "confirmada" | "cancelada" | "completada" | "no_asistio" | "por_reagendar",
-      duracion_min: datos.duracion_min ? Number(datos.duracion_min) : null,
-      notas: datos.notas || null,
+      duracion_min: datosAplicados.duracion_min,
+      notas: datosAplicados.notas,
     })
     .eq("id", id)
     .eq("clinica_id", clinicaId)

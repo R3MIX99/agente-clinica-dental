@@ -121,6 +121,7 @@ interface Props {
   notas: NotaClinica[]
   todosDoctores: DoctorRef[]
   todosServicios: ServicioRef[]
+  esDoctor?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -382,6 +383,7 @@ export function PacienteFichaClient({
   notas,
   todosDoctores,
   todosServicios,
+  esDoctor = false,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -709,10 +711,12 @@ export function PacienteFichaClient({
             </div>
 
             <div className="flex items-center gap-2 sm:flex-shrink-0">
-              <Button variant="outline" onClick={abrirEditarPaciente}>
-                <SquarePen size={16} className="mr-2" />
-                Editar
-              </Button>
+              {!esDoctor && (
+                <Button variant="outline" onClick={abrirEditarPaciente}>
+                  <SquarePen size={16} className="mr-2" />
+                  Editar
+                </Button>
+              )}
               <Button
                 onClick={() => {
                   setFormCita(FORM_CITA_INICIAL)
@@ -757,7 +761,7 @@ export function PacienteFichaClient({
               <CardTitle className="text-base font-medium">
                 Asignación de médicos
               </CardTitle>
-              {todosDoctores.length > 0 && (
+              {!esDoctor && todosDoctores.length > 0 && (
                 <Button
                   size="sm"
                   variant="outline"

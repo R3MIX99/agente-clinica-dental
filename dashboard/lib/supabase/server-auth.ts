@@ -44,6 +44,18 @@ export async function getProfile() {
   return data
 }
 
+// Lanza un error si el usuario autenticado no tiene uno de los roles permitidos.
+// Usar en server actions de escritura que deban restringirse (ej. excluir doctor).
+export async function requireRol(
+  rolesPermitidos: Array<"administrador" | "supervisor" | "doctor">
+) {
+  const perfil = await getProfile()
+  if (!perfil || !rolesPermitidos.includes(perfil.rol as "administrador" | "supervisor" | "doctor")) {
+    throw new Error("No tienes permiso para realizar esta accion")
+  }
+  return perfil
+}
+
 // Obtener todas las membresias activas del usuario con datos de la clinica
 export async function getMemberships(userId: string) {
   const db = createAdminClient()
