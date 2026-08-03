@@ -451,6 +451,8 @@ export type DatosNuevaClinica = {
   plan_id: string
   telefono?: string
   direccion?: string
+  // Si se omite o viene vacio, se genera una aleatoria automaticamente.
+  password_admin?: string
 }
 
 export async function crearClinica(
@@ -463,6 +465,11 @@ export async function crearClinica(
   if (!nombreClinica) return { ok: false, error: "El nombre de la clinica es obligatorio." }
   if (!emailAdmin) return { ok: false, error: "El correo de la administradora es obligatorio." }
   if (!datos.plan_id) return { ok: false, error: "Selecciona un plan." }
+
+  const passwordPropuesta = datos.password_admin?.trim() || ""
+  if (passwordPropuesta && passwordPropuesta.length < 8) {
+    return { ok: false, error: "La contraseña debe tener al menos 8 caracteres." }
+  }
 
   const db = createServerClient()
 
@@ -511,7 +518,7 @@ export async function crearClinica(
   // (el superadmin la entrega manualmente por un canal seguro, en vez de
   // depender de que llegue un correo de invitacion).
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
-  const passwordTemporal = generarPasswordTemporal()
+  const passwordTemporal = passwordPropuesta || generarPasswordTemporal()
 
   const { data: creado, error: errCrear } = await db.auth.admin.createUser({
     email: emailAdmin,
@@ -997,7 +1004,13 @@ export async function guardarNotasAdmin(
 
 export async function crearUsuarioConPassword(
   clinicaId: string,
-  datos: { nombre: string; email: string; rol: "doctor" | "supervisor" | "administrador" },
+  datos: {
+    nombre: string
+    email: string
+    rol: "doctor" | "supervisor" | "administrador"
+    // Si se omite o viene vacio, se genera una aleatoria automaticamente.
+    password?: string
+  },
 ): Promise<{ ok: boolean; error?: string; password?: string }> {
   await assertSuperadmin()
   const db = createServerClient()
@@ -1006,10 +1019,15 @@ export async function crearUsuarioConPassword(
   if (!email) return { ok: false, error: "El correo es obligatorio." }
   if (!datos.nombre.trim()) return { ok: false, error: "El nombre es obligatorio." }
 
+  const passwordPropuesta = datos.password?.trim() || ""
+  if (passwordPropuesta && passwordPropuesta.length < 8) {
+    return { ok: false, error: "La contraseña debe tener al menos 8 caracteres." }
+  }
+
   const { data: clinica } = await db.from("clinicas").select("cuenta_id").eq("id", clinicaId).single()
   if (!clinica) return { ok: false, error: "Clínica no encontrada." }
 
-  const password = generarPasswordTemporal()
+  const password = passwordPropuesta || generarPasswordTemporal()
 
   const { data: creado, error: errCrear } = await db.auth.admin.createUser({
     email,

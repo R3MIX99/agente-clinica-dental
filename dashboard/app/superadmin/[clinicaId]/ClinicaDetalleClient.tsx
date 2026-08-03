@@ -4,7 +4,9 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { ArrowLeft, Plus, Copy, Download, Eye } from "lucide-react"
+import { ArrowLeft, Plus, Copy, Download, Eye, RefreshCw } from "lucide-react"
+import { PasswordRevealDialog } from "@/components/ui/password-reveal-dialog"
+import { generarPasswordSugerida } from "@/lib/client/generar-password"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,6 +47,9 @@ export function ClinicaDetalleClient({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const s = detalle.suscripcion
+
+  const [resetPassword, setResetPassword] = useState<string | null>(null)
+  const [resetEmail, setResetEmail] = useState("")
 
   const correr = (fn: () => Promise<{ ok: boolean; error?: string }>, exito: string) => {
     startTransition(async () => {
@@ -114,7 +119,9 @@ export function ClinicaDetalleClient({
           onResetPassword={(uid) => startTransition(async () => {
             const r = await resetearPasswordMiembro(detalle.clinica_id, uid)
             if (!r.ok) { toast.error(r.error ?? "No se pudo resetear la contraseña."); return }
-            toast.success(`Nueva contraseña temporal: ${r.password} (vence en 3 días si no la cambia)`, { duration: 30000 })
+            const miembro = detalle.miembros.find((m) => m.user_id === uid)
+            setResetPassword(r.password ?? null)
+            setResetEmail(miembro?.email ?? "")
           })} />
         <CrearUsuario clinicaId={detalle.clinica_id} onListo={() => router.refresh()} />
       </Seccion>
@@ -242,6 +249,13 @@ export function ClinicaDetalleClient({
           </Button>
         </div>
       </Seccion>
+
+      <PasswordRevealDialog
+        password={resetPassword}
+        onClose={() => setResetPassword(null)}
+        email={resetEmail || undefined}
+        titulo="Nueva contraseña temporal"
+      />
     </div>
   )
 }
@@ -326,20 +340,22 @@ function CrearUsuario({ clinicaId, onListo }: { clinicaId: string; onListo: () =
   const [nombre, setNombre] = useState("")
   const [email, setEmail] = useState("")
   const [rol, setRol] = useState<"doctor" | "supervisor" | "administrador">("doctor")
-  const [password, setPassword] = useState<string | null>(null)
+  const [password, setPassword] = useState(() => generarPasswordSugerida())
+  const [passwordCreada, setPasswordCreada] = useState<string | null>(null)
 
   function crear() {
     startTransition(async () => {
-      const r = await crearUsuarioConPassword(clinicaId, { nombre, email, rol })
+      const r = await crearUsuarioConPassword(clinicaId, { nombre, email, rol, password })
       if (!r.ok) { toast.error(r.error ?? "No se pudo crear el usuario."); return }
-      setPassword(r.password ?? null)
+      setPasswordCreada(r.password ?? null)
       toast.success("Usuario creado.")
       onListo()
     })
   }
 
   function cerrar() {
-    setAbierto(false); setNombre(""); setEmail(""); setRol("doctor"); setPassword(null)
+    setAbierto(false); setNombre(""); setEmail(""); setRol("doctor")
+    setPassword(generarPasswordSugerida()); setPasswordCreada(null)
   }
 
   return (
@@ -352,22 +368,23 @@ function CrearUsuario({ clinicaId, onListo }: { clinicaId: string; onListo: () =
           <DialogHeader>
             <DialogTitle>Crear usuario</DialogTitle>
             <DialogDescription>
-              Se crea con una contraseña temporal que el usuario cambiará en su primer acceso.
+              Se crea con la contraseña temporal que definas abajo, que el usuario cambiará en su
+              primer acceso (o al vencer a los 3 días).
             </DialogDescription>
           </DialogHeader>
 
-          {password ? (
+          {passwordCreada ? (
             <div className="space-y-3">
               <p className="text-sm">Usuario creado. Entrega estos datos (la contraseña se muestra una sola vez):</p>
               <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
                 <p><span className="text-muted-foreground">Correo:</span> {email}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Contraseña:</span>
-                  <code className="font-mono font-medium">{password}</code>
+                  <code className="font-mono font-medium">{passwordCreada}</code>
                   <button
                     type="button"
                     className="text-muted-foreground hover:text-foreground"
-                    onClick={() => { navigator.clipboard.writeText(password); toast.success("Contraseña copiada") }}
+                    onClick={() => { navigator.clipboard.writeText(passwordCreada); toast.success("Contraseña copiada") }}
                     aria-label="Copiar contraseña"
                   >
                     <Copy className="h-3.5 w-3.5" aria-hidden="true" />
@@ -397,9 +414,33 @@ function CrearUsuario({ clinicaId, onListo }: { clinicaId: string; onListo: () =
                   <option value="administrador">Administrador</option>
                 </select>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cu-password">Contraseña temporal</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="cu-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="font-mono"
+                    placeholder="Mínimo 8 caracteres"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPassword(generarPasswordSugerida())}
+                    title="Generar otra"
+                  >
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={cerrar}>Cancelar</Button>
-                <Button onClick={crear} disabled={isPending || !nombre.trim() || !email.trim()}>
+                <Button
+                  onClick={crear}
+                  disabled={isPending || !nombre.trim() || !email.trim() || password.trim().length < 8}
+                >
                   {isPending ? "Creando..." : "Crear usuario"}
                 </Button>
               </DialogFooter>
