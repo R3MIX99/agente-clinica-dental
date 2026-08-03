@@ -10,23 +10,33 @@ import { revalidatePath } from "next/cache"
 // ---------------------------------------------------------------------------
 
 export async function tomarControl(conversationId: string, agenteId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("conversations")
     .update({ mode: "humano", assigned_agent_id: agenteId })
     .eq("id", conversationId)
+    .eq("clinica_id", clinicaId)
+    .select("id")
+    .maybeSingle()
   if (error) throw new Error(error.message)
+  if (!data) throw new Error("Conversación no encontrada")
   revalidatePath("/conversaciones")
 }
 
 export async function devolverAlBot(conversationId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("conversations")
     .update({ mode: "bot", assigned_agent_id: null })
     .eq("id", conversationId)
+    .eq("clinica_id", clinicaId)
+    .select("id")
+    .maybeSingle()
   if (error) throw new Error(error.message)
+  if (!data) throw new Error("Conversación no encontrada")
 
   await reanudarConBot(conversationId)
 
@@ -273,17 +283,20 @@ Instrucciones:
 // ---------------------------------------------------------------------------
 
 export async function obtenerMensajes(conversationId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from("messages")
     .select("id, contenido, direction, sender, created_at, metadata")
     .eq("conversation_id", conversationId)
+    .eq("clinica_id", clinicaId)
     .order("created_at", { ascending: true })
   if (error) throw new Error(error.message)
   return data ?? []
 }
 
 export async function obtenerConversacion(conversationId: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { data } = await supabase
     .from("conversations")
@@ -291,6 +304,7 @@ export async function obtenerConversacion(conversationId: string) {
       "id, channel, mode, status, last_message_at, assigned_agent_id, patients(id, nombre, channel, channel_user_id), agents(nombre)"
     )
     .eq("id", conversationId)
+    .eq("clinica_id", clinicaId)
     .is("deleted_at", null)
     .maybeSingle()
   return data ?? null
@@ -332,21 +346,25 @@ export async function vaciarPapelera() {
 }
 
 export async function archivarConversacion(id: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
     .from("conversations")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath("/conversaciones")
 }
 
 export async function restaurarConversacion(id: string) {
+  const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
   const { error } = await supabase
     .from("conversations")
     .update({ deleted_at: null })
     .eq("id", id)
+    .eq("clinica_id", clinicaId)
   if (error) throw new Error(error.message)
   revalidatePath("/conversaciones")
 }
@@ -364,6 +382,14 @@ export async function enviarMensajeAlPaciente(params: {
 }) {
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
+
+  const { data: conv } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("id", params.conversationId)
+    .eq("clinica_id", clinicaId)
+    .maybeSingle()
+  if (!conv) throw new Error("Conversación no encontrada")
 
   const { error: errMsg } = await supabase.from("messages").insert({
     conversation_id: params.conversationId,

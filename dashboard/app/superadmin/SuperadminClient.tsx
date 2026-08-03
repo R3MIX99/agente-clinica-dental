@@ -188,7 +188,14 @@ function DialogNuevaClinica({
       })
       if (!r.ok) { toast.error(r.error ?? "No se pudo crear la clínica."); return }
       if (r.error) toast.warning(r.error)
-      else toast.success("Clínica creada. Se envió la invitación a la administradora.")
+      else if (r.password) {
+        toast.success(
+          `Clínica creada. Contraseña temporal de ${emailAdmin}: ${r.password} (vence en 3 días si no la cambia)`,
+          { duration: 30000 },
+        )
+      } else {
+        toast.success("Clínica creada.")
+      }
       setNombre(""); setEmailAdmin(""); setNombreAdmin(""); setTelefono(""); setDireccion("")
       onListo()
     })
@@ -200,7 +207,8 @@ function DialogNuevaClinica({
         <DialogHeader>
           <DialogTitle>Nueva clínica</DialogTitle>
           <DialogDescription>
-            Se crea la cuenta, la clínica y su suscripción, y se invita a la administradora al onboarding.
+            Se crea la cuenta, la clínica, su suscripción y el acceso de la administradora con una
+            contraseña temporal generada al momento — cópiala y entrégala por un canal seguro.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

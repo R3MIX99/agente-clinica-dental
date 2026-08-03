@@ -2,6 +2,7 @@
 
 import { createAuthClient } from "@/lib/supabase/server-auth"
 import { createServerClient } from "@/lib/supabase/server"
+import { passwordTemporalExpirada } from "@/lib/auth/password-temporal"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -17,6 +18,17 @@ export async function loginAction(email: string, password: string): Promise<{ er
   const userId = data.user?.id
   const rol = data.user?.user_metadata?.rol
   const passwordTemporal = data.user?.user_metadata?.password_temporal === true
+  const passwordTemporalCreadaAt = data.user?.user_metadata?.password_temporal_creada_at as
+    | string
+    | undefined
+
+  // Contraseña temporal vencida (mas de 3 dias sin cambiarla): se rechaza el
+  // acceso y se pide una nueva al administrador, en vez de dejarla vigente
+  // indefinidamente.
+  if (passwordTemporal && passwordTemporalExpirada(passwordTemporalCreadaAt)) {
+    await supabase.auth.signOut()
+    return { error: "Tu contraseña temporal expiró. Solicita una nueva a tu administrador." }
+  }
 
   // Las cuentas las configura el administrador del sistema antes de
   // entregar credenciales a la clinica. Aquí solo establecemos la

@@ -5,8 +5,13 @@ import { useRouter } from "next/navigation"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { crearUsuario, editarUsuario, eliminarUsuario, type PerfilUsuario } from "./actions"
-import { PASSWORD_TEMPORAL } from "./config"
+import {
+  crearUsuario,
+  editarUsuario,
+  eliminarUsuario,
+  resetearPasswordUsuario,
+  type PerfilUsuario,
+} from "./actions"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -41,7 +46,7 @@ import {
 } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { ChevronRight, SquarePen, Trash2 } from "lucide-react"
+import { ChevronRight, KeyRound, SquarePen, Trash2 } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -206,13 +211,34 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
       toast.success("Usuario actualizado correctamente")
     } else {
       toast.success(
-        `Usuario creado. Contraseña temporal: ${PASSWORD_TEMPORAL}`,
-        { duration: 10000 },
+        `Usuario creado. Contraseña temporal: ${resultado.password} (vence en 3 días si no la cambia)`,
+        { duration: 20000 },
       )
     }
     setFormOpen(false)
     router.refresh()
   })
+
+  // -------------------------------------------------------------------------
+  // Handlers — resetear contraseña
+  // -------------------------------------------------------------------------
+
+  const [isPendingReset, startTransitionReset] = useTransition()
+
+  function ejecutarResetPassword(usuario: PerfilUsuario) {
+    startTransitionReset(async () => {
+      const resultado = await resetearPasswordUsuario(usuario.id)
+      if (resultado.error) {
+        toast.error(resultado.error)
+        return
+      }
+      toast.success(
+        `Nueva contraseña temporal para ${usuario.nombre}: ${resultado.password} (vence en 3 días si no la cambia)`,
+        { duration: 20000 },
+      )
+      setDrawerUsuario(null)
+    })
+  }
 
   // -------------------------------------------------------------------------
   // Handlers — eliminar
@@ -508,6 +534,16 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                         <SquarePen size={15} />
                       </button>
                     )}
+                    {puedeEditar(perfilActual, usuario) && (
+                      <button
+                        onClick={() => ejecutarResetPassword(usuario)}
+                        disabled={isPendingReset}
+                        title="Resetear contraseña"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
+                      >
+                        <KeyRound size={15} />
+                      </button>
+                    )}
                     {puedeEliminar(perfilActual, usuario) && (
                       <button
                         onClick={() => confirmarEliminar(usuario)}
@@ -599,6 +635,17 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                     </div>
                   )}
                 </dl>
+
+                {puedeEditar(perfilActual, drawerUsuario) && (
+                  <button
+                    onClick={() => ejecutarResetPassword(drawerUsuario)}
+                    disabled={isPendingReset}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
+                  >
+                    <KeyRound size={15} />
+                    Resetear contraseña
+                  </button>
+                )}
 
                 {puedeEliminar(perfilActual, drawerUsuario) && (
                   <button

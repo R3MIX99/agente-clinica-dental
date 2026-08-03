@@ -17,7 +17,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog"
 import {
-  crearUsuarioConPassword, cambiarActivoMiembro, fijarPrecioVencimiento, registrarPago,
+  crearUsuarioConPassword, resetearPasswordMiembro, cambiarActivoMiembro, fijarPrecioVencimiento, registrarPago,
   recargarSaldoIA, sumarRecordatorios, cambiarPlan, cambiarEstadoCuenta, activarClinica, conectarTelegram,
   reenviarOnboarding, guardarNotasAdmin, desconectarTelegram,
   type ClinicaDetalle, type PlanResumen, type MiembroDetalle,
@@ -110,7 +110,12 @@ export function ClinicaDetalleClient({
       {/* Equipo */}
       <Seccion titulo="Equipo">
         <EquipoTabla clinicaId={detalle.clinica_id} miembros={detalle.miembros} isPending={isPending}
-          onToggle={(uid, activa) => correr(() => cambiarActivoMiembro(detalle.clinica_id, uid, activa), activa ? "Miembro activado." : "Miembro desactivado.")} />
+          onToggle={(uid, activa) => correr(() => cambiarActivoMiembro(detalle.clinica_id, uid, activa), activa ? "Miembro activado." : "Miembro desactivado.")}
+          onResetPassword={(uid) => startTransition(async () => {
+            const r = await resetearPasswordMiembro(detalle.clinica_id, uid)
+            if (!r.ok) { toast.error(r.error ?? "No se pudo resetear la contraseña."); return }
+            toast.success(`Nueva contraseña temporal: ${r.password} (vence en 3 días si no la cambia)`, { duration: 30000 })
+          })} />
         <CrearUsuario clinicaId={detalle.clinica_id} onListo={() => router.refresh()} />
       </Seccion>
 
@@ -265,12 +270,13 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 }
 
 function EquipoTabla({
-  miembros, isPending, onToggle,
+  miembros, isPending, onToggle, onResetPassword,
 }: {
   clinicaId: string
   miembros: MiembroDetalle[]
   isPending: boolean
   onToggle: (userId: string, activa: boolean) => void
+  onResetPassword: (userId: string) => void
 }) {
   if (miembros.length === 0) {
     return <p className="text-sm text-muted-foreground">Aún no hay miembros en esta clínica.</p>
@@ -296,7 +302,11 @@ function EquipoTabla({
               <TableCell>
                 <Badge variant={m.activa ? "secondary" : "outline"}>{m.activa ? "Activo" : "Inactivo"}</Badge>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right space-x-1">
+                <Button size="sm" variant="ghost" disabled={isPending}
+                  onClick={() => onResetPassword(m.user_id)}>
+                  Resetear contraseña
+                </Button>
                 <Button size="sm" variant="ghost" disabled={isPending}
                   onClick={() => onToggle(m.user_id, !m.activa)}>
                   {m.activa ? "Desactivar" : "Activar"}

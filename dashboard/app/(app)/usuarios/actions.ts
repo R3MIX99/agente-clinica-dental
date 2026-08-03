@@ -2,8 +2,8 @@
 
 import { createServerClient as createServiceClient } from "@/lib/supabase/server"
 import { getProfile } from "@/lib/supabase/server-auth"
+import { generarPasswordTemporal } from "@/lib/auth/password-temporal"
 import { revalidatePath } from "next/cache"
-import { PASSWORD_TEMPORAL } from "./config"
 
 export type PerfilUsuario = {
   id: string
@@ -39,7 +39,9 @@ async function resolverNombrePerfil(
   return datos.nombre
 }
 
-export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: string }> {
+export async function crearUsuario(
+  datos: DatosUsuario
+): Promise<{ error?: string; password?: string }> {
   const perfilActual = await getProfile()
   if (!perfilActual || perfilActual.rol === "doctor") {
     return { error: "Sin permisos para crear usuarios" }
@@ -54,17 +56,20 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
   const db = createServiceClient()
   const nombreFinal = await resolverNombrePerfil(db, datos)
 
-  // Creación directa con contraseña temporal. El usuario debera cambiarla
-  // desde /perfil al iniciar sesión (se le redirige automáticamente cuando
-  // password_temporal: true en los metadatos).
+  // Creación directa con contraseña temporal aleatoria (no una fija
+  // compartida). El usuario debera cambiarla desde /perfil al iniciar
+  // sesión (se le redirige automáticamente cuando password_temporal: true
+  // en los metadatos), y vence a los pocos dias si no la cambia.
+  const passwordTemporal = generarPasswordTemporal()
   const { data: authData, error: authError } = await db.auth.admin.createUser({
     email:         datos.email,
-    password:      PASSWORD_TEMPORAL,
+    password:      passwordTemporal,
     email_confirm: true,
     user_metadata: {
-      nombre:            nombreFinal,
-      rol:               datos.rol,
-      password_temporal: true,
+      nombre:                      nombreFinal,
+      rol:                         datos.rol,
+      password_temporal:           true,
+      password_temporal_creada_at: new Date().toISOString(),
     },
   })
 
@@ -109,25 +114,32 @@ export async function crearUsuario(datos: DatosUsuario): Promise<{ error?: strin
   }
 
   revalidatePath("/usuarios")
-  return {}
+  return { password: passwordTemporal }
 }
 
 export async function editarUsuario(
   id: string,
   datos: DatosUsuario
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; password?: string }> {
   const perfilActual = await getProfile()
   if (!perfilActual || perfilActual.rol === "doctor") {
     return { error: "Sin permisos para editar usuarios" }
+  }
+  if (!perfilActual.clinica_id) {
+    return { error: "Sin clinica activa" }
   }
 
   const db = createServiceClient()
 
   const { data: objetivo } = await db
     .from("profiles")
-    .select("rol, doctor_id")
+    .select("rol, doctor_id, clinica_id")
     .eq("id", id)
     .single()
+
+  if (!objetivo || objetivo.clinica_id !== perfilActual.clinica_id) {
+    return { error: "Usuario no encontrado" }
+  }
 
   if (objetivo?.rol === "administrador" && perfilActual.rol === "supervisor") {
     return { error: "Un supervisor no puede editar a un administrador" }
@@ -154,20 +166,27 @@ export async function editarUsuario(
         .from("profiles")
         .update({ nombre: nombreFinal, rol: rolFinal, activo: datos.activo, doctor_id: doctorIdFinal })
         .eq("id", id)
+        .eq("clinica_id", perfilActual.clinica_id)
     : await db
         .from("profiles")
         .update({ nombre: nombreFinal, rol: rolFinal, activo: datos.activo, doctor_id: doctorIdFinal, email: datos.email })
         .eq("id", id)
+        .eq("clinica_id", perfilActual.clinica_id)
 
   if (profileError) return { error: profileError.message }
 
+  // Preservar flags existentes en los metadatos (ej. password_temporal) en
+  // vez de sobreescribirlos, ya que updateUserById reemplaza el objeto entero.
+  const { data: usuarioAuth } = await db.auth.admin.getUserById(id)
+  const metadataPrevia = usuarioAuth?.user?.user_metadata ?? {}
+
   const { error: authError } = rolFinal === "doctor"
     ? await db.auth.admin.updateUserById(id, {
-        user_metadata: { nombre: nombreFinal, rol: rolFinal },
+        user_metadata: { ...metadataPrevia, nombre: nombreFinal, rol: rolFinal },
       })
     : await db.auth.admin.updateUserById(id, {
         email: datos.email,
-        user_metadata: { nombre: nombreFinal, rol: rolFinal },
+        user_metadata: { ...metadataPrevia, nombre: nombreFinal, rol: rolFinal },
       })
 
   if (authError) return { error: authError.message }
@@ -189,13 +208,18 @@ export async function eliminarUsuario(id: string): Promise<{ error?: string }> {
   const perfilActual = await getProfile()
   if (!perfilActual) return { error: "Sin sesión activa" }
   if (perfilActual.rol === "doctor") return { error: "Sin permisos para eliminar usuarios" }
+  if (!perfilActual.clinica_id) return { error: "Sin clinica activa" }
 
   const db = createServiceClient()
   const { data: objetivo } = await db
     .from("profiles")
-    .select("rol")
+    .select("rol, clinica_id")
     .eq("id", id)
     .single()
+
+  if (!objetivo || objetivo.clinica_id !== perfilActual.clinica_id) {
+    return { error: "Usuario no encontrado" }
+  }
 
   if (objetivo?.rol === "administrador" && perfilActual.rol === "supervisor") {
     return { error: "Un supervisor no puede eliminar a un administrador" }
@@ -210,4 +234,48 @@ export async function eliminarUsuario(id: string): Promise<{ error?: string }> {
 
   revalidatePath("/usuarios")
   return {}
+}
+
+// ---------------------------------------------------------------------------
+// Resetear contraseña — genera una nueva contraseña temporal aleatoria
+// (reemplaza a la anterior) y vuelve a arrancar el plazo de vigencia.
+// ---------------------------------------------------------------------------
+
+export async function resetearPasswordUsuario(
+  id: string
+): Promise<{ error?: string; password?: string }> {
+  const perfilActual = await getProfile()
+  if (!perfilActual || perfilActual.rol === "doctor") {
+    return { error: "Sin permisos para resetear contraseñas" }
+  }
+  if (!perfilActual.clinica_id) return { error: "Sin clinica activa" }
+
+  const db = createServiceClient()
+  const { data: objetivo } = await db
+    .from("profiles")
+    .select("rol, nombre, clinica_id")
+    .eq("id", id)
+    .single()
+
+  if (!objetivo || objetivo.clinica_id !== perfilActual.clinica_id) {
+    return { error: "Usuario no encontrado" }
+  }
+
+  if (objetivo.rol === "administrador" && perfilActual.rol === "supervisor") {
+    return { error: "Un supervisor no puede resetear la contraseña de un administrador" }
+  }
+
+  const nuevaPassword = generarPasswordTemporal()
+  const { error } = await db.auth.admin.updateUserById(id, {
+    password: nuevaPassword,
+    user_metadata: {
+      nombre:                       objetivo.nombre,
+      rol:                          objetivo.rol,
+      password_temporal:            true,
+      password_temporal_creada_at:  new Date().toISOString(),
+    },
+  })
+  if (error) return { error: error.message }
+
+  return { password: nuevaPassword }
 }

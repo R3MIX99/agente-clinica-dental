@@ -3,8 +3,8 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { assertSuperadmin } from "@/lib/auth/superadmin"
 import { conectarTelegramBot, desconectarTelegramBot } from "@/lib/telegram"
+import { generarPasswordTemporal } from "@/lib/auth/password-temporal"
 import { revalidatePath } from "next/cache"
-import { randomBytes } from "crypto"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -455,7 +455,7 @@ export type DatosNuevaClinica = {
 
 export async function crearClinica(
   datos: DatosNuevaClinica,
-): Promise<{ ok: boolean; error?: string; enlace_onboarding?: string }> {
+): Promise<{ ok: boolean; error?: string; enlace_onboarding?: string; password?: string }> {
   await assertSuperadmin()
 
   const nombreClinica = datos.nombre_clinica.trim()
@@ -507,18 +507,29 @@ export async function crearClinica(
   } as never)
   if (errSusc) return { ok: false, error: errSusc.message }
 
-  // 4. Invitar a la administradora (crea su acceso y la lleva al onboarding)
+  // 4. Crear el acceso de la administradora con contraseña temporal aleatoria
+  // (el superadmin la entrega manualmente por un canal seguro, en vez de
+  // depender de que llegue un correo de invitacion).
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
-  const { data: invitado, error: errInvite } = await db.auth.admin.inviteUserByEmail(emailAdmin, {
-    data: { nombre: datos.nombre_admin.trim(), rol: "administrador" },
-    redirectTo: `${appUrl}/api/auth/callback?next=/onboarding`,
+  const passwordTemporal = generarPasswordTemporal()
+
+  const { data: creado, error: errCrear } = await db.auth.admin.createUser({
+    email: emailAdmin,
+    password: passwordTemporal,
+    email_confirm: true,
+    user_metadata: {
+      nombre:                       datos.nombre_admin.trim(),
+      rol:                          "administrador",
+      password_temporal:            true,
+      password_temporal_creada_at:  new Date().toISOString(),
+    },
   })
 
-  if (!errInvite && invitado?.user) {
-    const userId = invitado.user.id
+  if (!errCrear && creado?.user) {
+    const userId = creado.user.id
     await db
       .from("profiles")
-      .update({ nombre: datos.nombre_admin.trim(), rol: "administrador", clinica_id: clinica.id, cuenta_id: cuenta.id } as never)
+      .update({ nombre: datos.nombre_admin.trim(), rol: "administrador", clinica_id: clinica.id, cuenta_id: cuenta.id, email: emailAdmin } as never)
       .eq("id", userId)
     await db.from("membresias").insert({
       user_id: userId,
@@ -533,7 +544,8 @@ export async function crearClinica(
   return {
     ok: true,
     enlace_onboarding: `${appUrl}/login`,
-    error: errInvite ? "Clinica creada, pero no se pudo enviar la invitacion por correo: " + errInvite.message : undefined,
+    password: creado?.user ? passwordTemporal : undefined,
+    error: errCrear ? "Clinica creada, pero no se pudo crear el acceso de la administradora: " + errCrear.message : undefined,
   }
 }
 
@@ -983,11 +995,6 @@ export async function guardarNotasAdmin(
 // Crear usuario con contrasena temporal
 // ===========================================================================
 
-function generarPasswordTemporal(): string {
-  const bytes = randomBytes(6).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8)
-  return `Dental-${bytes}`
-}
-
 export async function crearUsuarioConPassword(
   clinicaId: string,
   datos: { nombre: string; email: string; rol: "doctor" | "supervisor" | "administrador" },
@@ -1008,7 +1015,12 @@ export async function crearUsuarioConPassword(
     email,
     password,
     email_confirm: true,
-    user_metadata: { nombre: datos.nombre.trim(), rol: datos.rol, password_temporal: true },
+    user_metadata: {
+      nombre:                       datos.nombre.trim(),
+      rol:                          datos.rol,
+      password_temporal:            true,
+      password_temporal_creada_at:  new Date().toISOString(),
+    },
   })
   if (errCrear || !creado?.user) {
     return { ok: false, error: errCrear?.message ?? "No se pudo crear el usuario." }
@@ -1050,6 +1062,40 @@ export async function cambiarActivoMiembro(
   if (error) return { ok: false, error: error.message }
   revalidatePath(`/superadmin/${clinicaId}`)
   return { ok: true }
+}
+
+// Genera una nueva contraseña temporal aleatoria para un miembro de una
+// clinica (reemplaza la anterior y reinicia el plazo de vigencia de 3 dias).
+export async function resetearPasswordMiembro(
+  clinicaId: string,
+  userId: string,
+): Promise<{ ok: boolean; error?: string; password?: string }> {
+  await assertSuperadmin()
+  const db = createServerClient()
+
+  const { data: miembro } = await db
+    .from("profiles")
+    .select("nombre, rol, clinica_id")
+    .eq("id", userId)
+    .single()
+
+  if (!miembro || miembro.clinica_id !== clinicaId) {
+    return { ok: false, error: "Usuario no encontrado en esta clínica." }
+  }
+
+  const password = generarPasswordTemporal()
+  const { error } = await db.auth.admin.updateUserById(userId, {
+    password,
+    user_metadata: {
+      nombre:                       miembro.nombre,
+      rol:                          miembro.rol,
+      password_temporal:            true,
+      password_temporal_creada_at:  new Date().toISOString(),
+    },
+  })
+  if (error) return { ok: false, error: error.message }
+
+  return { ok: true, password }
 }
 
 // ===========================================================================
