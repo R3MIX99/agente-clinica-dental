@@ -40,7 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search, MoreHorizontal } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search, SlidersHorizontal } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -687,7 +687,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             hayFiltrosActivos ? "bg-primary/10 text-primary border-primary/30" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
           )}
         >
-          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
           {hayFiltrosActivos && (
             <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
           )}
