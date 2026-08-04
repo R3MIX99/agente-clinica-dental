@@ -17,7 +17,9 @@ export function IconTooltip({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
+        {/* Oculto en telefono: en touch el tap puede abrir el tooltip antes
+            del click, y no aporta nada sin cursor de mouse. */}
+        <TooltipContent className="hidden md:inline-flex">{label}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )

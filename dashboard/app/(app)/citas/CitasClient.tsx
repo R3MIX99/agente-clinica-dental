@@ -199,7 +199,7 @@ function AccionBtn({
             {children}
           </button>
         </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
+        <TooltipContent className="hidden md:inline-flex">{label}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )
