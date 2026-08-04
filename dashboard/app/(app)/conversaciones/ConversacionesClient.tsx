@@ -201,6 +201,29 @@ function ConvItem({
 }) {
   const nombre = conv.patients?.nombre ?? "Desconocido"
 
+  // Mantener presionado (movil) — el boton de accion (archivar/restaurar)
+  // solo aparece con hover, que no existe en touch. Un long-press dispara
+  // la misma accion (que en "activas" abre la confirmacion de archivar).
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressDisparado = useRef(false)
+
+  function cancelarLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  function iniciarLongPress(e: React.PointerEvent) {
+    if (e.pointerType !== "touch") return
+    longPressDisparado.current = false
+    longPressTimer.current = setTimeout(() => {
+      longPressDisparado.current = true
+      if (navigator.vibrate) navigator.vibrate(15)
+      onAccion()
+    }, 550)
+  }
+
   return (
     <div
       className={cn(
@@ -210,7 +233,18 @@ function ConvItem({
       )}
     >
       <button
-        onClick={onSelect}
+        onClick={() => {
+          if (longPressDisparado.current) {
+            longPressDisparado.current = false
+            return
+          }
+          onSelect()
+        }}
+        onPointerDown={iniciarLongPress}
+        onPointerUp={cancelarLongPress}
+        onPointerMove={cancelarLongPress}
+        onPointerCancel={cancelarLongPress}
+        onContextMenu={(e) => { if (longPressDisparado.current) e.preventDefault() }}
         className={cn("w-full text-left px-4 py-3 pr-10", opaco && "opacity-60")}
       >
         <div className="flex items-start gap-2.5">
