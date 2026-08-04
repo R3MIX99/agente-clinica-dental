@@ -2,7 +2,8 @@
 
 import { useTransition } from "react"
 import Link from "next/link"
-import { Stethoscope, LogOut, Loader2, User } from "lucide-react"
+import Image from "next/image"
+import { LogOut, Loader2, User } from "lucide-react"
 import { SidebarNav } from "./sidebar-nav"
 import { ClinicaSelector } from "./clinica-selector"
 import { logoutAction } from "@/app/actions/auth"
@@ -31,7 +32,14 @@ export function AppSidebar({
   return (
     <aside className="flex h-full w-60 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <Stethoscope className="h-5 w-5 shrink-0 text-sidebar-primary" aria-hidden="true" />
+        <Image
+          src="/branding/dentai-icon.png"
+          alt=""
+          width={24}
+          height={24}
+          className="h-6 w-6 shrink-0"
+          priority
+        />
         <ClinicaSelector
           clinicaActual={clinicaActual}
           clinicas={clinicas}

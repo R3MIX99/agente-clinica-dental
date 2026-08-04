@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Clínica Dental — Panel de Control",
   description: "Panel de control del agente IA para clinica dental",
+  appleWebApp: {
+    title: "DentAI",
+    statusBarStyle: "default",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

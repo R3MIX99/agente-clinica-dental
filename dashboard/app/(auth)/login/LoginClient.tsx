@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { Stethoscope, Loader2 } from "lucide-react"
+import Image from "next/image"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
@@ -54,10 +55,22 @@ export function LoginClient() {
     <div className="w-full max-w-sm">
       {/* Logo */}
       <div className="flex flex-col items-center gap-2 mb-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Stethoscope className="h-6 w-6" aria-hidden />
-        </div>
-        <h1 className="text-xl font-semibold text-foreground">Clínica Dental</h1>
+        <Image
+          src="/branding/dentai-logo.png"
+          alt="DentAI"
+          width={1366}
+          height={356}
+          priority
+          className="h-10 w-auto dark:hidden"
+        />
+        <Image
+          src="/branding/dentai-logo-white.png"
+          alt="DentAI"
+          width={1366}
+          height={356}
+          priority
+          className="hidden h-10 w-auto dark:block"
+        />
         <p className="text-sm text-muted-foreground">Panel de control</p>
       </div>
 

@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useTransition } from "react"
-import { Stethoscope, UserCircle, Settings, LogOut, Moon, Sun, Loader2, User } from "lucide-react"
+import { UserCircle, Settings, LogOut, Moon, Sun, Loader2, User } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,7 +37,13 @@ export function MobileHeader({
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 md:hidden">
       {/* Logo y nombre / selector de clinica */}
       <div className="flex items-center gap-2 min-w-0">
-        <Stethoscope className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+        <Image
+          src="/branding/dentai-icon.png"
+          alt=""
+          width={24}
+          height={24}
+          className="h-6 w-6 shrink-0"
+        />
         <ClinicaSelector
           clinicaActual={clinicaActual}
           clinicas={clinicas}
