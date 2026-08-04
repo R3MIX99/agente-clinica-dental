@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { RegisterServiceWorker } from "@/components/register-sw"
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}
           <Toaster richColors position="top-right" />
+          <RegisterServiceWorker />
         </ThemeProvider>
       </body>
     </html>
