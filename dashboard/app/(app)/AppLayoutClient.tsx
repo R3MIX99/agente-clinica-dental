@@ -1,8 +1,9 @@
 "use client"
 
+import { useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
-import { WifiOff } from "lucide-react"
+import { WifiOff, Loader2 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
@@ -35,6 +36,24 @@ export function AppLayoutClient({
 }) {
   const pathname = usePathname()
   const online = useOnlineStatus()
+
+  // Solo /citas tiene datos cacheados para verse sin conexion (ver
+  // public/sw.js). El resto de las secciones necesitan red.
+  const enCitas = pathname.startsWith("/citas")
+  const redirigiendoOffline = !online && !enCitas
+
+  // Si se pierde la conexion estando en otra pestaña, se redirige a Citas
+  // de inmediato en vez de dejar que la pagina actual intente seguir
+  // pidiendo datos y termine en una pantalla en blanco o el error nativo
+  // del navegador. Se usa una navegacion dura (no el router de Next) porque
+  // el service worker solo garantiza servir /citas desde cache para
+  // peticiones de navegacion reales — una transicion suave del lado del
+  // cliente puede fallar de forma menos predecible sin conexion.
+  useEffect(() => {
+    if (redirigiendoOffline) {
+      window.location.href = "/citas"
+    }
+  }, [redirigiendoOffline])
 
   // Rutas "fullscreen" con scroll interno propio (chat-like).
   // Necesitan h-full para que su layout interno funcione.
@@ -89,20 +108,29 @@ export function AppLayoutClient({
 
           {/* Contenido con animacion de ruta */}
           <main className={esRutaFullscreen ? "flex-1 overflow-hidden" : "flex-1 overflow-auto"}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className={esRutaFullscreen ? "h-full" : "min-h-full"}
-              >
-                <SuspendidaScreen estado={estadoSuscripcion}>
-                  {children}
-                </SuspendidaScreen>
-              </motion.div>
-            </AnimatePresence>
+            {redirigiendoOffline ? (
+              <div className="flex min-h-full flex-col items-center justify-center gap-3 px-4 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+                <p className="text-sm text-muted-foreground">
+                  Sin conexión — llevándote a Citas...
+                </p>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className={esRutaFullscreen ? "h-full" : "min-h-full"}
+                >
+                  <SuspendidaScreen estado={estadoSuscripcion}>
+                    {children}
+                  </SuspendidaScreen>
+                </motion.div>
+              </AnimatePresence>
+            )}
             {/* Spacer movil para rutas con scroll — reserva alto de la barra inferior */}
             {!esRutaFullscreen && (
               <div
