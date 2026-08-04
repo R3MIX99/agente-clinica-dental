@@ -1174,7 +1174,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
           <p className="text-sm text-muted-foreground">
             La conversación se moverá a la papelera. Podrás restaurarla desde ahí si lo necesitas.
           </p>
-          <DialogFooter>
+          <DialogFooter className="flex-row justify-end">
             <Button
               variant="ghost"
               onClick={() => setConfirmarArchivar(null)}
