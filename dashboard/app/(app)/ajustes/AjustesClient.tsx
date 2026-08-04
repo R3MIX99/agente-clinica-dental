@@ -93,7 +93,7 @@ export function AjustesClient({ clinica, servicios, canalTelegram }: Props) {
 
       {clinica && (
         <Tabs defaultValue="identidad">
-          <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 overflow-x-auto px-1 pb-2">
             <TabsList className="inline-flex w-max justify-start">
               <TabsTrigger value="identidad" className="shrink-0 whitespace-nowrap">Identidad</TabsTrigger>
               <TabsTrigger value="servicios" className="shrink-0 whitespace-nowrap">Servicios</TabsTrigger>
