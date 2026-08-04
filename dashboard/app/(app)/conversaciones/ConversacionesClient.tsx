@@ -550,9 +550,9 @@ function ChatPanel({
             type="button"
             onClick={irAlFondo}
             aria-label="Ir al último mensaje"
-            className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+            className="absolute bottom-4 right-4 flex h-9 w-9 md:h-7 md:w-7 items-center justify-center rounded-full bg-neutral-800 dark:bg-neutral-900 shadow-lg hover:bg-neutral-700 dark:hover:bg-neutral-800 transition-colors"
           >
-            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            <ChevronDown className="h-4 w-4 md:h-3.5 md:w-3.5 text-neutral-300" aria-hidden="true" />
           </button>
         )}
       </div>
