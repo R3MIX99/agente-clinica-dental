@@ -40,7 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -307,6 +307,43 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   // Lista visible en tabla y mobile: una sola fila por serie mensual
   const citasVisibles = useMemo(() => colapsarSeries(citas), [citas])
 
+  // -------------------------------------------------------------------------
+  // Buscador y filtros
+  // -------------------------------------------------------------------------
+
+  const [busqueda, setBusqueda] = useState("")
+  const [filtroServicio, setFiltroServicio] = useState("")
+  const [filtroDoctor, setFiltroDoctor] = useState("")
+  const [filtroDesde, setFiltroDesde] = useState("")
+  const [filtroHasta, setFiltroHasta] = useState("")
+
+  const citasFiltradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    const desde = filtroDesde ? new Date(filtroDesde + "T00:00:00") : null
+    const hasta = filtroHasta ? new Date(filtroHasta + "T23:59:59") : null
+
+    return citasVisibles.filter((cita) => {
+      if (q && !(cita.patients?.nombre ?? "").toLowerCase().includes(q)) return false
+      if (filtroServicio && cita.service_id !== filtroServicio) return false
+      if (filtroDoctor && cita.doctor_id !== filtroDoctor) return false
+      const fecha = new Date(cita.fecha_hora)
+      if (desde && fecha < desde) return false
+      if (hasta && fecha > hasta) return false
+      return true
+    })
+  }, [citasVisibles, busqueda, filtroServicio, filtroDoctor, filtroDesde, filtroHasta])
+
+  const hayFiltrosActivos =
+    !!busqueda || !!filtroServicio || !!filtroDoctor || !!filtroDesde || !!filtroHasta
+
+  function limpiarFiltros() {
+    setBusqueda("")
+    setFiltroServicio("")
+    setFiltroDoctor("")
+    setFiltroDesde("")
+    setFiltroHasta("")
+  }
+
   // Devuelve todas las instancias de la serie a la que pertenece la cita actual
   // del drawer (ordenadas por fecha ascendente)
   const instanciasSerie = useMemo(() => {
@@ -552,7 +589,9 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         <h1 className="text-xl font-semibold">Citas</h1>
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline text-sm text-muted-foreground">
-            {citasVisibles.length} {citasVisibles.length === 1 ? "registro" : "registros"}
+            {hayFiltrosActivos
+              ? `${citasFiltradas.length} de ${citasVisibles.length} registros`
+              : `${citasVisibles.length} ${citasVisibles.length === 1 ? "registro" : "registros"}`}
           </span>
           <Button size="sm" variant="outline" onClick={() => setCerrarDiaOpen(true)}>
             <CalendarX className="mr-1 h-4 w-4" aria-hidden="true" />
@@ -561,6 +600,70 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
           <Button size="sm" onClick={abrirFormNuevo}>
             Nueva cita
           </Button>
+        </div>
+      </div>
+
+      {/* Buscador y filtros */}
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar paciente..."
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={filtroServicio || "_todos"} onValueChange={(v) => setFiltroServicio(v === "_todos" ? "" : v)}>
+            <SelectTrigger className="h-8 w-full sm:w-[180px] text-sm">
+              <SelectValue placeholder="Servicio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_todos">Todos los servicios</SelectItem>
+              {servicios.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {!esDoctor && (
+            <Select value={filtroDoctor || "_todos"} onValueChange={(v) => setFiltroDoctor(v === "_todos" ? "" : v)}>
+              <SelectTrigger className="h-8 w-full sm:w-[180px] text-sm">
+                <SelectValue placeholder="Doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_todos">Todos los doctores</SelectItem>
+                {doctores.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="date"
+              value={filtroDesde}
+              onChange={(e) => setFiltroDesde(e.target.value)}
+              className="h-8 w-[140px] text-sm"
+              aria-label="Desde"
+            />
+            <span className="text-xs text-muted-foreground">a</span>
+            <Input
+              type="date"
+              value={filtroHasta}
+              onChange={(e) => setFiltroHasta(e.target.value)}
+              className="h-8 w-[140px] text-sm"
+              aria-label="Hasta"
+            />
+          </div>
+
+          {hayFiltrosActivos && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={limpiarFiltros}>
+              Limpiar filtros
+            </Button>
+          )}
         </div>
       </div>
 
@@ -607,9 +710,13 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
           <p className="py-8 text-center text-sm text-muted-foreground">
             Sin citas registradas.
           </p>
+        ) : citasFiltradas.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Sin resultados para esos filtros.
+          </p>
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
-            {citasVisibles.map((cita) => (
+            {citasFiltradas.map((cita) => (
               <button
                 key={cita.id}
                 onClick={() => setCitaDrawer(cita)}
@@ -695,7 +802,17 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 </td>
               </tr>
             )}
-            {citasVisibles.map((cita) => (
+            {citasVisibles.length > 0 && citasFiltradas.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-4 py-8 text-center text-sm text-muted-foreground"
+                >
+                  Sin resultados para esos filtros.
+                </td>
+              </tr>
+            )}
+            {citasFiltradas.map((cita) => (
               <tr
                 key={cita.id}
                 onClick={() => setCitaDrawer(cita)}
