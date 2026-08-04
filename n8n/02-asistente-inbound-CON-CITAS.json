@@ -675,7 +675,7 @@
       {
        "keyName": "id",
        "condition": "eq",
-       "keyValue": "={{ $('Parsear respuesta de Claude').first().json.conversacion_id }}"
+       "keyValue": "={{ $('Parsear respuesta del agente').first().json.conversacion_id }}"
       }
      ]
     },
@@ -683,11 +683,11 @@
      "fieldValues": [
       {
        "fieldId": "intencion",
-       "fieldValue": "={{ $('Parsear respuesta de Claude').first().json.intencion }}"
+       "fieldValue": "={{ $('Parsear respuesta del agente').first().json.intencion }}"
       },
       {
        "fieldId": "sentimiento",
-       "fieldValue": "={{ $('Parsear respuesta de Claude').first().json.sentimiento }}"
+       "fieldValue": "={{ $('Parsear respuesta del agente').first().json.sentimiento }}"
       }
      ]
     }
@@ -720,7 +720,7 @@
      "conditions": [
       {
        "id": "c-hoff",
-       "leftValue": "={{ $('Parsear respuesta de Claude').first().json.tipo_respuesta }}",
+       "leftValue": "={{ $('Parsear respuesta del agente').first().json.tipo_respuesta }}",
        "rightValue": "handoff",
        "operator": {
         "type": "string",
@@ -750,7 +750,7 @@
       {
        "keyName": "id",
        "condition": "eq",
-       "keyValue": "={{ $('Parsear respuesta de Claude').first().json.conversacion_id }}"
+       "keyValue": "={{ $('Parsear respuesta del agente').first().json.conversacion_id }}"
       }
      ]
     },
@@ -788,7 +788,7 @@
     "url": "=https://api.telegram.org/bot{{ $('Extraer datos del mensaje').first().json.bot_token }}/sendMessage",
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ chat_id: $('Parsear respuesta de Claude').first().json.chat_id, text: 'En un momento le atiende un miembro de nuestro equipo.' }) }}",
+    "jsonBody": "={{ JSON.stringify({ chat_id: $('Parsear respuesta del agente').first().json.chat_id, text: 'En un momento le atiende un miembro de nuestro equipo.' }) }}",
     "options": {}
    },
    "id": "1c734118-6e0a-46f1-92dd-1fe485ad350f",
@@ -807,7 +807,7 @@
     "url": "=https://api.telegram.org/bot{{ $('Extraer datos del mensaje').first().json.bot_token }}/sendMessage",
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ chat_id: $('Parsear respuesta de Claude').first().json.chat_id, text: $('Parsear respuesta de Claude').first().json.texto_respuesta }) }}",
+    "jsonBody": "={{ JSON.stringify({ chat_id: $('Parsear respuesta del agente').first().json.chat_id, text: $('Parsear respuesta del agente').first().json.texto_respuesta }) }}",
     "options": {}
    },
    "id": "3add28ad-9c5c-4ca6-a481-693b35c49080",
@@ -827,7 +827,7 @@
      "fieldValues": [
       {
        "fieldId": "conversation_id",
-       "fieldValue": "={{ $('Parsear respuesta de Claude').first().json.conversacion_id }}"
+       "fieldValue": "={{ $('Parsear respuesta del agente').first().json.conversacion_id }}"
       },
       {
        "fieldId": "direction",
@@ -839,7 +839,7 @@
       },
       {
        "fieldId": "contenido",
-       "fieldValue": "={{ $('Parsear respuesta de Claude').first().json.texto_respuesta }}"
+       "fieldValue": "={{ $('Parsear respuesta del agente').first().json.texto_respuesta }}"
       }
      ]
     }
@@ -1113,7 +1113,7 @@
     "options": {},
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ conversacion_id: \"={{ $('Asignar id conversacion').first().json.conversacion_id }}\", doctor_id: $fromAI('doctor_id', 'ID del doctor del horario elegido, tal como lo devolvio Buscar disponibilidad', 'string'), fecha_hora_iso: $fromAI('fecha_hora_iso', 'Fecha y hora ISO del horario elegido, tal como la devolvio Buscar disponibilidad', 'string'), servicio_id: $fromAI('servicio_id', 'ID del servicio de la cita si se conoce, dejar vacio si no', 'string'), duracion_min: $fromAI('duracion_min', 'Duracion en minutos, tal como la devolvio Buscar disponibilidad', 'number') }) }}"
+    "jsonBody": "={{ JSON.stringify({ conversacion_id: $('Asignar id conversacion').first().json.conversacion_id, doctor_id: $fromAI('doctor_id', 'ID del doctor del horario elegido, tal como lo devolvio Buscar disponibilidad', 'string'), fecha_hora_iso: $fromAI('fecha_hora_iso', 'Fecha y hora ISO del horario elegido, tal como la devolvio Buscar disponibilidad', 'string'), servicio_id: $fromAI('servicio_id', 'ID del servicio de la cita si se conoce, dejar vacio si no', 'string'), duracion_min: $fromAI('duracion_min', 'Duracion en minutos, tal como la devolvio Buscar disponibilidad', 'number') }) }}"
    },
    "id": "a1000011-0000-4000-9000-000000000011",
    "name": "Agendar cita",
@@ -1149,7 +1149,7 @@
     "options": {},
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ conversacion_id: \"={{ $('Asignar id conversacion').first().json.conversacion_id }}\", cita_id: $fromAI('cita_id', 'ID de la cita a reagendar, obtenido de Consultar estado de citas', 'string'), fecha_hora_iso: $fromAI('fecha_hora_iso', 'Nueva fecha y hora ISO ya confirmada por el paciente', 'string') }) }}"
+    "jsonBody": "={{ JSON.stringify({ conversacion_id: $('Asignar id conversacion').first().json.conversacion_id, cita_id: $fromAI('cita_id', 'ID de la cita a reagendar, obtenido de Consultar estado de citas', 'string'), fecha_hora_iso: $fromAI('fecha_hora_iso', 'Nueva fecha y hora ISO ya confirmada por el paciente', 'string') }) }}"
    },
    "id": "a1000012-0000-4000-9000-000000000012",
    "name": "Reagendar cita",
@@ -1185,7 +1185,7 @@
     "options": {},
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ conversacion_id: \"={{ $('Asignar id conversacion').first().json.conversacion_id }}\", cita_id: $fromAI('cita_id', 'ID de la cita a cancelar, obtenido de Consultar estado de citas', 'string') }) }}"
+    "jsonBody": "={{ JSON.stringify({ conversacion_id: $('Asignar id conversacion').first().json.conversacion_id, cita_id: $fromAI('cita_id', 'ID de la cita a cancelar, obtenido de Consultar estado de citas', 'string') }) }}"
    },
    "id": "a1000013-0000-4000-9000-000000000013",
    "name": "Cancelar cita",
