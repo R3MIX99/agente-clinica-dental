@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { useForm, useFieldArray, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { cn } from "@/lib/utils"
 import {
   guardarIdentidad,
   guardarReagendaPago,
@@ -93,7 +94,16 @@ export function AjustesClient({ clinica, servicios, canalTelegram }: Props) {
 
       {clinica && (
         <Tabs defaultValue="identidad">
-          <div className="-mx-1 overflow-x-auto px-1 pb-2">
+          <div
+            className={cn(
+              "-mx-1 overflow-x-auto px-1 pb-2",
+              "[scrollbar-width:thin] [scrollbar-color:var(--scroll-thumb)_transparent]",
+              "[&::-webkit-scrollbar]:h-1.5",
+              "[&::-webkit-scrollbar-track]:bg-transparent",
+              "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[var(--scroll-thumb)]"
+            )}
+            style={{ "--scroll-thumb": "color-mix(in oklch, var(--foreground) 25%, transparent)" } as React.CSSProperties}
+          >
             <TabsList className="inline-flex w-max justify-start">
               <TabsTrigger value="identidad" className="shrink-0 whitespace-nowrap">Identidad</TabsTrigger>
               <TabsTrigger value="servicios" className="shrink-0 whitespace-nowrap">Servicios</TabsTrigger>
