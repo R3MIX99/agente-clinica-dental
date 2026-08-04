@@ -40,7 +40,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search, MoreHorizontal } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -316,6 +316,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const [filtroDoctor, setFiltroDoctor] = useState("")
   const [filtroDesde, setFiltroDesde] = useState("")
   const [filtroHasta, setFiltroHasta] = useState("")
+  const [filtrosMovilOpen, setFiltrosMovilOpen] = useState(false)
 
   const citasFiltradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -603,9 +604,9 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
         </div>
       </div>
 
-      {/* Buscador y filtros */}
-      <div className="rounded-lg border border-border p-3 space-y-3">
-        <div className="relative">
+      {/* Buscador y filtros — escritorio: todo en una linea que se envuelve */}
+      <div className="hidden md:flex md:flex-wrap items-center gap-2">
+        <div className="relative w-64">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             value={busqueda}
@@ -614,58 +615,158 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             className="h-8 pl-8 text-sm"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={filtroServicio || "_todos"} onValueChange={(v) => setFiltroServicio(v === "_todos" ? "" : v)}>
-            <SelectTrigger className="h-8 w-full sm:w-[180px] text-sm">
-              <SelectValue placeholder="Servicio" />
+
+        <Select value={filtroServicio || "_todos"} onValueChange={(v) => setFiltroServicio(v === "_todos" ? "" : v)}>
+          <SelectTrigger className="h-8 w-[180px] text-sm">
+            <SelectValue placeholder="Servicio" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_todos">Todos los servicios</SelectItem>
+            {servicios.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {!esDoctor && (
+          <Select value={filtroDoctor || "_todos"} onValueChange={(v) => setFiltroDoctor(v === "_todos" ? "" : v)}>
+            <SelectTrigger className="h-8 w-[180px] text-sm">
+              <SelectValue placeholder="Doctor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_todos">Todos los servicios</SelectItem>
-              {servicios.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+              <SelectItem value="_todos">Todos los doctores</SelectItem>
+              {doctores.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+        )}
 
-          {!esDoctor && (
-            <Select value={filtroDoctor || "_todos"} onValueChange={(v) => setFiltroDoctor(v === "_todos" ? "" : v)}>
-              <SelectTrigger className="h-8 w-full sm:w-[180px] text-sm">
-                <SelectValue placeholder="Doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_todos">Todos los doctores</SelectItem>
-                {doctores.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex items-center gap-1.5">
+          <Input
+            type="date"
+            value={filtroDesde}
+            onChange={(e) => setFiltroDesde(e.target.value)}
+            className="h-8 w-[140px] text-sm"
+            aria-label="Desde"
+          />
+          <span className="text-xs text-muted-foreground">a</span>
+          <Input
+            type="date"
+            value={filtroHasta}
+            onChange={(e) => setFiltroHasta(e.target.value)}
+            className="h-8 w-[140px] text-sm"
+            aria-label="Hasta"
+          />
+        </div>
+
+        {hayFiltrosActivos && (
+          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={limpiarFiltros}>
+            Limpiar filtros
+          </Button>
+        )}
+      </div>
+
+      {/* Buscador y filtros — movil: buscador + boton de filtros en drawer */}
+      <div className="flex md:hidden items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar paciente..."
+            className="h-9 pl-8 text-sm"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setFiltrosMovilOpen(true)}
+          aria-label="Filtros"
+          className={cn(
+            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input transition-colors",
+            hayFiltrosActivos ? "bg-primary/10 text-primary border-primary/30" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
           )}
-
-          <div className="flex items-center gap-1.5">
-            <Input
-              type="date"
-              value={filtroDesde}
-              onChange={(e) => setFiltroDesde(e.target.value)}
-              className="h-8 w-[140px] text-sm"
-              aria-label="Desde"
-            />
-            <span className="text-xs text-muted-foreground">a</span>
-            <Input
-              type="date"
-              value={filtroHasta}
-              onChange={(e) => setFiltroHasta(e.target.value)}
-              className="h-8 w-[140px] text-sm"
-              aria-label="Hasta"
-            />
-          </div>
-
+        >
+          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
           {hayFiltrosActivos && (
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={limpiarFiltros}>
+            <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
+          )}
+        </button>
+      </div>
+
+      {/* Drawer de filtros — solo movil */}
+      <Drawer open={filtrosMovilOpen} onOpenChange={setFiltrosMovilOpen} shouldScaleBackground>
+        <DrawerContent>
+          <DrawerHeader className="border-b border-border pb-3 text-left">
+            <DrawerTitle>Filtros</DrawerTitle>
+          </DrawerHeader>
+          <div className="space-y-4 px-4 py-4">
+            <div className="space-y-1.5">
+              <Label>Servicio</Label>
+              <Select value={filtroServicio || "_todos"} onValueChange={(v) => setFiltroServicio(v === "_todos" ? "" : v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Servicio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_todos">Todos los servicios</SelectItem>
+                  {servicios.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!esDoctor && (
+              <div className="space-y-1.5">
+                <Label>Doctor</Label>
+                <Select value={filtroDoctor || "_todos"} onValueChange={(v) => setFiltroDoctor(v === "_todos" ? "" : v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_todos">Todos los doctores</SelectItem>
+                    {doctores.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>Fecha</Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="date"
+                  value={filtroDesde}
+                  onChange={(e) => setFiltroDesde(e.target.value)}
+                  aria-label="Desde"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">a</span>
+                <Input
+                  type="date"
+                  value={filtroHasta}
+                  onChange={(e) => setFiltroHasta(e.target.value)}
+                  aria-label="Hasta"
+                />
+              </div>
+            </div>
+          </div>
+          <DrawerFooter className="border-t border-border pt-3 flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              onClick={limpiarFiltros}
+              disabled={!hayFiltrosActivos}
+            >
               Limpiar filtros
             </Button>
-          )}
-        </div>
-      </div>
+            <Button className="flex-1" onClick={() => setFiltrosMovilOpen(false)}>
+              Listo
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* Dias cerrados proximos */}
       {bloqueos.length > 0 && (
