@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useTransition } from "react"
+import { useState, useEffect, useMemo, useRef, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "@/lib/supabase/client"
 import {
@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { IconTooltip } from "@/components/ui/icon-tooltip"
 import {
@@ -26,7 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft, QrCode, ChevronDown } from "lucide-react"
+import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft, QrCode, ChevronDown, Search } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos locales
@@ -294,12 +295,46 @@ interface ListaPanelProps {
   onVaciarPapelera: () => void
 }
 
+type PeriodoFiltro = "todas" | "hoy" | "7d" | "30d"
+
+const PERIODO_LABELS: Record<PeriodoFiltro, string> = {
+  todas: "Todas",
+  hoy: "Hoy",
+  "7d": "7 días",
+  "30d": "30 días",
+}
+
+function dentroDelPeriodo(fechaIso: string, periodo: PeriodoFiltro): boolean {
+  if (periodo === "todas") return true
+  const fecha = new Date(fechaIso.replace(" ", "T").replace(/\+(\d{2})$/, "+$1:00"))
+  if (isNaN(fecha.getTime())) return true
+  const dias = periodo === "hoy" ? 1 : periodo === "7d" ? 7 : 30
+  const limite = Date.now() - dias * 24 * 60 * 60 * 1000
+  return fecha.getTime() >= limite
+}
+
 function ListaPanel({
   vista, convs, papeleraConvs, conteo, atencionIds, selectedId,
   agenteActual, nombreUsuario, accionandoId, vaciando, botUrl,
   onSelectConv, onSetVista, onArchivar, onRestaurar, onVaciarPapelera, onMostrarQR,
 }: ListaPanelProps) {
   const listaActual = vista === "activas" ? convs : papeleraConvs
+
+  const [busqueda, setBusqueda] = useState("")
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>("todas")
+
+  const filtrar = (lista: Conversacion[]) => {
+    const q = busqueda.trim().toLowerCase()
+    return lista.filter((conv) => {
+      const coincideNombre = !q || (conv.patients?.nombre ?? "").toLowerCase().includes(q)
+      const coincidePeriodo = dentroDelPeriodo(conv.last_message_at, periodo)
+      return coincideNombre && coincidePeriodo
+    })
+  }
+
+  const convsFiltradas = useMemo(() => filtrar(convs), [convs, busqueda, periodo])
+  const papeleraFiltrada = useMemo(() => filtrar(papeleraConvs), [papeleraConvs, busqueda, periodo])
+  const listaFiltrada = vista === "activas" ? convsFiltradas : papeleraFiltrada
 
   return (
     <>
@@ -350,15 +385,47 @@ function ListaPanel({
         </div>
       </div>
 
+      {/* Buscador de pacientes + filtros de fecha */}
+      <div className="border-b border-border px-4 py-2.5 shrink-0 space-y-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar paciente..."
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(PERIODO_LABELS) as PeriodoFiltro[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriodo(p)}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+                periodo === p
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {PERIODO_LABELS[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Lista */}
       <div className="flex-1 overflow-y-auto">
-        {listaActual.length === 0 && (
+        {listaActual.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">
             {vista === "activas" ? "Sin conversaciones aún." : "La papelera está vacía."}
           </p>
-        )}
-        {vista === "activas"
-          ? convs.map((conv) => (
+        ) : listaFiltrada.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">
+            Sin resultados para esa búsqueda o periodo.
+          </p>
+        ) : vista === "activas" ? (
+          convsFiltradas.map((conv) => (
               <ConvItem
                 key={conv.id}
                 conv={conv}
@@ -372,7 +439,8 @@ function ListaPanel({
                 accionHoverClass="hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
               />
             ))
-          : papeleraConvs.map((conv) => (
+        ) : (
+          papeleraFiltrada.map((conv) => (
               <ConvItem
                 key={conv.id}
                 conv={conv}
@@ -385,7 +453,8 @@ function ListaPanel({
                 accionHoverClass="hover:bg-cyan-500/10 hover:text-cyan-600 text-muted-foreground"
                 opaco
               />
-            ))}
+            ))
+        )}
       </div>
 
       {nombreUsuario && (
