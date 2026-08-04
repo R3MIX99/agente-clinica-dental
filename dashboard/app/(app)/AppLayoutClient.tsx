@@ -2,12 +2,14 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
+import { WifiOff } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AtencionProvider } from "@/lib/atencion-context"
 import { GlobalAtencionListener } from "@/components/global-atencion-listener"
+import { useOnlineStatus } from "@/lib/hooks/use-online-status"
 import { SuspendidaScreen } from "./SuspendidaScreen"
 import { AvisoPagoBanner } from "./AvisoPagoBanner"
 import type { Rol, AvisoPago } from "./layout"
@@ -32,6 +34,7 @@ export function AppLayoutClient({
   avisoPago?: AvisoPago
 }) {
   const pathname = usePathname()
+  const online = useOnlineStatus()
 
   // Rutas "fullscreen" con scroll interno propio (chat-like).
   // Necesitan h-full para que su layout interno funcione.
@@ -59,11 +62,25 @@ export function AppLayoutClient({
           {/* Header movil */}
           <MobileHeader clinicaActual={clinicaActual} clinicas={clinicas} />
 
+          {/* Indicador de sin conexion — movil */}
+          {!online && (
+            <div className="md:hidden flex items-center gap-1.5 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-[11px] font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
+              <WifiOff className="h-3 w-3" aria-hidden="true" />
+              Sin conexión
+            </div>
+          )}
+
           {/* Topbar escritorio */}
           <header className="hidden md:flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
             <span className="flex-1 text-sm font-medium text-muted-foreground">
               Panel de Control
             </span>
+            {!online && (
+              <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                <WifiOff className="h-3 w-3" aria-hidden="true" />
+                Sin conexión
+              </span>
+            )}
             <ThemeToggle />
           </header>
 

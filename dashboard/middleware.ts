@@ -12,7 +12,8 @@ function esPublica(pathname: string): boolean {
     pathname === "/manifest.webmanifest" ||
     pathname === "/sw.js" ||
     pathname === "/icon.png" ||
-    pathname === "/apple-icon.png"
+    pathname === "/apple-icon.png" ||
+    pathname === "/offline"
   )
 }
 

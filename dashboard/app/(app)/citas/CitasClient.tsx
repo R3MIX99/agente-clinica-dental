@@ -40,7 +40,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { toast } from "sonner"
-import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search, SlidersHorizontal } from "lucide-react"
+import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search, SlidersHorizontal, WifiOff } from "lucide-react"
+import { useOnlineStatus } from "@/lib/hooks/use-online-status"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -161,6 +162,17 @@ function formatearFechaCorta(fecha: string): string {
   const d = new Date(fecha + "T12:00:00")
   if (isNaN(d.getTime())) return fecha
   return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })
+}
+
+// Tiempo relativo corto ("hace 5 min", "hace 2 h") para el aviso offline
+function tiempoRelativoCorto(timestampMs: number): string {
+  const diff = Date.now() - timestampMs
+  const min = Math.floor(diff / 60_000)
+  if (min < 1) return "hace un momento"
+  if (min < 60) return `hace ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `hace ${h} h`
+  return `hace ${Math.floor(h / 24)} d`
 }
 
 // Boton de accion accesible (area de toque grande) con tooltip al mantener/hover
@@ -291,6 +303,32 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [citas, setCitas] = useState<Cita[]>(citasIniciales)
+
+  // -------------------------------------------------------------------------
+  // Estado offline
+  // -------------------------------------------------------------------------
+
+  const online = useOnlineStatus()
+  const [ultimaSincronizacion, setUltimaSincronizacion] = useState<number | null>(null)
+
+  useEffect(() => {
+    const CLAVE = "dentai_citas_last_sync"
+    if (navigator.onLine) {
+      const ahora = Date.now()
+      localStorage.setItem(CLAVE, String(ahora))
+      setUltimaSincronizacion(ahora)
+    } else {
+      const guardado = localStorage.getItem(CLAVE)
+      setUltimaSincronizacion(guardado ? Number(guardado) : null)
+    }
+  }, [citasIniciales])
+
+  function bloqueadoSinConexion(): boolean {
+    if (navigator.onLine) return false
+    toast.error("Sin conexión — esta acción no está disponible sin internet")
+    return true
+  }
+
   const [cerrarDiaOpen, setCerrarDiaOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [eliminarId, setEliminarId] = useState<string | null>(null)
@@ -406,6 +444,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   }
 
   function handleGuardar() {
+    if (bloqueadoSinConexion()) return
     if (!form.patient_id) {
       toast.error("Seleccióna un paciente")
       return
@@ -472,6 +511,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   // -------------------------------------------------------------------------
 
   function handleTerminarSerie(serieId: string) {
+    if (bloqueadoSinConexion()) return
     startTransition(async () => {
       try {
         await terminarSerie(serieId)
@@ -485,6 +525,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   }
 
   function handleEditarSerie(datos: DatosEditarSerie) {
+    if (bloqueadoSinConexion()) return
     if (!editarSerieInfo) return
     const serieId = editarSerieInfo.serieId
     startTransition(async () => {
@@ -505,6 +546,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   // -------------------------------------------------------------------------
 
   function handleConfirmarEliminar() {
+    if (bloqueadoSinConexion()) return
     if (!eliminarId) return
     const id = eliminarId
     setEliminarId(null)
@@ -525,6 +567,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   // -------------------------------------------------------------------------
 
   async function handleEnviarRecordatorio(cita: Cita) {
+    if (bloqueadoSinConexion()) return
     if (!cita.patients?.channel_user_id) {
       toast.error("El paciente no tiene ID de canal configurado")
       return
@@ -553,6 +596,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   // -------------------------------------------------------------------------
 
   function handleReabrir(bloqueoId: string) {
+    if (bloqueadoSinConexion()) return
     startTransition(async () => {
       const r = await reabrirDia(bloqueoId)
       if (!r.ok) { toast.error(r.error ?? "No se pudo reabrir el día."); return }
@@ -562,6 +606,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   }
 
   function handleMarcarPago(citaId: string, estado: "pendiente" | "pagado") {
+    if (bloqueadoSinConexion()) return
     startTransition(async () => {
       const r = await marcarPago(citaId, estado)
       if (!r.ok) { toast.error(r.error ?? "No se pudo actualizar el pago."); return }
@@ -572,6 +617,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
   }
 
   function handleEnviarDatosPago(citaId: string) {
+    if (bloqueadoSinConexion()) return
     startTransition(async () => {
       const r = await enviarDatosPago(citaId)
       if (!r.ok) { toast.error(r.error ?? "No se pudo enviar los datos de pago."); return }
@@ -594,15 +640,27 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               ? `${citasFiltradas.length} de ${citasVisibles.length} registros`
               : `${citasVisibles.length} ${citasVisibles.length === 1 ? "registro" : "registros"}`}
           </span>
-          <Button size="sm" variant="outline" onClick={() => setCerrarDiaOpen(true)}>
+          <Button size="sm" variant="outline" onClick={() => setCerrarDiaOpen(true)} disabled={!online}>
             <CalendarX className="mr-1 h-4 w-4" aria-hidden="true" />
             Cerrar día
           </Button>
-          <Button size="sm" onClick={abrirFormNuevo}>
+          <Button size="sm" onClick={abrirFormNuevo} disabled={!online}>
             Nueva cita
           </Button>
         </div>
       </div>
+
+      {/* Aviso de modo offline */}
+      {!online && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            Sin conexión — mostrando información
+            {ultimaSincronizacion ? ` de ${tiempoRelativoCorto(ultimaSincronizacion)}` : " guardada"}.
+            Los cambios no se guardarán hasta reconectarte.
+          </span>
+        </div>
+      )}
 
       {/* Buscador y filtros — escritorio: todo en una linea que se envuelve */}
       <div className="hidden md:flex md:flex-wrap items-center gap-2">

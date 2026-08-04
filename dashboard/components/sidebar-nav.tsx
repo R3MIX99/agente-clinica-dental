@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { MessageSquare, CalendarDays, Users, UserCog, Settings, Stethoscope, BarChart3, LineChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
+import { useOnlineStatus } from "@/lib/hooks/use-online-status"
 import type { Rol } from "@/app/(app)/layout"
 
 const NAV_ADMIN_SUPERVISOR = [
@@ -21,6 +22,7 @@ const NAV_ADMIN_SUPERVISOR = [
 export function SidebarNav({ rol, doctorId, onNavigate }: { rol: Rol; doctorId?: string | null; onNavigate?: () => void }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
+  const online = useOnlineStatus()
 
   // La href de "Mi ficha" apunta directamente a /doctores/[id] para evitar
   // el redirect intermitente en Vercel durante la navegacion RSC del lado del cliente.
@@ -38,6 +40,24 @@ export function SidebarNav({ rol, doctorId, onNavigate }: { rol: Rol; doctorId?:
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           const mostrarAtencion = hayAtencion && href === "/conversaciones" && !active
+          const disponibleOffline = href === "/citas"
+          const deshabilitado = !online && !disponibleOffline
+
+          if (deshabilitado) {
+            return (
+              <li key={href}>
+                <span
+                  aria-disabled="true"
+                  title="Sin conexión"
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/40 cursor-not-allowed"
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {label}
+                </span>
+              </li>
+            )
+          }
+
           return (
             <li key={href}>
               <Link

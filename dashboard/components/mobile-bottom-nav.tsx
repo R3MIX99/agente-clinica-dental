@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
+import { useOnlineStatus } from "@/lib/hooks/use-online-status"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ const TABS_DOCTOR = (doctorId?: string | null) => [
 export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string | null }) {
   const pathname = usePathname()
   const { hayAtencion } = useAtencion()
+  const online = useOnlineStatus()
   const [isPending, startTransition] = useTransition()
 
   function handleLogout() {
@@ -62,6 +64,19 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
       >
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = pathname.startsWith(href)
+          const deshabilitado = !online && href !== "/citas"
+          if (deshabilitado) {
+            return (
+              <span
+                key={href}
+                aria-disabled="true"
+                aria-label={`${label} — sin conexión`}
+                className="relative flex h-16 flex-1 flex-col items-center justify-center gap-0.5 text-muted-foreground/30"
+              >
+                <Icon className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+              </span>
+            )
+          }
           return (
             <Link
               key={href}
@@ -98,6 +113,21 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
       {TABS_PRIMARIOS.map(({ href, icon: Icon, label }) => {
         const active = pathname.startsWith(href)
         const mostrarAtencion = hayAtencion && href === "/conversaciones" && !active
+        const deshabilitado = !online && href !== "/citas"
+
+        if (deshabilitado) {
+          return (
+            <span
+              key={href}
+              aria-disabled="true"
+              aria-label={`${label} — sin conexión`}
+              className="relative flex h-16 flex-1 flex-col items-center justify-center gap-0.5 text-muted-foreground/30"
+            >
+              <Icon className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+            </span>
+          )
+        }
+
         return (
           <Link
             key={href}
@@ -152,6 +182,15 @@ export function MobileBottomNav({ rol, doctorId }: { rol: Rol; doctorId?: string
         >
           {TABS_SECUNDARIOS.map(({ href, icon: Icon, label }) => {
             const active = pathname.startsWith(href)
+            if (!online) {
+              return (
+                <DropdownMenuItem key={href} disabled className="flex items-center gap-3">
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {label}
+                  <span className="ml-auto text-[10px] text-muted-foreground">sin conexión</span>
+                </DropdownMenuItem>
+              )
+            }
             return (
               <DropdownMenuItem key={href} asChild>
                 <Link
