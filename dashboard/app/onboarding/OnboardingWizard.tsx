@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { Loader2, Plus, Trash2, ChevronRight, ArrowLeft, Send } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -213,7 +212,7 @@ export function OnboardingWizard({
       <header className="border-b border-border bg-background px-4 py-4">
         <div className="mx-auto max-w-2xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/branding/dentai-icon.png" alt="" width={24} height={24} className="h-5 w-5" />
+            <img src="/branding/dentai-icon.png" alt="" width={24} height={24} className="h-5 w-5" />
             <span className="text-sm font-semibold text-foreground">DentAI</span>
           </div>
           <span className="text-xs text-muted-foreground">Configuración inicial</span>

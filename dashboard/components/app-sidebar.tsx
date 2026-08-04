@@ -2,7 +2,6 @@
 
 import { useTransition } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { LogOut, Loader2, User } from "lucide-react"
 import { SidebarNav } from "./sidebar-nav"
 import { ClinicaSelector } from "./clinica-selector"
@@ -32,13 +31,14 @@ export function AppSidebar({
   return (
     <aside className="flex h-full w-60 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <Image
+        {/* img normal (no next/image): asi la URL coincide exacto con lo que
+            precachea el service worker para que se vea offline (ver public/sw.js) */}
+        <img
           src="/branding/dentai-icon.png"
           alt=""
           width={24}
           height={24}
           className="h-5 w-5 shrink-0"
-          priority
         />
         <ClinicaSelector
           clinicaActual={clinicaActual}

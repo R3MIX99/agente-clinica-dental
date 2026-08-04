@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import Image from "next/image"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,20 +54,18 @@ export function LoginClient() {
     <div className="w-full max-w-sm">
       {/* Logo */}
       <div className="flex flex-col items-center gap-2 mb-8">
-        <Image
+        <img
           src="/branding/dentai-logo.png"
           alt="DentAI"
           width={1366}
           height={356}
-          priority
           className="h-10 w-auto dark:hidden"
         />
-        <Image
+        <img
           src="/branding/dentai-logo-white.png"
           alt="DentAI"
           width={1366}
           height={356}
-          priority
           className="hidden h-10 w-auto dark:block"
         />
         <p className="text-sm text-muted-foreground">Panel de control</p>

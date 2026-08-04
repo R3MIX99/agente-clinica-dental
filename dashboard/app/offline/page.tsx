@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { WifiOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,14 +11,17 @@ import { Button } from "@/components/ui/button"
 export default function OfflinePage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/30 px-4 text-center">
-      <Image
+      {/* img normal (no next/image): esta pagina depende de que el logo se
+          vea sin conexion, y next/image pide una URL distinta (/_next/image)
+          que el service worker no cachea — ver public/sw.js */}
+      <img
         src="/branding/dentai-logo.png"
         alt="DentAI"
         width={1366}
         height={356}
         className="h-9 w-auto dark:hidden"
       />
-      <Image
+      <img
         src="/branding/dentai-logo-white.png"
         alt="DentAI"
         width={1366}
