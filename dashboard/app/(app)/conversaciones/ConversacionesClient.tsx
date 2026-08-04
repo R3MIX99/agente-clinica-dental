@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft, QrCode } from "lucide-react"
+import { Trash2, Archive, RotateCcw, Eraser, ArrowLeft, QrCode, ChevronDown } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Tipos locales
@@ -429,6 +429,29 @@ function ChatPanel({
   mostrarBotonVolver, onVolver,
   onTomarControl, onDevolverAlBot, onEnviar, onTextoChange, onRestaurar,
 }: ChatPanelProps) {
+  // Boton flotante "ir al ultimo mensaje" — aparece cuando el usuario se
+  // desplaza hacia arriba y deja de estar cerca del fondo del hilo.
+  const [mostrarBotonAbajo, setMostrarBotonAbajo] = useState(false)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    function actualizar() {
+      if (!el) return
+      const distanciaAlFondo = el.scrollHeight - el.scrollTop - el.clientHeight
+      setMostrarBotonAbajo(distanciaAlFondo > 120)
+    }
+
+    actualizar()
+    el.addEventListener("scroll", actualizar)
+    return () => el.removeEventListener("scroll", actualizar)
+  }, [scrollRef, convSeleccionada?.id, mensajes])
+
+  function irAlFondo() {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+  }
+
   if (!convSeleccionada) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -501,23 +524,36 @@ function ChatPanel({
       </div>
 
       {/* Mensajes */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3">
-        {cargandoMensajes ? (
-          <div className="space-y-3 pt-2">
-            {[40, 60, 35, 55, 45].map((w, i) => (
-              <div key={i} className={cn("flex", i % 2 === 0 ? "justify-start" : "justify-end")}>
-                <div className="rounded-2xl bg-muted animate-pulse h-9" style={{ width: `${w}%` }} />
-              </div>
-            ))}
-          </div>
-        ) : mensajes.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground pt-8">
-            Sin mensajes en esta conversación.
-          </p>
-        ) : (
-          <div className="space-y-2 pb-2">
-            {mensajes.map((msg) => <MensajeBurbuja key={msg.id} mensaje={msg} />)}
-          </div>
+      <div className="relative flex-1 min-h-0">
+        <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-3">
+          {cargandoMensajes ? (
+            <div className="space-y-3 pt-2">
+              {[40, 60, 35, 55, 45].map((w, i) => (
+                <div key={i} className={cn("flex", i % 2 === 0 ? "justify-start" : "justify-end")}>
+                  <div className="rounded-2xl bg-muted animate-pulse h-9" style={{ width: `${w}%` }} />
+                </div>
+              ))}
+            </div>
+          ) : mensajes.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground pt-8">
+              Sin mensajes en esta conversación.
+            </p>
+          ) : (
+            <div className="space-y-2 pb-2">
+              {mensajes.map((msg) => <MensajeBurbuja key={msg.id} mensaje={msg} />)}
+            </div>
+          )}
+        </div>
+
+        {mostrarBotonAbajo && (
+          <button
+            type="button"
+            onClick={irAlFondo}
+            aria-label="Ir al último mensaje"
+            className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+          >
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </button>
         )}
       </div>
 
@@ -590,6 +626,9 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
   // Refs de scroll separados para movil y escritorio
   const scrollMobileRef = useRef<HTMLDivElement>(null)
   const scrollDesktopRef = useRef<HTMLDivElement>(null)
+  // Se activa al cambiar de conversacion para forzar el scroll al fondo
+  // una vez que los mensajes terminen de cargar, sin importar la posicion.
+  const forzarScrollRef = useRef(false)
 
   const { atencionIds, addAtencion, removeAtencion } = useAtencion()
 
@@ -631,6 +670,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
 
   useEffect(() => {
     if (!selectedId) return
+    forzarScrollRef.current = true
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCargandoMensajes(true)
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -641,14 +681,24 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
       .finally(() => setCargandoMensajes(false))
   }, [selectedId])
 
-  // Scroll al fondo — aplica a ambos paneles
+  // Scroll al fondo — solo si ya se estaba cerca del fondo (o el contenedor
+  // esta vacio, ej. al cambiar de conversacion). Si el usuario subio a leer
+  // mensajes anteriores, un mensaje nuevo no lo debe regresar de golpe —
+  // para eso esta el boton flotante "ir al ultimo mensaje" en ChatPanel.
   useEffect(() => {
-    if (scrollMobileRef.current) {
-      scrollMobileRef.current.scrollTop = scrollMobileRef.current.scrollHeight
+    // Se omite el vaciado intermedio (mensajes = []) al cambiar de
+    // conversacion para no consumir forzarScrollRef antes de que lleguen
+    // los mensajes reales.
+    if (mensajes.length === 0) return
+    for (const ref of [scrollMobileRef, scrollDesktopRef]) {
+      const el = ref.current
+      if (!el) continue
+      const distanciaAlFondo = el.scrollHeight - el.scrollTop - el.clientHeight
+      if (forzarScrollRef.current || distanciaAlFondo < 120) {
+        el.scrollTop = el.scrollHeight
+      }
     }
-    if (scrollDesktopRef.current) {
-      scrollDesktopRef.current.scrollTop = scrollDesktopRef.current.scrollHeight
-    }
+    forzarScrollRef.current = false
   }, [mensajes])
 
   // -------------------------------------------------------------------------
