@@ -204,24 +204,46 @@ function ConvItem({
   // Mantener presionado (movil) — el boton de accion (archivar/restaurar)
   // solo aparece con hover, que no existe en touch. Un long-press dispara
   // la misma accion (que en "activas" abre la confirmacion de archivar).
+  //
+  // El umbral de movimiento es clave: el dedo nunca queda perfectamente
+  // quieto, asi que cancelar con cualquier pointermove (como antes) hacia
+  // que casi nunca disparara. Solo se cancela si se mueve mas de ~12px.
+  const DURACION_LONG_PRESS = 550
+  const UMBRAL_MOVIMIENTO_PX = 12
+
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressDisparado = useRef(false)
+  const inicioPos = useRef({ x: 0, y: 0 })
+  const [presionando, setPresionando] = useState(false)
 
   function cancelarLongPress() {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
+    setPresionando(false)
   }
 
   function iniciarLongPress(e: React.PointerEvent) {
     if (e.pointerType !== "touch") return
+    inicioPos.current = { x: e.clientX, y: e.clientY }
     longPressDisparado.current = false
+    setPresionando(true)
     longPressTimer.current = setTimeout(() => {
       longPressDisparado.current = true
+      setPresionando(false)
       if (navigator.vibrate) navigator.vibrate(15)
       onAccion()
-    }, 550)
+    }, DURACION_LONG_PRESS)
+  }
+
+  function manejarMovimiento(e: React.PointerEvent) {
+    if (!longPressTimer.current) return
+    const dx = Math.abs(e.clientX - inicioPos.current.x)
+    const dy = Math.abs(e.clientY - inicioPos.current.y)
+    if (dx > UMBRAL_MOVIMIENTO_PX || dy > UMBRAL_MOVIMIENTO_PX) {
+      cancelarLongPress()
+    }
   }
 
   return (
@@ -242,12 +264,25 @@ function ConvItem({
         }}
         onPointerDown={iniciarLongPress}
         onPointerUp={cancelarLongPress}
-        onPointerMove={cancelarLongPress}
+        onPointerMove={manejarMovimiento}
         onPointerCancel={cancelarLongPress}
         onContextMenu={(e) => { if (longPressDisparado.current) e.preventDefault() }}
-        className={cn("w-full text-left px-4 py-3 pr-10", opaco && "opacity-60")}
+        className={cn(
+          "relative w-full overflow-hidden text-left px-4 py-3 pr-10 select-none [-webkit-touch-callout:none]",
+          opaco && "opacity-60"
+        )}
       >
-        <div className="flex items-start gap-2.5">
+        {/* Relleno progresivo del long-press */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 origin-left bg-primary/15 ease-linear",
+            presionando
+              ? "scale-x-100 transition-transform duration-[550ms]"
+              : "scale-x-0 transition-transform duration-150"
+          )}
+        />
+        <div className="relative flex items-start gap-2.5">
           <div className="relative shrink-0 mt-0.5">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
               {iniciales(nombre)}
@@ -1132,7 +1167,7 @@ export function ConversacionesClient({ conversaciones, agentes, papelera, nombre
         open={confirmarArchivar !== null}
         onOpenChange={(o) => { if (!o) setConfirmarArchivar(null) }}
       >
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-xs">
           <DialogHeader>
             <DialogTitle>Archivar conversación</DialogTitle>
           </DialogHeader>
