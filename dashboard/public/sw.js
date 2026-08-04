@@ -9,17 +9,28 @@
 // - /_next/static/*: stale-while-revalidate (contenido con hash, seguro de
 //   cachear agresivamente) — necesario para que el bundle de la app cargue
 //   offline sin depender solo de la cache HTTP del navegador.
-// - Todo lo demas (imagenes, llamadas a Supabase, APIs) pasa directo a la
-//   red, sin cache — no se guardan datos de otras pestañas.
+// - /branding/*, /icon.png, /apple-icon.png: igual, stale-while-revalidate —
+//   son los logos/iconos de la marca (sidebar, headers, login, /offline);
+//   sin esto no se ven sin conexion aunque el resto de la pagina cargue.
+// - Todo lo demas (llamadas a Supabase, APIs) pasa directo a la red, sin
+//   cache — no se guardan datos de otras pestañas.
 
-const CACHE_VERSION = "v2"
+const CACHE_VERSION = "v3"
 const CACHE_PAGES = `dentai-pages-${CACHE_VERSION}`
 const CACHE_STATIC = `dentai-static-${CACHE_VERSION}`
 const OFFLINE_URL = "/offline"
+const BRANDING_PRECACHE = [
+  "/branding/dentai-icon.png",
+  "/branding/dentai-logo.png",
+  "/branding/dentai-logo-white.png",
+]
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_PAGES).then((cache) => cache.add(OFFLINE_URL))
+    Promise.all([
+      caches.open(CACHE_PAGES).then((cache) => cache.add(OFFLINE_URL)),
+      caches.open(CACHE_STATIC).then((cache) => cache.addAll(BRANDING_PRECACHE)),
+    ])
   )
   self.skipWaiting()
 })
@@ -54,6 +65,16 @@ self.addEventListener("fetch", (event) => {
 
   // Assets estaticos con hash — seguros de cachear indefinidamente
   if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(staleWhileRevalidate(request))
+    return
+  }
+
+  // Logos/iconos de marca — cambian poco, pero no tienen hash en el nombre
+  if (
+    url.pathname.startsWith("/branding/") ||
+    url.pathname === "/icon.png" ||
+    url.pathname === "/apple-icon.png"
+  ) {
     event.respondWith(staleWhileRevalidate(request))
     return
   }
