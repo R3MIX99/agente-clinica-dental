@@ -131,7 +131,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const ESTADO_ESTILO: Record<string, string> = {
   programada: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-  confirmada: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+  confirmada: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
   cancelada: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
   completada: "bg-muted text-muted-foreground",
   no_asistio: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
@@ -176,7 +176,7 @@ function AccionBtn({
     tono === "azul"
       ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
       : tono === "verde"
-      ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+      ? "text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
       : tono === "rojo"
       ? "text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
       : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
@@ -735,7 +735,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 </td>
                 <td className="px-4 py-3">
                   {cita.recordatorio_enviado_at ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                    <span className="text-cyan-600 dark:text-cyan-400 text-xs font-medium">
                       Enviado
                     </span>
                   ) : (
@@ -903,7 +903,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               {citaDrawer.recordatorio_enviado_at && (
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-muted-foreground">Recordatorio</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span className="text-cyan-600 dark:text-cyan-400 font-medium">
                     Enviado
                   </span>
                 </div>
@@ -1029,7 +1029,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 className={cn(
                   "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
                   citaDrawer.estado_pago === "pagado"
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                    ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400"
                     : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
                 )}
               >

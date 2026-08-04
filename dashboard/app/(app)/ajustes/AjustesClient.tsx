@@ -661,7 +661,7 @@ function CanalTab({ canalTelegram }: { canalTelegram: CanalTelegramPublico }) {
           {canalTelegram?.tiene_token ? (
             <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span className="inline-block h-2 w-2 rounded-full bg-cyan-500" aria-hidden="true" />
                 <span className="font-medium">
                   {canalTelegram.bot_username ? `@${canalTelegram.bot_username}` : "Bot de Telegram"}
                 </span>

@@ -102,7 +102,7 @@ const STATUS_ESTILO: Record<string, string> = {
   programada:
     "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
   confirmada:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
 }
 
 // ---------------------------------------------------------------------------
@@ -177,7 +177,7 @@ const ROL_LABEL: Record<number, string> = {
 
 const CANAL_ESTILO: Record<string, string> = {
   whatsapp:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
   phone:
     "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
   email:

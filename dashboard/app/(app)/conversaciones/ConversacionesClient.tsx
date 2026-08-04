@@ -148,7 +148,7 @@ function MensajeBurbuja({ mensaje }: { mensaje: Mensaje }) {
             ? "bg-secondary text-secondary-foreground rounded-tl-sm"
             : mensaje.sender === "bot"
             ? "bg-blue-500 text-white rounded-tr-sm"
-            : "bg-emerald-600 text-white rounded-tr-sm"
+            : "bg-cyan-600 text-white rounded-tr-sm"
         )}
       >
         {!esEntrante && (
@@ -235,7 +235,7 @@ function ConvItem({
                 className={cn(
                   "inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-medium leading-none",
                   conv.mode === "humano"
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                    ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400"
                     : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
                 )}
               >
@@ -373,7 +373,7 @@ function ListaPanel({
                 onAccion={() => onRestaurar(conv.id)}
                 accionDisabled={accionandoId === conv.id}
                 accionTitle="Restaurar conversación"
-                accionHoverClass="hover:bg-emerald-500/10 hover:text-emerald-600 text-muted-foreground"
+                accionHoverClass="hover:bg-cyan-500/10 hover:text-cyan-600 text-muted-foreground"
                 opaco
               />
             ))}

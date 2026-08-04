@@ -76,7 +76,7 @@ const ROL_LABELS: Record<string, string> = {
 
 const ROL_ESTILO: Record<string, string> = {
   admin: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-  recepcion: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+  recepcion: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
   odontologo: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
 }
 
@@ -239,7 +239,7 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
             {/* Indicador de estado activo */}
             <span
               className={`shrink-0 h-2 w-2 rounded-full ${
-                agente.activo ? "bg-emerald-500" : "bg-muted-foreground/40"
+                agente.activo ? "bg-cyan-500" : "bg-muted-foreground/40"
               }`}
             />
 
