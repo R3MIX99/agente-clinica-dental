@@ -42,7 +42,7 @@ export function MobileHeader({
           alt=""
           width={24}
           height={24}
-          className="h-6 w-6 shrink-0"
+          className="h-5 w-5 shrink-0"
         />
         <ClinicaSelector
           clinicaActual={clinicaActual}
