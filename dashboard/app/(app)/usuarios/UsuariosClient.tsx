@@ -47,6 +47,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { ChevronRight, KeyRound, SquarePen, Trash2 } from "lucide-react"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -526,32 +527,38 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
                     {puedeEditar(perfilActual, usuario) && (
-                      <button
-                        onClick={() => abrirFormEdicion(usuario)}
-                        title="Editar usuario"
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                      >
-                        <SquarePen size={15} />
-                      </button>
+                      <IconTooltip label="Editar usuario">
+                        <button
+                          onClick={() => abrirFormEdicion(usuario)}
+                          aria-label="Editar usuario"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                        >
+                          <SquarePen size={15} />
+                        </button>
+                      </IconTooltip>
                     )}
                     {puedeEditar(perfilActual, usuario) && (
-                      <button
-                        onClick={() => ejecutarResetPassword(usuario)}
-                        disabled={isPendingReset}
-                        title="Resetear contraseña"
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
-                      >
-                        <KeyRound size={15} />
-                      </button>
+                      <IconTooltip label="Resetear contraseña">
+                        <button
+                          onClick={() => ejecutarResetPassword(usuario)}
+                          disabled={isPendingReset}
+                          aria-label="Resetear contraseña"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
+                        >
+                          <KeyRound size={15} />
+                        </button>
+                      </IconTooltip>
                     )}
                     {puedeEliminar(perfilActual, usuario) && (
-                      <button
-                        onClick={() => confirmarEliminar(usuario)}
-                        title="Eliminar usuario"
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <IconTooltip label="Eliminar usuario">
+                        <button
+                          onClick={() => confirmarEliminar(usuario)}
+                          aria-label="Eliminar usuario"
+                          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </IconTooltip>
                     )}
                   </div>
                 </td>
@@ -591,13 +598,15 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                     </span>
                   </div>
                   {puedeEditar(perfilActual, drawerUsuario) && (
-                    <button
-                      onClick={() => abrirFormEdicion(drawerUsuario)}
-                      className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-                      title="Editar usuario"
-                    >
-                      <SquarePen size={16} />
-                    </button>
+                    <IconTooltip label="Editar usuario">
+                      <button
+                        onClick={() => abrirFormEdicion(drawerUsuario)}
+                        className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+                        aria-label="Editar usuario"
+                      >
+                        <SquarePen size={16} />
+                      </button>
+                    </IconTooltip>
                   )}
                 </div>
               </DrawerHeader>

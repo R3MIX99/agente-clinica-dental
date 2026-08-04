@@ -17,6 +17,7 @@ import {
 import type { CanalTelegramPublico } from "./actions"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -405,21 +406,25 @@ function ServiciosTab({ serviciosIniciales }: { serviciosIniciales: Servicio[] }
 
               {/* Acciones */}
               <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => abrirEdicion(s)}
-                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Editar"
-                >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  onClick={() => handleEliminar(s.id)}
-                  disabled={isPending}
-                  className="p-1.5 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                  title="Eliminar"
-                >
-                  <Trash2 size={13} />
-                </button>
+                <IconTooltip label="Editar">
+                  <button
+                    onClick={() => abrirEdicion(s)}
+                    className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    aria-label="Editar"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                </IconTooltip>
+                <IconTooltip label="Eliminar">
+                  <button
+                    onClick={() => handleEliminar(s.id)}
+                    disabled={isPending}
+                    className="p-1.5 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </IconTooltip>
               </div>
             </div>
           ))}
@@ -540,14 +545,16 @@ function FaqTab({ faqInicial }: { faqInicial: FaqItem[] }) {
               <span className="text-xs font-medium text-muted-foreground">
                 Pregunta {index + 1}
               </span>
-              <button
-                type="button"
-                onClick={() => remove(index)}
-                className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                title="Eliminar"
-              >
-                <Trash2 size={13} />
-              </button>
+              <IconTooltip label="Eliminar">
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </IconTooltip>
             </div>
 
             <div className="space-y-1.5">

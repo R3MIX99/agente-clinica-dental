@@ -8,6 +8,7 @@ import { actualizarDoctor } from "../actions"
 import type { DatosDoctor } from "../actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -446,14 +447,16 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
                                   {formatHora(h.hora_inicio)} –{" "}
                                   {formatHora(h.hora_fin)}
                                 </span>
-                                <button
-                                  onClick={() => handleEliminarBloque(h.id)}
-                                  disabled={isPending}
-                                  title="Eliminar bloque"
-                                  className="p-1 rounded text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
+                                <IconTooltip label="Eliminar bloque">
+                                  <button
+                                    onClick={() => handleEliminarBloque(h.id)}
+                                    disabled={isPending}
+                                    aria-label="Eliminar bloque"
+                                    className="p-1 rounded text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </IconTooltip>
                               </div>
                             ))}
                         </div>

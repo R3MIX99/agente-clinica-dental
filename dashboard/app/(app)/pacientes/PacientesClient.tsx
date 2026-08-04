@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -992,29 +993,35 @@ export function PacientesClient({
                 {/* Acciones */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => abrirAgendarCita(p)}
-                      title="Agendar cita"
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                    >
-                      <CalendarPlus size={15} />
-                    </button>
+                    <IconTooltip label="Agendar cita">
+                      <button
+                        onClick={() => abrirAgendarCita(p)}
+                        aria-label="Agendar cita"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      >
+                        <CalendarPlus size={15} />
+                      </button>
+                    </IconTooltip>
                     {!esDoctor && (
                       <>
-                        <button
-                          onClick={() => abrirFormEdicion(p)}
-                          title="Editar paciente"
-                          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                        >
-                          <SquarePen size={15} />
-                        </button>
-                        <button
-                          onClick={() => setEliminarId(p.id)}
-                          title="Eliminar paciente"
-                          className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <IconTooltip label="Editar paciente">
+                          <button
+                            onClick={() => abrirFormEdicion(p)}
+                            aria-label="Editar paciente"
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                          >
+                            <SquarePen size={15} />
+                          </button>
+                        </IconTooltip>
+                        <IconTooltip label="Eliminar paciente">
+                          <button
+                            onClick={() => setEliminarId(p.id)}
+                            aria-label="Eliminar paciente"
+                            className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </IconTooltip>
                       </>
                     )}
                   </div>

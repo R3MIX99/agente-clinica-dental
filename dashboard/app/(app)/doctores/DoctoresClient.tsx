@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { crearDoctor, actualizarDoctor, eliminarDoctor } from "./actions"
 import { supabase } from "@/lib/supabase/client"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -592,20 +593,24 @@ export function DoctoresClient({
                 {/* Acciones */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => abrirFormEdicion(d)}
-                      title="Editar doctor"
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                    >
-                      <SquarePen size={15} />
-                    </button>
-                    <button
-                      onClick={() => setEliminarId(d.id)}
-                      title="Eliminar doctor"
-                      className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <IconTooltip label="Editar doctor">
+                      <button
+                        onClick={() => abrirFormEdicion(d)}
+                        aria-label="Editar doctor"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      >
+                        <SquarePen size={15} />
+                      </button>
+                    </IconTooltip>
+                    <IconTooltip label="Eliminar doctor">
+                      <button
+                        onClick={() => setEliminarId(d.id)}
+                        aria-label="Eliminar doctor"
+                        className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </IconTooltip>
                   </div>
                 </td>
               </tr>
@@ -650,26 +655,30 @@ export function DoctoresClient({
               {/* Iconos editar / eliminar */}
               {drawerDoctor && (
                 <div className="flex items-center gap-0.5 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      abrirFormEdicion(drawerDoctor)
-                      setDrawerDoctor(null)
-                    }}
-                    title="Editar doctor"
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                  >
-                    <SquarePen size={16} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEliminarId(drawerDoctor.id)
-                      setDrawerDoctor(null)
-                    }}
-                    title="Eliminar doctor"
-                    className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <IconTooltip label="Editar doctor">
+                    <button
+                      onClick={() => {
+                        abrirFormEdicion(drawerDoctor)
+                        setDrawerDoctor(null)
+                      }}
+                      aria-label="Editar doctor"
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    >
+                      <SquarePen size={16} />
+                    </button>
+                  </IconTooltip>
+                  <IconTooltip label="Eliminar doctor">
+                    <button
+                      onClick={() => {
+                        setEliminarId(drawerDoctor.id)
+                        setDrawerDoctor(null)
+                      }}
+                      aria-label="Eliminar doctor"
+                      className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </IconTooltip>
                 </div>
               )}
             </div>

@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { useAtencion } from "@/lib/atencion-context"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import {
   Dialog,
   DialogContent,
@@ -249,20 +250,22 @@ function ConvItem({
         </div>
       </button>
 
-      <button
-        onClick={(e) => { e.stopPropagation(); onAccion() }}
-        disabled={accionDisabled}
-        title={accionTitle}
-        className={cn(
-          "absolute right-2 top-1/2 -translate-y-1/2",
-          "p-1.5 rounded-md transition-all",
-          "opacity-0 group-hover:opacity-100",
-          "disabled:pointer-events-none disabled:opacity-40",
-          accionHoverClass
-        )}
-      >
+      <IconTooltip label={accionTitle}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onAccion() }}
+          disabled={accionDisabled}
+          aria-label={accionTitle}
+          className={cn(
+            "absolute right-2 top-1/2 -translate-y-1/2",
+            "p-1.5 rounded-md transition-all",
+            "opacity-0 group-hover:opacity-100",
+            "disabled:pointer-events-none disabled:opacity-40",
+            accionHoverClass
+          )}
+        >
         {accionIcon}
-      </button>
+        </button>
+      </IconTooltip>
     </div>
   )
 }
@@ -308,36 +311,42 @@ function ListaPanel({
         <span className="text-xs text-muted-foreground tabular-nums">{conteo}</span>
         <div className="ml-auto flex items-center gap-1">
           {botUrl && (
-            <button
-              onClick={onMostrarQR}
-              title="Codigo QR del bot de Telegram"
-              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              <QrCode className="h-4 w-4" />
-            </button>
+            <IconTooltip label="Codigo QR del bot de Telegram">
+              <button
+                onClick={onMostrarQR}
+                aria-label="Codigo QR del bot de Telegram"
+                className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              >
+                <QrCode className="h-4 w-4" />
+              </button>
+            </IconTooltip>
           )}
           {vista === "papelera" && papeleraConvs.length > 0 && (
-            <button
-              onClick={onVaciarPapelera}
-              disabled={vaciando}
-              title="Vaciar papelera permanentemente"
-              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40"
-            >
-              <Eraser className="h-4 w-4" />
-            </button>
+            <IconTooltip label="Vaciar papelera permanentemente">
+              <button
+                onClick={onVaciarPapelera}
+                disabled={vaciando}
+                aria-label="Vaciar papelera permanentemente"
+                className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40"
+              >
+                <Eraser className="h-4 w-4" />
+              </button>
+            </IconTooltip>
           )}
-          <button
-            onClick={() => onSetVista(vista === "activas" ? "papelera" : "activas")}
-            title={vista === "activas" ? "Ver papelera" : "Volver a conversaciones activas"}
-            className={cn(
-              "p-1.5 rounded-md transition-colors",
-              vista === "papelera"
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            )}
-          >
-            <Archive className="h-4 w-4" />
-          </button>
+          <IconTooltip label={vista === "activas" ? "Ver papelera" : "Volver a conversaciones activas"}>
+            <button
+              onClick={() => onSetVista(vista === "activas" ? "papelera" : "activas")}
+              aria-label={vista === "activas" ? "Ver papelera" : "Volver a conversaciones activas"}
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                vista === "papelera"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
+            >
+              <Archive className="h-4 w-4" />
+            </button>
+          </IconTooltip>
         </div>
       </div>
 

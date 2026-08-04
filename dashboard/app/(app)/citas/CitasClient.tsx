@@ -38,6 +38,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { toast } from "sonner"
 import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send } from "lucide-react"
 
@@ -747,52 +748,62 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => abrirFormEdicion(cita)}
-                      title="Editar cita"
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                    >
-                      <SquarePen size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleEnviarRecordatorio(cita)}
-                      disabled={enviandoId === cita.id || !cita.patients?.channel_user_id}
-                      title={
+                    <IconTooltip label="Editar cita">
+                      <button
+                        onClick={() => abrirFormEdicion(cita)}
+                        aria-label="Editar cita"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      >
+                        <SquarePen size={15} />
+                      </button>
+                    </IconTooltip>
+                    <IconTooltip
+                      label={
                         !cita.patients?.channel_user_id
                           ? "Sin ID de canal configurado"
                           : "Enviar recordatorio"
                       }
-                      className={cn(
-                        "p-1.5 rounded-md transition-colors",
-                        cita.patients?.channel_user_id
-                          ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          : "text-muted-foreground/30 cursor-not-allowed"
-                      )}
                     >
-                      <Clock
-                        size={15}
-                        className={enviandoId === cita.id ? "animate-spin" : ""}
-                      />
-                    </button>
-                    {cita.serie_id && (
                       <button
-                        onClick={() => {
-                          if (cita.serie_id) handleTerminarSerie(cita.serie_id)
-                        }}
-                        disabled={isPending}
-                        title="Terminar serie mensual"
-                        className="p-1.5 rounded-md text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+                        onClick={() => handleEnviarRecordatorio(cita)}
+                        disabled={enviandoId === cita.id || !cita.patients?.channel_user_id}
+                        aria-label="Enviar recordatorio"
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          cita.patients?.channel_user_id
+                            ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            : "text-muted-foreground/30 cursor-not-allowed"
+                        )}
                       >
-                        <CircleStop size={15} />
+                        <Clock
+                          size={15}
+                          className={enviandoId === cita.id ? "animate-spin" : ""}
+                        />
                       </button>
+                    </IconTooltip>
+                    {cita.serie_id && (
+                      <IconTooltip label="Terminar serie mensual">
+                        <button
+                          onClick={() => {
+                            if (cita.serie_id) handleTerminarSerie(cita.serie_id)
+                          }}
+                          disabled={isPending}
+                          aria-label="Terminar serie mensual"
+                          className="p-1.5 rounded-md text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+                        >
+                          <CircleStop size={15} />
+                        </button>
+                      </IconTooltip>
                     )}
-                    <button
-                      onClick={() => setEliminarId(cita.id)}
-                      title="Eliminar cita"
-                      className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <IconTooltip label="Eliminar cita">
+                      <button
+                        onClick={() => setEliminarId(cita.id)}
+                        aria-label="Eliminar cita"
+                        className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </IconTooltip>
                   </div>
                 </td>
               </tr>

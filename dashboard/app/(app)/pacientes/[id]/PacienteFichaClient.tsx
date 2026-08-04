@@ -13,6 +13,7 @@ import {
 import { actualizarPaciente, type DatosPaciente } from "../actions"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -356,14 +357,16 @@ function ItemTimeline({
           </div>
 
           {onEliminar && (
-            <button
-              type="button"
-              onClick={onEliminar}
-              title="Eliminar"
-              className="flex-shrink-0 rounded p-1 text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors mt-0.5"
-            >
-              <Trash2 size={13} />
-            </button>
+            <IconTooltip label="Eliminar">
+              <button
+                type="button"
+                onClick={onEliminar}
+                aria-label="Eliminar"
+                className="flex-shrink-0 rounded p-1 text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors mt-0.5"
+              >
+                <Trash2 size={13} />
+              </button>
+            </IconTooltip>
           )}
         </div>
       </div>

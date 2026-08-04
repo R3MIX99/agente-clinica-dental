@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { crearAgente, actualizarAgente, toggleActivoAgente } from "./actions"
 import { Button } from "@/components/ui/button"
+import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -323,13 +324,15 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => abrirFormEdicion(agente)}
-                    title="Editar agente"
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                  >
-                    <SquarePen size={15} />
-                  </button>
+                  <IconTooltip label="Editar agente">
+                    <button
+                      onClick={() => abrirFormEdicion(agente)}
+                      aria-label="Editar agente"
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                    >
+                      <SquarePen size={15} />
+                    </button>
+                  </IconTooltip>
                 </td>
               </tr>
             ))}
@@ -362,13 +365,15 @@ export function AgentesClient({ agentes: agentesIniciales }: Props) {
                       {ROL_LABELS[drawerAgente.role] ?? drawerAgente.role}
                     </span>
                   </div>
-                  <button
-                    onClick={() => abrirFormEdicion(drawerAgente)}
-                    className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-                    title="Editar agente"
-                  >
-                    <SquarePen size={16} />
-                  </button>
+                  <IconTooltip label="Editar agente">
+                    <button
+                      onClick={() => abrirFormEdicion(drawerAgente)}
+                      className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+                      aria-label="Editar agente"
+                    >
+                      <SquarePen size={16} />
+                    </button>
+                  </IconTooltip>
                 </div>
               </DrawerHeader>
 
