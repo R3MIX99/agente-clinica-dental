@@ -8,7 +8,11 @@ function esPublica(pathname: string): boolean {
     pathname === "/" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/icon.png" ||
+    pathname === "/apple-icon.png"
   )
 }
 
