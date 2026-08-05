@@ -1361,7 +1361,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                 onOpenChange={(o) => { if (!o) setCitaDrawer(null) }}
                 shouldScaleBackground
               >
-                <DrawerContent>
+                <DrawerContent onOpenAutoFocus={(e) => e.preventDefault()}>
                   <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
                     <DrawerTitle>{tituloDetalle}</DrawerTitle>
                     {cabeceraBadgeAcciones}
@@ -1379,6 +1379,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
               >
                 <SheetContent
                   side="right"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
                   className={cn(
                     "w-full sm:max-w-md p-0 flex flex-col gap-0",
                     // Despegar del borde con margen y bordes redondeados
