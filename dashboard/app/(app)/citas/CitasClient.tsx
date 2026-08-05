@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useEffect, useMemo, useTransition } from "react"
+import { useState, useEffect, useId, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { crearCita, actualizarCita, eliminarCita, enviarRecordatorio, terminarSerie, editarSerie, cerrarDia, reabrirDia, marcarPago, enviarDatosPago, type DatosEditarSerie } from "./actions"
 import { cn } from "@/lib/utils"
@@ -303,6 +303,7 @@ function isoAInputDatetime(iso: string): string {
 
 export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores, bloqueos, esDoctor = false, doctorId, clinicaId }: Props) {
   const router = useRouter()
+  const instanceId = useId()
   const [isPending, startTransition] = useTransition()
   const [citas, setCitas] = useState<Cita[]>(citasIniciales)
 
@@ -334,7 +335,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
     if (!clinicaId) return
     const supabase = createClient()
     const channel = supabase
-      .channel(`appointments-realtime-${clinicaId}`)
+      .channel(`appointments-realtime-${clinicaId}-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "appointments", filter: `clinica_id=eq.${clinicaId}` },
@@ -345,7 +346,7 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [clinicaId, router])
+  }, [clinicaId, instanceId, router])
 
   function bloqueadoSinConexion(): boolean {
     if (navigator.onLine) return false

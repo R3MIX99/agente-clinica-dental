@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Bell, CalendarPlus, CalendarClock, CalendarX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -66,6 +66,11 @@ function textoNotificacion(n: Notificacion): { titulo: string; icono: React.Reac
 export function NotificationsBell({ clinicaId }: { clinicaId: string | null }) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [open, setOpen] = useState(false)
+  // El header movil y el de escritorio montan cada uno su propia campana al
+  // mismo tiempo (uno queda oculto solo por CSS, no desmontado), asi que el
+  // nombre del canal de Realtime debe ser unico por instancia — dos canales
+  // con el mismo nombre chocan en el SDK de Supabase y tumban toda la app.
+  const instanceId = useId()
 
   const noLeidas = notificaciones.filter((n) => !n.leida).length
 
@@ -87,7 +92,7 @@ export function NotificationsBell({ clinicaId }: { clinicaId: string | null }) {
       )
 
     const channel = supabase
-      .channel(`notificaciones-realtime-${clinicaId}`)
+      .channel(`notificaciones-realtime-${clinicaId}-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notificaciones", filter: `clinica_id=eq.${clinicaId}` },
@@ -102,7 +107,7 @@ export function NotificationsBell({ clinicaId }: { clinicaId: string | null }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [clinicaId])
+  }, [clinicaId, instanceId])
 
   function marcarTodasComoLeidas() {
     if (noLeidas === 0 || !clinicaId) return
