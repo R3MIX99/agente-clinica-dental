@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server"
 function esPublica(pathname: string): boolean {
   return (
     pathname === "/" ||
-    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname === "/manifest.webmanifest" ||
