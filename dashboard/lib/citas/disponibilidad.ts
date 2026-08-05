@@ -48,9 +48,19 @@ export type ResultadoDisponibilidad =
     }
   | { ok: false; motivo: "sin_doctor_asignado" | "sin_disponibilidad" | "paciente_no_encontrado" }
 
+// Un parametro de n8n mal configurado (doble "=" al inicio de una
+// expresion) puede llegar como "=2026-08-05" en vez de "2026-08-05" — se
+// tolera aqui para no depender de que la expresion quede perfecta en n8n.
+function limpiarValorTool(v?: string | null): string | null {
+  if (!v) return null
+  const limpio = v.replace(/^=+/, "").trim()
+  return limpio || null
+}
+
 // Valida "YYYY-MM-DD" con una fecha real (evita que un mes/dia invalido del
 // modelo, ej. 2026-02-30, se cuele silenciosamente).
-function parseFechaDeseada(fechaDeseada?: string | null): { year: number; month: number; day: number } | null {
+function parseFechaDeseada(fechaDeseadaCruda?: string | null): { year: number; month: number; day: number } | null {
+  const fechaDeseada = limpiarValorTool(fechaDeseadaCruda)
   if (!fechaDeseada || !/^\d{4}-\d{2}-\d{2}$/.test(fechaDeseada)) return null
   const [year, month, day] = fechaDeseada.split("-").map(Number)
   const d = new Date(Date.UTC(year, month - 1, day))
@@ -72,7 +82,8 @@ export async function buscarDisponibilidad(params: {
   fechaDeseada?: string | null // "YYYY-MM-DD", tomada de la tabla de calendario del prompt
   horaDeseada?: string | null // "HH:MM" 24h
 }): Promise<ResultadoDisponibilidad> {
-  const { clinicaId, patientId, servicioId, fechaDeseada, horaDeseada } = params
+  const { clinicaId, patientId, fechaDeseada, horaDeseada } = params
+  const servicioId = limpiarValorTool(params.servicioId)
   const db = createServerClient()
 
   const [{ data: asignaciones }, { data: servicio }] = await Promise.all([
@@ -100,9 +111,10 @@ export async function buscarDisponibilidad(params: {
   // antes de hoy) para no devolver los primeros huecos genericos de hoy
   // cuando lo que se pidio fue, por ejemplo, "el jueves a las 4pm".
   const inicioVentana = fechaDeseadaParsed && esFechaPosterior(fechaDeseadaParsed, hoy) ? fechaDeseadaParsed : hoy
+  const horaDeseadaLimpia = limpiarValorTool(horaDeseada)
   const horaDeseadaMin =
-    horaDeseada && /^\d{2}:\d{2}$/.test(horaDeseada)
-      ? horaATexto(horaDeseada + ":00")
+    horaDeseadaLimpia && /^\d{2}:\d{2}$/.test(horaDeseadaLimpia)
+      ? horaATexto(horaDeseadaLimpia + ":00")
       : null
   const finVentanaIso = new Date(ahora.getTime() + (DIAS_VENTANA + 1) * 86_400_000).toISOString()
   const inicioVentanaIso = ahora.toISOString()
@@ -202,10 +214,6 @@ export async function buscarDisponibilidad(params: {
     }
 
     if (slots.length > 0) {
-      console.log("[disponibilidad-debug]", JSON.stringify({
-        fechaDeseada, horaDeseada, fechaDeseadaParsed, hoy, inicioVentana, horaDeseadaMin,
-        slotsCount: slots.length, horaExactaDisponible,
-      }))
       return {
         ok: true,
         doctor_id: doctorId,
