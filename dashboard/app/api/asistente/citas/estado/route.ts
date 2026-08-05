@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { shareSecretValido, resolverPacienteDesdeConversacion } from "@/lib/asistente/auth"
+import { formatearFechaHoraMex } from "@/lib/asistente/fecha"
 
 // Tool del asistente de IA — devuelve las proximas citas (no pasadas, no
 // canceladas) del paciente de esta conversacion, para responder "¿cuándo es
@@ -40,10 +41,10 @@ export async function GET(req: NextRequest) {
     ok: true,
     citas: (citas ?? []).map((c) => ({
       id: c.id,
-      fecha_hora: c.fecha_hora,
       status: c.status,
       servicio: (c.services as { nombre: string } | null)?.nombre ?? null,
       doctor: (c.doctors as { nombre: string } | null)?.nombre ?? null,
+      ...formatearFechaHoraMex(c.fecha_hora),
     })),
   })
 }

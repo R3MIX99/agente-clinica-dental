@@ -1,34 +1,11 @@
 import { createServerClient } from "@/lib/supabase/server"
-
-// ---------------------------------------------------------------------------
-// Helpers de zona horaria (Mexico City) — duplicados de
-// dashboard/app/(app)/citas/actions.ts porque ese archivo es "use server" y
-// solo puede exportar server actions async, no funciones sincronas.
-// ---------------------------------------------------------------------------
-
-function mexLocalToISO(localStr: string): string {
-  const asUTC = new Date(localStr + "Z")
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Mexico_City",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(asUTC)
-  const get = (t: string) => parseInt(parts.find((p) => p.type === t)?.value ?? "0")
-  const mexAsUTC = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"))
-  const offsetMs = asUTC.getTime() - mexAsUTC
-  return new Date(asUTC.getTime() + offsetMs).toISOString()
-}
-
-// Dia de la semana (0=domingo..6=sabado) de una fecha Y-M-D en Mexico City,
-// calculado a mediodia UTC para no cruzar de dia por DST/offset.
-function diaSemanaMex(year: number, month: number, day: number): number {
-  return new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay()
-}
-
-function sumarDias(base: Date, dias: number): { year: number; month: number; day: number } {
-  const d = new Date(base.getTime() + dias * 86_400_000)
-  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }
-}
+import {
+  mexLocalToISO,
+  diaSemanaMex,
+  hoyMexico,
+  sumarDiasCalendario,
+  formatearFechaHoraMex,
+} from "@/lib/asistente/fecha"
 
 function minutosATexto(min: number): string {
   const h = Math.floor(min / 60)
@@ -51,7 +28,12 @@ const INTERVALO_MIN = 30
 const MAX_SLOTS = 6
 const MARGEN_MIN_DESDE_AHORA = 90 // no ofrecer horarios a menos de 90 min
 
-export type SlotDisponible = { fecha_hora_iso: string }
+export type SlotDisponible = {
+  fecha_hora_iso: string
+  fecha_texto: string
+  hora_texto: string
+  dia_semana: string
+}
 
 export type ResultadoDisponibilidad =
   | {
@@ -91,7 +73,7 @@ export async function buscarDisponibilidad(params: {
   const duracionMin = servicio?.duracion_min ?? 30
 
   const ahora = new Date()
-  const inicioVentana = sumarDias(ahora, 0)
+  const inicioVentana = hoyMexico()
   const finVentanaIso = new Date(ahora.getTime() + (DIAS_VENTANA + 1) * 86_400_000).toISOString()
   const inicioVentanaIso = ahora.toISOString()
 
@@ -135,7 +117,7 @@ export async function buscarDisponibilidad(params: {
     const slots: SlotDisponible[] = []
 
     for (let dia = 0; dia <= DIAS_VENTANA && slots.length < MAX_SLOTS; dia++) {
-      const { year, month, day } = sumarDias(ahora, dia)
+      const { year, month, day } = sumarDiasCalendario(inicioVentana, dia)
       const fechaTexto = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
       if (diasBloqueados.has(fechaTexto)) continue
 
@@ -161,7 +143,7 @@ export async function buscarDisponibilidad(params: {
           )
           if (chocaConOcupado) continue
 
-          slots.push({ fecha_hora_iso: candidatoIso })
+          slots.push({ fecha_hora_iso: candidatoIso, ...formatearFechaHoraMex(candidatoIso) })
         }
       }
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { shareSecretValido, resolverPacienteDesdeConversacion } from "@/lib/asistente/auth"
+import { formatearFechaHoraMex } from "@/lib/asistente/fecha"
 
 // Tool del asistente de IA — agenda una cita con un horario que ya salio de
 // /api/asistente/citas/disponibilidad y que el paciente confirmo. Revalida
@@ -105,5 +106,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, cita })
+  return NextResponse.json({ ok: true, cita: { ...cita, ...formatearFechaHoraMex(cita.fecha_hora) } })
 }
