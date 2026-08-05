@@ -9,7 +9,7 @@ const faqTexto = Array.isArray(clinica.faq)
   : '';
 
 const serviciosTxt = servicios
-  .map(s => `- ${s.nombre} (id: ${s.id || 's/n'}): $${Number(s.precio).toLocaleString('es-MX')} MXN (${s.duracion_min} min). ${s.descripcion || ''}`)
+  .map(s => `- ${s.nombre} (id: ${s.id || 's/n'}) (${s.duracion_min} min). ${s.descripcion || ''}`)
   .join('\n');
 
 const historialTxt = [...historial]
