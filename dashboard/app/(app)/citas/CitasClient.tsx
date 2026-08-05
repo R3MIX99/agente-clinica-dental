@@ -42,6 +42,7 @@ import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { toast } from "sonner"
 import { ChevronRight, Clock, SquarePen, Trash2, Repeat, CircleStop, CalendarRange, CalendarX, RotateCcw, BadgeDollarSign, Send, Search, SlidersHorizontal, WifiOff } from "lucide-react"
 import { useOnlineStatus } from "@/lib/hooks/use-online-status"
+import { createClient } from "@/lib/supabase/client"
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -102,6 +103,7 @@ interface Props {
   bloqueos: Bloqueo[]
   esDoctor?: boolean
   doctorId?: string | null
+  clinicaId?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -299,7 +301,7 @@ function isoAInputDatetime(iso: string): string {
 // Componente
 // ---------------------------------------------------------------------------
 
-export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores, bloqueos, esDoctor = false, doctorId }: Props) {
+export function CitasClient({ citas: citasIniciales, pacientes, servicios, doctores, bloqueos, esDoctor = false, doctorId, clinicaId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [citas, setCitas] = useState<Cita[]>(citasIniciales)
@@ -322,6 +324,28 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       setUltimaSincronizacion(guardado ? Number(guardado) : null)
     }
   }, [citasIniciales])
+
+  // -------------------------------------------------------------------------
+  // Tiempo real — si el asistente de IA (u otro usuario) crea, reagenda o
+  // cancela una cita, se refleja aqui sin recargar la pagina.
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!clinicaId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`appointments-realtime-${clinicaId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments", filter: `clinica_id=eq.${clinicaId}` },
+        () => router.refresh()
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [clinicaId, router])
 
   function bloqueadoSinConexion(): boolean {
     if (navigator.onLine) return false

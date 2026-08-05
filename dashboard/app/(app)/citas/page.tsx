@@ -46,6 +46,7 @@ export default async function CitasPage() {
         bloqueos={[]}
         esDoctor={esDoctor}
         doctorId={doctorId}
+        clinicaId={clinicaId}
       />
     )
   }
@@ -121,6 +122,7 @@ export default async function CitasPage() {
       bloqueos={bloqueos}
       esDoctor={esDoctor}
       doctorId={doctorId}
+      clinicaId={clinicaId}
     />
   )
 }
