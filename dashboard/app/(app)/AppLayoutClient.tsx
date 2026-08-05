@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { MobileHeader } from "@/components/mobile-header"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationsBell } from "@/components/notifications-bell"
 import { AtencionProvider } from "@/lib/atencion-context"
 import { GlobalAtencionListener } from "@/components/global-atencion-listener"
 import { useOnlineStatus } from "@/lib/hooks/use-online-status"
@@ -100,6 +101,7 @@ export function AppLayoutClient({
                 Sin conexión
               </span>
             )}
+            <NotificationsBell clinicaId={clinicaActual.id} />
             <ThemeToggle />
           </header>
 

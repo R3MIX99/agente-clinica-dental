@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logoutAction } from "@/app/actions/auth"
+import { NotificationsBell } from "./notifications-bell"
 import { ClinicaSelector } from "./clinica-selector"
 import type { ClinicaBasica } from "./clinica-selector"
 
@@ -51,6 +52,8 @@ export function MobileHeader({
         />
       </div>
 
+      <div className="flex items-center gap-1">
+      <NotificationsBell clinicaId={clinicaActual.id} />
       {/* Menú de usuario */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -98,6 +101,7 @@ export function MobileHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   )
 }

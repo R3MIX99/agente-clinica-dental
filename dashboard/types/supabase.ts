@@ -724,8 +724,8 @@ export type Database = {
           created_at: string
           cuenta_id: string
           id: string
-          monto_mxn: number | null
           metodo: string | null
+          monto_mxn: number | null
           mp_payment_id: string | null
           mp_preapproval_id: string | null
           registrado_por: string | null
@@ -738,6 +738,7 @@ export type Database = {
           cuenta_id: string
           id?: string
           metodo?: string | null
+          monto_mxn?: number | null
           mp_payment_id?: string | null
           mp_preapproval_id?: string | null
           registrado_por?: string | null
@@ -750,6 +751,7 @@ export type Database = {
           cuenta_id?: string
           id?: string
           metodo?: string | null
+          monto_mxn?: number | null
           mp_payment_id?: string | null
           mp_preapproval_id?: string | null
           registrado_por?: string | null
@@ -855,6 +857,57 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificaciones: {
+        Row: {
+          cita_id: string | null
+          clinica_id: string
+          created_at: string
+          doctor_nombre: string | null
+          fecha_hora: string | null
+          id: string
+          leida: boolean
+          paciente_nombre: string | null
+          tipo: string
+        }
+        Insert: {
+          cita_id?: string | null
+          clinica_id: string
+          created_at?: string
+          doctor_nombre?: string | null
+          fecha_hora?: string | null
+          id?: string
+          leida?: boolean
+          paciente_nombre?: string | null
+          tipo: string
+        }
+        Update: {
+          cita_id?: string | null
+          clinica_id?: string
+          created_at?: string
+          doctor_nombre?: string | null
+          fecha_hora?: string | null
+          id?: string
+          leida?: boolean
+          paciente_nombre?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_cita_id_fkey"
+            columns: ["cita_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
         ]
@@ -1270,6 +1323,7 @@ export type Database = {
           created_at: string
           cuenta_id: string
           estado: string
+          fecha_vencimiento: string | null
           fin_periodo: string | null
           id: string
           inicio_periodo: string | null
@@ -1288,12 +1342,12 @@ export type Database = {
           recordatorios_enviados: number
           recordatorios_extra: number
           saldo_ia_disponible_mxn: number
-          fecha_vencimiento: string | null
         }
         Insert: {
           created_at?: string
           cuenta_id: string
           estado?: string
+          fecha_vencimiento?: string | null
           fin_periodo?: string | null
           id?: string
           inicio_periodo?: string | null
@@ -1312,12 +1366,12 @@ export type Database = {
           recordatorios_enviados?: number
           recordatorios_extra?: number
           saldo_ia_disponible_mxn?: number
-          fecha_vencimiento?: string | null
         }
         Update: {
           created_at?: string
           cuenta_id?: string
           estado?: string
+          fecha_vencimiento?: string | null
           fin_periodo?: string | null
           id?: string
           inicio_periodo?: string | null
@@ -1336,7 +1390,6 @@ export type Database = {
           recordatorios_enviados?: number
           recordatorios_extra?: number
           saldo_ia_disponible_mxn?: number
-          fecha_vencimiento?: string | null
         }
         Relationships: [
           {
@@ -1440,6 +1493,33 @@ export type Database = {
           p_tokens_salida: number
         }
         Returns: Json
+      }
+      upsert_paciente_telegram: {
+        Args: {
+          p_channel_user_id: string
+          p_clinica_id: string
+          p_nombre_telegram: string
+        }
+        Returns: {
+          channel: Database["public"]["Enums"]["channel_type"]
+          channel_user_id: string | null
+          clinica_id: string
+          created_at: string
+          email: string | null
+          fecha_ingreso: string | null
+          id: string
+          laboratorio: string | null
+          nombre: string
+          notas: string | null
+          telefono: string | null
+          tiempo_cita_min: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "patients"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       usuario_en_clinica: { Args: { p_clinica_id: string }; Returns: boolean }
     }
