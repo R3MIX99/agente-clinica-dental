@@ -1,4 +1,4 @@
-const ctx = $('Asignar id conversacion').first().json;
+const ctx = { ...$('Asignar id conversacion').first().json, texto_entrante: $('Decidir si proceso').first().json.texto_entrante };
 const clinicaItems = $('Leer datos de la clinica').all().map(i => i.json);
 const clinica = clinicaItems[0] ?? {};
 const servicios = $('Leer servicios activos').all().map(i => i.json).filter(Boolean);
