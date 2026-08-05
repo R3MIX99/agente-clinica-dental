@@ -69,7 +69,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const duracion = duracion_min ?? 30
+  // La duracion real del servicio manda siempre que haya servicio_id — no se
+  // confia en el duracion_min que mande el modelo, porque si viene mal (o
+  // vacio, cayendo al default de 30) se puede agendar una cita mas corta de
+  // lo que en realidad dura el servicio y encimarla con la siguiente.
+  let duracion = duracion_min ?? 30
+  if (servicio_id) {
+    const { data: servicio } = await db
+      .from("services")
+      .select("duracion_min")
+      .eq("id", servicio_id)
+      .maybeSingle()
+    if (servicio?.duracion_min) duracion = servicio.duracion_min
+  }
 
   const dentroDeHorario = await horarioValidoParaDoctor({
     clinicaId: resuelto.clinicaId,

@@ -202,11 +202,24 @@ export async function buscarDisponibilidad(params: {
         }
       }
 
-      if (esDiaPedido) {
-        horaExactaDisponible = horaDeseadaMin !== null && candidatosDelDia.some((c) => c.t === horaDeseadaMin)
-        if (horaDeseadaMin !== null) {
-          candidatosDelDia.sort((a, b) => Math.abs(a.t - horaDeseadaMin) - Math.abs(b.t - horaDeseadaMin))
-        }
+      if (esDiaPedido && horaDeseadaMin !== null) {
+        // Chequeo directo de la hora EXACTA pedida (no solo si coincide con
+        // alguno de los candidatos generados cada 30 min) — asi "las 3:35"
+        // o "las 3:31" se evaluan correctamente contra el horario real del
+        // doctor y las citas ya ocupadas, sin depender de la cuadricula.
+        const exactoIso = mexLocalToISO(`${fechaTexto}T${minutosATexto(horaDeseadaMin)}`)
+        const exactoMs = new Date(exactoIso).getTime()
+        const exactoFinMs = exactoMs + duracionMin * 60_000
+        const dentroDeMargen = exactoMs >= Date.now() + MARGEN_MIN_DESDE_AHORA * 60_000
+        const dentroDeHorario = bloquesDelDia.some((b) => {
+          const iMin = horaATexto(b.hora_inicio)
+          const fMin = horaATexto(b.hora_fin)
+          return horaDeseadaMin >= iMin && horaDeseadaMin + duracionMin <= fMin
+        })
+        const chocaExacto = ocupados.some((o) => exactoMs < o.fin && exactoFinMs > o.inicio)
+        horaExactaDisponible = dentroDeMargen && dentroDeHorario && !chocaExacto
+
+        candidatosDelDia.sort((a, b) => Math.abs(a.t - horaDeseadaMin) - Math.abs(b.t - horaDeseadaMin))
       }
 
       const espacioDisponible = MAX_SLOTS - slots.length
