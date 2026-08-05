@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ type Doctor = {
   especialidades: string[] | null
   fecha_ingreso: string | null
   created_at: string | null
+  es_principal: boolean
 }
 
 type FormDoctor = {
@@ -62,6 +64,7 @@ type FormDoctor = {
   email: string
   fecha_ingreso: string
   especialidades: string[]
+  es_principal: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +102,7 @@ const FORM_INICIAL: FormDoctor = {
   email: "",
   fecha_ingreso: "",
   especialidades: [],
+  es_principal: false,
 }
 
 // Lunes a Sabado, luego Domingo
@@ -258,6 +262,7 @@ export function DoctoresClient({
       email: d.email ?? "",
       fecha_ingreso: d.fecha_ingreso ?? "",
       especialidades: d.especialidades ?? [],
+      es_principal: d.es_principal,
     })
     setEspInput("")
     setFormOpen(true)
@@ -479,7 +484,14 @@ export function DoctoresClient({
               >
                 {/* Nombre */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{d.nombre}</p>
+                  <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                    {d.nombre}
+                    {d.es_principal && (
+                      <span className="inline-flex items-center rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-medium text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400 shrink-0">
+                        Principal
+                      </span>
+                    )}
+                  </p>
                   {d.email && (
                     <p className="text-xs text-muted-foreground truncate">
                       {d.email}
@@ -554,12 +566,19 @@ export function DoctoresClient({
               >
                 {/* Nombre */}
                 <td className="px-4 py-3 font-medium whitespace-nowrap">
-                  <Link
-                    href={`/doctores/${d.id}`}
-                    className="hover:underline hover:text-primary transition-colors"
-                  >
-                    {d.nombre}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/doctores/${d.id}`}
+                      className="hover:underline hover:text-primary transition-colors"
+                    >
+                      {d.nombre}
+                    </Link>
+                    {d.es_principal && (
+                      <span className="inline-flex items-center rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-medium text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400">
+                        Principal
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Especialidades */}
@@ -634,8 +653,13 @@ export function DoctoresClient({
           <DrawerHeader className="flex-shrink-0 border-b border-border pb-3 text-left">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <DrawerTitle className="truncate">
+                <DrawerTitle className="truncate flex items-center gap-1.5">
                   {drawerDoctor?.nombre}
+                  {drawerDoctor?.es_principal && (
+                    <span className="inline-flex items-center rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-medium text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400 shrink-0">
+                      Principal
+                    </span>
+                  )}
                 </DrawerTitle>
                 {drawerDoctor?.especialidades &&
                   drawerDoctor.especialidades.length > 0 && (
@@ -990,6 +1014,23 @@ export function DoctoresClient({
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Doctor principal */}
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+              <div className="space-y-0.5">
+                <Label htmlFor="es_principal" className="cursor-pointer">
+                  Doctor principal
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Se asigna automáticamente a pacientes nuevos que llegan por el chat, si la clínica tiene más de un doctor.
+                </p>
+              </div>
+              <Switch
+                id="es_principal"
+                checked={form.es_principal}
+                onCheckedChange={(v) => setForm((prev) => ({ ...prev, es_principal: v }))}
+              />
             </div>
           </div>
         )

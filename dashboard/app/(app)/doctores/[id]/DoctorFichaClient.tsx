@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { IconTooltip } from "@/components/ui/icon-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import {
   Card,
@@ -47,6 +48,7 @@ type Doctor = {
   especialidades: string[] | null
   fecha_ingreso: string | null
   created_at: string | null
+  es_principal: boolean
 }
 
 type Horario = {
@@ -202,6 +204,7 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
     email: doctor.email ?? "",
     fecha_ingreso: doctor.fecha_ingreso ?? "",
     especialidades: doctor.especialidades ?? [],
+    es_principal: doctor.es_principal,
   })
   const [espInput, setEspInput] = useState("")
 
@@ -223,6 +226,7 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
       email: doctor.email ?? "",
       fecha_ingreso: doctor.fecha_ingreso ?? "",
       especialidades: doctor.especialidades ?? [],
+      es_principal: doctor.es_principal,
     })
     setEspInput("")
     setEditarOpen(true)
@@ -701,6 +705,23 @@ export function DoctorFichaClient({ doctor, horarios, citas, pacientes }: Props)
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Doctor principal */}
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+              <div className="space-y-0.5">
+                <Label htmlFor="es_principal_ficha" className="cursor-pointer">
+                  Doctor principal
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Se asigna automáticamente a pacientes nuevos que llegan por el chat, si la clínica tiene más de un doctor.
+                </p>
+              </div>
+              <Switch
+                id="es_principal_ficha"
+                checked={formDoctor.es_principal}
+                onCheckedChange={(v) => setFormDoctor((prev) => ({ ...prev, es_principal: v }))}
+              />
             </div>
           </div>
 

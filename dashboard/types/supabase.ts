@@ -97,6 +97,7 @@ export type Database = {
       appointments: {
         Row: {
           clinica_id: string
+          completada_at: string | null
           costo: number | null
           created_at: string
           doctor_id: string | null
@@ -116,6 +117,7 @@ export type Database = {
         }
         Insert: {
           clinica_id: string
+          completada_at?: string | null
           costo?: number | null
           created_at?: string
           doctor_id?: string | null
@@ -135,6 +137,7 @@ export type Database = {
         }
         Update: {
           clinica_id?: string
+          completada_at?: string | null
           costo?: number | null
           created_at?: string
           doctor_id?: string | null
@@ -685,6 +688,7 @@ export type Database = {
           clinica_id: string
           created_at: string | null
           email: string | null
+          es_principal: boolean
           especialidades: string[] | null
           fecha_ingreso: string | null
           id: string
@@ -694,6 +698,7 @@ export type Database = {
           clinica_id: string
           created_at?: string | null
           email?: string | null
+          es_principal?: boolean
           especialidades?: string[] | null
           fecha_ingreso?: string | null
           id?: string
@@ -703,6 +708,7 @@ export type Database = {
           clinica_id?: string
           created_at?: string | null
           email?: string | null
+          es_principal?: boolean
           especialidades?: string[] | null
           fecha_ingreso?: string | null
           id?: string

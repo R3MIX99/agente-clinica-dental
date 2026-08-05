@@ -32,17 +32,38 @@ export type DatosDoctor = {
   email: string
   fecha_ingreso: string
   especialidades: string[]
+  es_principal: boolean
+}
+
+// Deja a lo sumo un doctor "principal" por clinica: si se va a marcar uno
+// nuevo, primero se desmarca cualquier otro (el indice unico parcial en
+// doctors.es_principal tambien lo obliga a nivel de base de datos, esto
+// solo evita que el update a medias choque contra el).
+async function limpiarOtrosPrincipales(
+  db: ReturnType<typeof createServerClient>,
+  clinicaId: string,
+  idAExcluir?: string
+) {
+  let q = db.from("doctors").update({ es_principal: false }).eq("clinica_id", clinicaId).eq("es_principal", true)
+  if (idAExcluir) q = q.neq("id", idAExcluir)
+  await q
 }
 
 export async function crearDoctor(datos: DatosDoctor) {
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
+
+  if (datos.es_principal) {
+    await limpiarOtrosPrincipales(supabase, clinicaId)
+  }
+
   const { error } = await supabase.from("doctors").insert({
     clinica_id: clinicaId,
     nombre: datos.nombre.trim(),
     email: datos.email.trim() || null,
     fecha_ingreso: datos.fecha_ingreso || null,
     especialidades: datos.especialidades.length > 0 ? datos.especialidades : null,
+    es_principal: datos.es_principal,
   })
   if (error) throw new Error(error.message)
   revalidatePath("/doctores")
@@ -54,6 +75,10 @@ export async function actualizarDoctor(id: string, datos: DatosDoctor) {
 
   const emailFinal = datos.email.trim() || null
 
+  if (datos.es_principal) {
+    await limpiarOtrosPrincipales(supabase, clinicaId, id)
+  }
+
   const { error } = await supabase
     .from("doctors")
     .update({
@@ -61,6 +86,7 @@ export async function actualizarDoctor(id: string, datos: DatosDoctor) {
       email: emailFinal,
       fecha_ingreso: datos.fecha_ingreso || null,
       especialidades: datos.especialidades.length > 0 ? datos.especialidades : null,
+      es_principal: datos.es_principal,
     })
     .eq("id", id)
     .eq("clinica_id", clinicaId)

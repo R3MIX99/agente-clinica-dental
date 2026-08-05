@@ -7,6 +7,7 @@ import {
   sumarDiasCalendario,
   formatearFechaHoraMex,
 } from "@/lib/asistente/fecha"
+import { asegurarDoctorAsignado } from "@/lib/citas/asignacion-doctor"
 
 function minutosATexto(min: number): string {
   const h = Math.floor(min / 60)
@@ -47,11 +48,12 @@ export type ResultadoDisponibilidad =
       hora_exacta_disponible: boolean
     }
   | { ok: false; motivo: "sin_doctor_asignado" | "sin_disponibilidad" | "paciente_no_encontrado" }
+  | { ok: false; motivo: "elegir_doctor"; doctores: { id: string; nombre: string }[] }
 
 // Un parametro de n8n mal configurado (doble "=" al inicio de una
 // expresion) puede llegar como "=2026-08-05" en vez de "2026-08-05" — se
 // tolera aqui para no depender de que la expresion quede perfecta en n8n.
-function limpiarValorTool(v?: string | null): string | null {
+export function limpiarValorTool(v?: string | null): string | null {
   if (!v) return null
   const limpio = v.replace(/^=+/, "").trim()
   return limpio || null
@@ -86,7 +88,7 @@ export async function buscarDisponibilidad(params: {
   const servicioId = limpiarValorTool(params.servicioId)
   const db = createServerClient()
 
-  const [{ data: asignaciones }, { data: servicio }] = await Promise.all([
+  const [{ data: asignacionesRaw }, { data: servicio }] = await Promise.all([
     db
       .from("patient_doctors")
       .select("doctor_id, orden, doctors(id, nombre)")
@@ -97,6 +99,29 @@ export async function buscarDisponibilidad(params: {
       ? db.from("services").select("duracion_min").eq("id", servicioId).maybeSingle()
       : Promise.resolve({ data: null }),
   ])
+
+  let asignaciones = asignacionesRaw
+
+  // Paciente nuevo (ej. llego por el chat) sin doctor asignado todavia: se
+  // intenta asignar automatico (unico doctor de la clinica, o el marcado
+  // como principal) en vez de mandar de una vez al "sin_doctor_asignado".
+  if (!asignaciones || asignaciones.length === 0) {
+    const resultadoAsignacion = await asegurarDoctorAsignado({ clinicaId, patientId })
+    if (!resultadoAsignacion.ok) {
+      if (resultadoAsignacion.motivo === "elegir_doctor") {
+        return { ok: false, motivo: "elegir_doctor", doctores: resultadoAsignacion.doctores }
+      }
+      return { ok: false, motivo: "sin_doctor_asignado" }
+    }
+
+    const { data: releido } = await db
+      .from("patient_doctors")
+      .select("doctor_id, orden, doctors(id, nombre)")
+      .eq("clinica_id", clinicaId)
+      .eq("patient_id", patientId)
+      .order("orden")
+    asignaciones = releido
+  }
 
   if (!asignaciones || asignaciones.length === 0) {
     return { ok: false, motivo: "sin_doctor_asignado" }

@@ -32,7 +32,7 @@ export default async function DoctoresPage() {
   const db = createServerClient()
   const { data: doctores } = await db
     .from("doctors")
-    .select("id, nombre, email, especialidades, fecha_ingreso, created_at")
+    .select("id, nombre, email, especialidades, fecha_ingreso, created_at, es_principal")
     .eq("clinica_id", clinicaId)
     .order("nombre")
 
