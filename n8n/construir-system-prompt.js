@@ -26,7 +26,7 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', '
 const ahoraParts = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'long',
 }).formatToParts(new Date());
-const getPart = (t) => ahoraParts.find(p => p.type === t)?.value;
+const getPart = (t) => ahoraParts.find(p => p.type === t)?.value ?? '';
 const diaSemanaHoy = getPart('weekday').toLowerCase();
 const diaHoy = parseInt(getPart('day'));
 const mesHoy = parseInt(getPart('month'));
