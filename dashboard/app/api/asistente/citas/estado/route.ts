@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     .select("id, fecha_hora, status, services(nombre), doctors(nombre)")
     .eq("patient_id", resuelto.patientId)
     .eq("clinica_id", resuelto.clinicaId)
-    .in("status", ["programada", "confirmada"])
+    .in("status", ["programada", "confirmada", "por_reagendar"])
     .gte("fecha_hora", new Date().toISOString())
     .order("fecha_hora")
 

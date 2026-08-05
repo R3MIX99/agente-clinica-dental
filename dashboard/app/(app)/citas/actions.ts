@@ -619,9 +619,10 @@ export async function cerrarDia(
     )
     if (paciente?.channel_user_id && conversacionId) {
       const motivoTxt = datos.motivo?.trim() ? ` (${datos.motivo.trim()})` : ""
-      const comoReagendar = reservaUrl
-        ? `Puede reagendar en este enlace: ${reservaUrl}`
-        : `Por favor comuniquese con la clinica${clinica?.telefono ? ` al ${clinica.telefono}` : ""} para reagendar.`
+      const comoReagendar =
+        `¿Gusta que le ayudemos a reagendarla por este mismo chat? ` +
+        `También puede comunicarse con la clinica${clinica?.telefono ? ` al ${clinica.telefono}` : ""} para reagendar` +
+        `${reservaUrl ? `, o usar este enlace: ${reservaUrl}` : ""}.`
       const texto =
         `Hola ${paciente.nombre}, le informamos que su cita` +
         `${servicio ? ` de ${servicio.nombre}` : ""} del ${fechaTxt} necesita reprogramarse${motivoTxt}. ` +
