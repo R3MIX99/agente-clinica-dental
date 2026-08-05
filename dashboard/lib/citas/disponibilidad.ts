@@ -202,6 +202,10 @@ export async function buscarDisponibilidad(params: {
     }
 
     if (slots.length > 0) {
+      console.log("[disponibilidad-debug]", JSON.stringify({
+        fechaDeseada, horaDeseada, fechaDeseadaParsed, hoy, inicioVentana, horaDeseadaMin,
+        slotsCount: slots.length, horaExactaDisponible,
+      }))
       return {
         ok: true,
         doctor_id: doctorId,
