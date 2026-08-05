@@ -82,18 +82,9 @@
   {
    "parameters": {
     "method": "POST",
-    "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/patients",
+    "url": "https://vbsoujyosifqtazcidul.supabase.co/rest/v1/rpc/upsert_paciente_telegram",
     "authentication": "predefinedCredentialType",
     "nodeCredentialType": "supabaseApi",
-    "sendQuery": true,
-    "queryParameters": {
-     "parameters": [
-      {
-       "name": "on_conflict",
-       "value": "channel,channel_user_id"
-      }
-     ]
-    },
     "sendHeaders": true,
     "headerParameters": {
      "parameters": [
@@ -103,13 +94,13 @@
       },
       {
        "name": "Prefer",
-       "value": "resolution=merge-duplicates,return=representation"
+       "value": "return=representation"
       }
      ]
     },
     "sendBody": true,
     "specifyBody": "json",
-    "jsonBody": "={{ JSON.stringify({ nombre: $json.nombre_paciente, channel: 'telegram', channel_user_id: $json.chat_id, clinica_id: $json.clinica_id }) }}",
+    "jsonBody": "={{ JSON.stringify({ p_clinica_id: $json.clinica_id, p_channel_user_id: $json.chat_id, p_nombre_telegram: $json.nombre_paciente }) }}",
     "options": {}
    },
    "id": "88b17043-0cc3-4b04-80b0-63c19598391d",
