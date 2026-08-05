@@ -1,11 +1,8 @@
 const ctx = $('Asignar id conversacion').first().json;
-const clinicaArr = $('Leer datos de la clinica').first().json;
-const serviciosArr = $('Leer servicios activos').first().json;
-const historialArr = $('Cargar historial reciente').first().json;
-
-const clinica = Array.isArray(clinicaArr) ? clinicaArr[0] : clinicaArr;
-const servicios = Array.isArray(serviciosArr) ? serviciosArr : [];
-const historial = (Array.isArray(historialArr) ? historialArr : [historialArr]).filter(Boolean);
+const clinicaItems = $('Leer datos de la clinica').all().map(i => i.json);
+const clinica = clinicaItems[0] ?? {};
+const servicios = $('Leer servicios activos').all().map(i => i.json).filter(Boolean);
+const historial = $('Cargar historial reciente').all().map(i => i.json).filter(Boolean);
 
 const faqTexto = Array.isArray(clinica.faq)
   ? clinica.faq.map(f => `P: ${f.pregunta}\nR: ${f.respuesta}`).join('\n\n')
