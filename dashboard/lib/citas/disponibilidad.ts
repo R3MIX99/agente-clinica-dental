@@ -147,7 +147,9 @@ export async function buscarDisponibilidad(params: {
     const slots: SlotDisponible[] = []
     let horaExactaDisponible = false
 
-    for (let dia = 0; dia <= DIAS_VENTANA && slots.length < MAX_SLOTS; dia++) {
+    for (let dia = 0; dia <= DIAS_VENTANA; dia++) {
+      if (slots.length >= MAX_SLOTS) break
+
       const { year, month, day } = sumarDiasCalendario(inicioVentana, dia)
       const fechaTexto = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
       if (diasBloqueados.has(fechaTexto)) continue
@@ -156,12 +158,19 @@ export async function buscarDisponibilidad(params: {
       const bloquesDelDia = horarios.filter((h) => h.dia_semana === diaSemana)
       if (bloquesDelDia.length === 0) continue
 
+      // Para el dia que el paciente pidio explicitamente no cortamos al
+      // llegar a MAX_SLOTS: primero juntamos todos los huecos libres de ese
+      // dia (para poder detectar si la hora exacta pedida esta libre y
+      // elegir los mas cercanos a ella), y solo despues recortamos.
+      const esDiaPedido = dia === 0 && !!fechaDeseadaParsed
+      const candidatosDelDia: { slot: SlotDisponible; t: number }[] = []
+
       for (const bloque of bloquesDelDia) {
         const inicioMin = horaATexto(bloque.hora_inicio)
         const finMin = horaATexto(bloque.hora_fin)
 
         for (let t = inicioMin; t + duracionMin <= finMin; t += INTERVALO_MIN) {
-          if (slots.length >= MAX_SLOTS) break
+          if (!esDiaPedido && slots.length + candidatosDelDia.length >= MAX_SLOTS) break
 
           const candidatoIso = mexLocalToISO(`${fechaTexto}T${minutosATexto(t)}`)
           const candidatoMs = new Date(candidatoIso).getTime()
@@ -174,18 +183,22 @@ export async function buscarDisponibilidad(params: {
           )
           if (chocaConOcupado) continue
 
-          slots.push({ fecha_hora_iso: candidatoIso, ...formatearFechaHoraMex(candidatoIso) })
-
-          if (
-            fechaDeseadaParsed &&
-            horaDeseadaMin !== null &&
-            dia === 0 &&
-            t === horaDeseadaMin
-          ) {
-            horaExactaDisponible = true
-          }
+          candidatosDelDia.push({
+            slot: { fecha_hora_iso: candidatoIso, ...formatearFechaHoraMex(candidatoIso) },
+            t,
+          })
         }
       }
+
+      if (esDiaPedido) {
+        horaExactaDisponible = horaDeseadaMin !== null && candidatosDelDia.some((c) => c.t === horaDeseadaMin)
+        if (horaDeseadaMin !== null) {
+          candidatosDelDia.sort((a, b) => Math.abs(a.t - horaDeseadaMin) - Math.abs(b.t - horaDeseadaMin))
+        }
+      }
+
+      const espacioDisponible = MAX_SLOTS - slots.length
+      slots.push(...candidatosDelDia.slice(0, espacioDisponible).map((c) => c.slot))
     }
 
     if (slots.length > 0) {
