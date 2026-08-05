@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
 
   const conversacionId = req.nextUrl.searchParams.get("conversacion_id")
   const servicioId = req.nextUrl.searchParams.get("servicio_id")
+  const fechaDeseada = req.nextUrl.searchParams.get("fecha_deseada")
+  const horaDeseada = req.nextUrl.searchParams.get("hora_deseada")
 
   if (!conversacionId) {
     return NextResponse.json({ ok: false, error: "Se requiere conversacion_id" }, { status: 400 })
@@ -28,6 +30,8 @@ export async function GET(req: NextRequest) {
     clinicaId: resuelto.clinicaId,
     patientId: resuelto.patientId,
     servicioId,
+    fechaDeseada,
+    horaDeseada,
   })
 
   return NextResponse.json(resultado)

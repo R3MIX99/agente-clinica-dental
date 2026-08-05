@@ -1,6 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server"
 import {
   mexLocalToISO,
+  isoToMexLocalParts,
   diaSemanaMex,
   hoyMexico,
   sumarDiasCalendario,
@@ -43,15 +44,35 @@ export type ResultadoDisponibilidad =
       fue_respaldo: boolean
       duracion_min: number
       slots: SlotDisponible[]
+      hora_exacta_disponible: boolean
     }
   | { ok: false; motivo: "sin_doctor_asignado" | "sin_disponibilidad" | "paciente_no_encontrado" }
+
+// Valida "YYYY-MM-DD" con una fecha real (evita que un mes/dia invalido del
+// modelo, ej. 2026-02-30, se cuele silenciosamente).
+function parseFechaDeseada(fechaDeseada?: string | null): { year: number; month: number; day: number } | null {
+  if (!fechaDeseada || !/^\d{4}-\d{2}-\d{2}$/.test(fechaDeseada)) return null
+  const [year, month, day] = fechaDeseada.split("-").map(Number)
+  const d = new Date(Date.UTC(year, month - 1, day))
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) return null
+  return { year, month, day }
+}
+
+function esFechaPosterior(
+  a: { year: number; month: number; day: number },
+  b: { year: number; month: number; day: number }
+): boolean {
+  return Date.UTC(a.year, a.month - 1, a.day) > Date.UTC(b.year, b.month - 1, b.day)
+}
 
 export async function buscarDisponibilidad(params: {
   clinicaId: string
   patientId: string
   servicioId?: string | null
+  fechaDeseada?: string | null // "YYYY-MM-DD", tomada de la tabla de calendario del prompt
+  horaDeseada?: string | null // "HH:MM" 24h
 }): Promise<ResultadoDisponibilidad> {
-  const { clinicaId, patientId, servicioId } = params
+  const { clinicaId, patientId, servicioId, fechaDeseada, horaDeseada } = params
   const db = createServerClient()
 
   const [{ data: asignaciones }, { data: servicio }] = await Promise.all([
@@ -73,7 +94,16 @@ export async function buscarDisponibilidad(params: {
   const duracionMin = servicio?.duracion_min ?? 30
 
   const ahora = new Date()
-  const inicioVentana = hoyMexico()
+  const hoy = hoyMexico()
+  const fechaDeseadaParsed = parseFechaDeseada(fechaDeseada)
+  // Si el paciente pidio un dia concreto, la busqueda arranca ahi (nunca
+  // antes de hoy) para no devolver los primeros huecos genericos de hoy
+  // cuando lo que se pidio fue, por ejemplo, "el jueves a las 4pm".
+  const inicioVentana = fechaDeseadaParsed && esFechaPosterior(fechaDeseadaParsed, hoy) ? fechaDeseadaParsed : hoy
+  const horaDeseadaMin =
+    horaDeseada && /^\d{2}:\d{2}$/.test(horaDeseada)
+      ? horaATexto(horaDeseada + ":00")
+      : null
   const finVentanaIso = new Date(ahora.getTime() + (DIAS_VENTANA + 1) * 86_400_000).toISOString()
   const inicioVentanaIso = ahora.toISOString()
 
@@ -115,6 +145,7 @@ export async function buscarDisponibilidad(params: {
     )
 
     const slots: SlotDisponible[] = []
+    let horaExactaDisponible = false
 
     for (let dia = 0; dia <= DIAS_VENTANA && slots.length < MAX_SLOTS; dia++) {
       const { year, month, day } = sumarDiasCalendario(inicioVentana, dia)
@@ -144,6 +175,15 @@ export async function buscarDisponibilidad(params: {
           if (chocaConOcupado) continue
 
           slots.push({ fecha_hora_iso: candidatoIso, ...formatearFechaHoraMex(candidatoIso) })
+
+          if (
+            fechaDeseadaParsed &&
+            horaDeseadaMin !== null &&
+            dia === 0 &&
+            t === horaDeseadaMin
+          ) {
+            horaExactaDisponible = true
+          }
         }
       }
     }
@@ -156,9 +196,55 @@ export async function buscarDisponibilidad(params: {
         fue_respaldo: i > 0,
         duracion_min: duracionMin,
         slots,
+        hora_exacta_disponible: horaExactaDisponible,
       }
     }
   }
 
   return { ok: false, motivo: "sin_disponibilidad" }
+}
+
+// Valida que un horario exacto (usado por agendar/reagendar) caiga dentro
+// del horario semanal real del doctor y no coincida con un dia bloqueado.
+// La revalidacion de choques con otras citas ya la hacen agendar/reagendar
+// por su cuenta; esto cubre el hueco de que nunca revisaban el horario del
+// doctor ni los bloqueos, solo si habia otra cita encima.
+export async function horarioValidoParaDoctor(params: {
+  clinicaId: string
+  doctorId: string
+  fechaHoraIso: string
+  duracionMin: number
+  servicioId?: string | null
+}): Promise<boolean> {
+  const { clinicaId, doctorId, fechaHoraIso, duracionMin, servicioId } = params
+  const db = createServerClient()
+
+  const { year, month, day, hour, minute } = isoToMexLocalParts(fechaHoraIso)
+  const fechaTexto = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+  const diaSemana = diaSemanaMex(year, month, day)
+  const minutoDelDia = hour * 60 + minute
+
+  const [{ data: horarios }, { data: bloqueos }] = await Promise.all([
+    db
+      .from("doctor_schedules")
+      .select("hora_inicio, hora_fin")
+      .eq("doctor_id", doctorId)
+      .eq("dia_semana", diaSemana),
+    db
+      .from("bloqueos")
+      .select("doctor_id, service_id")
+      .eq("clinica_id", clinicaId)
+      .eq("fecha", fechaTexto),
+  ])
+
+  const bloqueado = (bloqueos ?? []).some(
+    (b) => (!b.doctor_id || b.doctor_id === doctorId) && (!b.service_id || !servicioId || b.service_id === servicioId)
+  )
+  if (bloqueado) return false
+
+  return (horarios ?? []).some((h) => {
+    const inicioMin = horaATexto(h.hora_inicio)
+    const finMin = horaATexto(h.hora_fin)
+    return minutoDelDia >= inicioMin && minutoDelDia + duracionMin <= finMin
+  })
 }

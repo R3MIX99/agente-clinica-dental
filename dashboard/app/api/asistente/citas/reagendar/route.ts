@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { shareSecretValido, resolverPacienteDesdeConversacion } from "@/lib/asistente/auth"
 import { formatearFechaHoraMex } from "@/lib/asistente/fecha"
+import { horarioValidoParaDoctor } from "@/lib/citas/disponibilidad"
 
 // Tool del asistente de IA — reagenda una cita existente del paciente de
 // esta conversacion a un nuevo horario (que ya se confirmo con el paciente).
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   // La cita debe pertenecer al paciente de esta conversacion
   const { data: citaActual } = await db
     .from("appointments")
-    .select("id, doctor_id, duracion_min, patient_id, clinica_id")
+    .select("id, doctor_id, duracion_min, patient_id, clinica_id, service_id")
     .eq("id", cita_id)
     .eq("patient_id", resuelto.patientId)
     .eq("clinica_id", resuelto.clinicaId)
@@ -56,6 +57,21 @@ export async function POST(req: NextRequest) {
   }
 
   const duracion = citaActual.duracion_min ?? 30
+
+  const dentroDeHorario = await horarioValidoParaDoctor({
+    clinicaId: resuelto.clinicaId,
+    doctorId: citaActual.doctor_id,
+    fechaHoraIso: fecha.toISOString(),
+    duracionMin: duracion,
+    servicioId: citaActual.service_id,
+  })
+  if (!dentroDeHorario) {
+    return NextResponse.json(
+      { ok: false, error: "Ese horario no esta dentro del horario del doctor, o el dia esta bloqueado" },
+      { status: 409 }
+    )
+  }
+
   const inicioMs = fecha.getTime()
   const finMs = inicioMs + duracion * 60_000
 
