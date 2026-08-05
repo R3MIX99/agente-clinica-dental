@@ -58,6 +58,8 @@ function textoNotificacion(n: Notificacion): { titulo: string; icono: React.Reac
       return { titulo: `${paciente} reagendó su cita`, icono: <CalendarClock className="h-4 w-4 text-amber-600 dark:text-amber-400" /> }
     case "cita_cancelada":
       return { titulo: `${paciente} canceló su cita`, icono: <CalendarX className="h-4 w-4 text-destructive" /> }
+    default:
+      return { titulo: `${paciente} tiene un cambio en su cita`, icono: <CalendarClock className="h-4 w-4 text-muted-foreground" /> }
   }
 }
 
@@ -77,9 +79,12 @@ export function NotificationsBell({ clinicaId }: { clinicaId: string | null }) {
       .eq("clinica_id", clinicaId)
       .order("created_at", { ascending: false })
       .limit(MAX_NOTIFICACIONES)
-      .then(({ data }) => {
-        if (data) setNotificaciones(data as Notificacion[])
-      })
+      .then(
+        ({ data }) => {
+          if (data) setNotificaciones(data as Notificacion[])
+        },
+        () => {}
+      )
 
     const channel = supabase
       .channel(`notificaciones-realtime-${clinicaId}`)
@@ -87,7 +92,9 @@ export function NotificationsBell({ clinicaId }: { clinicaId: string | null }) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notificaciones", filter: `clinica_id=eq.${clinicaId}` },
         (payload) => {
-          setNotificaciones((prev) => [payload.new as Notificacion, ...prev].slice(0, MAX_NOTIFICACIONES))
+          const nueva = payload.new as Notificacion | undefined
+          if (!nueva?.id) return
+          setNotificaciones((prev) => [nueva, ...prev].slice(0, MAX_NOTIFICACIONES))
         }
       )
       .subscribe()
@@ -106,7 +113,7 @@ export function NotificationsBell({ clinicaId }: { clinicaId: string | null }) {
       .update({ leida: true })
       .eq("clinica_id", clinicaId)
       .eq("leida", false)
-      .then(() => {})
+      .then(() => {}, () => {})
   }
 
   return (
