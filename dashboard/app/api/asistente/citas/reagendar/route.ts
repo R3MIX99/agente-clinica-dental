@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase/server"
 import { shareSecretValido, resolverPacienteDesdeConversacion } from "@/lib/asistente/auth"
-import { formatearFechaHoraMex } from "@/lib/asistente/fecha"
+import { formatearFechaHoraMex, tieneZonaHorariaExplicita } from "@/lib/asistente/fecha"
 import { horarioValidoParaDoctor } from "@/lib/citas/disponibilidad"
 
 // Tool del asistente de IA — reagenda una cita existente del paciente de
@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: resuelto.error }, { status: 404 })
   }
 
+  if (!tieneZonaHorariaExplicita(fecha_hora_iso)) {
+    return NextResponse.json(
+      { ok: false, error: "fecha_hora_iso debe incluir zona horaria explicita (terminar en Z). Usa el valor exacto que devolvio Buscar disponibilidad, sin modificarlo." },
+      { status: 400 }
+    )
+  }
   const fecha = new Date(fecha_hora_iso)
   if (isNaN(fecha.getTime())) {
     return NextResponse.json({ ok: false, error: "fecha_hora_iso inválida" }, { status: 400 })

@@ -4,6 +4,14 @@
 // convertir zonas horarias ni calcular dias de la semana por su cuenta:
 // solo debe repetir los textos ya formateados que le devuelven las tools.
 
+// Un ISO sin "Z" ni offset explicito (ej. el modelo mandando "2026-08-05T16:00:00"
+// como si fuera la hora local de Mexico) es ambiguo: `new Date(...)` lo
+// interpreta como hora LOCAL DEL SERVIDOR (UTC en Vercel), corriendo la cita
+// 6 horas sin ningun error. Mejor rechazarlo que adivinar.
+export function tieneZonaHorariaExplicita(iso: string): boolean {
+  return /Z$|[+-]\d{2}:?\d{2}$/.test(iso)
+}
+
 const DIAS = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
