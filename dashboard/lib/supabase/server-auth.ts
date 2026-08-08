@@ -84,6 +84,18 @@ export async function resolverClinicaId(): Promise<string> {
 
   const db = createAdminClient()
 
+  // Cuenta desactivada por el administrador: se corta el acceso de inmediato,
+  // aunque la sesion de auth siga vigente (ej. el admin desactivo al doctor
+  // mientras ya tenia una pestaña abierta).
+  const { data: perfilActivo } = await db
+    .from("profiles")
+    .select("activo")
+    .eq("id", user.id)
+    .maybeSingle()
+  if (perfilActivo && perfilActivo.activo === false) {
+    throw new Error("Tu cuenta está desactivada. Contacta a tu administrador.")
+  }
+
   // 1. Cookie validada contra membresias (previene suplantacion via cookie manual)
   if (cookieClinica) {
     const { data } = await db

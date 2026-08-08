@@ -192,13 +192,15 @@ export function UsoClient({ uso }: { uso: UsoClinica }) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Equipo incluido</CardTitle>
-          <CardDescription>Doctores y usuarios configurados para la clinica.</CardDescription>
+          <CardDescription>
+            Cuentas con acceso al panel (usuarios en /usuarios), no la lista de doctores de /doctores.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Doctores</span>
+                <span className="font-medium">Doctores con acceso al panel</span>
                 <span className="text-muted-foreground">{equipo.doctores_activos} / {equipo.max_doctores}</span>
               </div>
               <BarraProgreso

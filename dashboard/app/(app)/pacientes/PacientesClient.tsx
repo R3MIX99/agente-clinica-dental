@@ -72,6 +72,12 @@ type ProximaCita = {
   servicio_nombre: string | null
 }
 
+type UltimaCita = {
+  fecha_hora: string
+  servicio_nombre: string | null
+  status: string
+}
+
 type DoctorRef = {
   id: string
   nombre: string
@@ -87,13 +93,12 @@ type PacienteConDatos = {
   channel_user_id: string | null
   notas: string | null
   created_at: string
-  laboratorio: string | null
   tiempo_cita_min: number | null
   fecha_ingreso: string | null
   proxima_cita: ProximaCita | null
+  ultima_cita: UltimaCita | null
   doctor_principal: DoctorRef | null
   doctores_respaldo: DoctorRef[]
-  estudios_pendientes: number
 }
 
 type Servicio = { id: string; nombre: string; precio: number }
@@ -106,7 +111,6 @@ type FormPaciente = {
   channel: string
   channel_user_id: string
   notas: string
-  laboratorio: string
   tiempo_cita_min: string
   fecha_ingreso: string
   doctor_principal: string
@@ -187,7 +191,6 @@ const FORM_INICIAL: FormPaciente = {
   channel: "telegram",
   channel_user_id: "",
   notas: "",
-  laboratorio: "",
   tiempo_cita_min: "",
   fecha_ingreso: "",
   doctor_principal: "",
@@ -511,7 +514,6 @@ export function PacientesClient({
       channel: p.channel,
       channel_user_id: p.channel_user_id ?? "",
       notas: p.notas ?? "",
-      laboratorio: p.laboratorio ?? "",
       tiempo_cita_min:
         p.tiempo_cita_min != null ? String(p.tiempo_cita_min) : "",
       fecha_ingreso: p.fecha_ingreso ?? "",
@@ -915,7 +917,7 @@ export function PacientesClient({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {["Nombre", "Próxima cita", "Doctor", "Est. pendientes", "Acciones"].map((h) => (
+              {["Nombre", "Próxima cita", "Doctor", "Última cita", "Acciones"].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-medium text-muted-foreground whitespace-nowrap"
@@ -977,15 +979,22 @@ export function PacientesClient({
                   )}
                 </td>
 
-                {/* Estudios pendientes */}
-                <td className="px-4 py-3">
-                  {p.estudios_pendientes === 0 ? (
-                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      0
-                    </span>
+                {/* Última cita */}
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {p.ultima_cita ? (
+                    <div>
+                      <span className="text-muted-foreground">
+                        {formatFechaCita(p.ultima_cita.fecha_hora)}
+                      </span>
+                      {p.ultima_cita.servicio_nombre && (
+                        <span className="block text-[11px] text-muted-foreground/60">
+                          {p.ultima_cita.servicio_nombre}
+                        </span>
+                      )}
+                    </div>
                   ) : (
-                    <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:text-orange-400">
-                      {p.estudios_pendientes}
+                    <span className="text-muted-foreground/50 text-xs">
+                      Sin citas previas
                     </span>
                   )}
                 </td>
@@ -1130,16 +1139,6 @@ export function PacientesClient({
                         </span>
                       </div>
                     )}
-                    {drawerPaciente.laboratorio && (
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-muted-foreground">
-                          Laboratorio
-                        </span>
-                        <span className="font-medium">
-                          {drawerPaciente.laboratorio}
-                        </span>
-                      </div>
-                    )}
                     {drawerPaciente.tiempo_cita_min != null && (
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-muted-foreground">
@@ -1147,16 +1146,6 @@ export function PacientesClient({
                         </span>
                         <span className="font-medium tabular-nums">
                           {drawerPaciente.tiempo_cita_min} min
-                        </span>
-                      </div>
-                    )}
-                    {drawerPaciente.estudios_pendientes > 0 && (
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-muted-foreground">
-                          Estudios pendientes
-                        </span>
-                        <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:text-orange-400">
-                          {drawerPaciente.estudios_pendientes}
                         </span>
                       </div>
                     )}
@@ -1388,28 +1377,17 @@ export function PacientesClient({
               </div>
             </div>
 
-            {/* Fecha de ingreso y Laboratorio */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Fecha de ingreso</Label>
-                <Input
-                  type="date"
-                  value={formPaciente.fecha_ingreso}
-                  onChange={(e) =>
-                    actualizarCampoPaciente("fecha_ingreso", e.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Laboratorio</Label>
-                <Input
-                  placeholder="Nombre del laboratorio"
-                  value={formPaciente.laboratorio}
-                  onChange={(e) =>
-                    actualizarCampoPaciente("laboratorio", e.target.value)
-                  }
-                />
-              </div>
+            {/* Fecha de ingreso */}
+            <div className="space-y-1.5">
+              <Label>Fecha de ingreso</Label>
+              <Input
+                type="date"
+                value={formPaciente.fecha_ingreso}
+                onChange={(e) =>
+                  actualizarCampoPaciente("fecha_ingreso", e.target.value)
+                }
+                className="max-w-[220px]"
+              />
             </div>
 
             {/* Tiempo de cita */}

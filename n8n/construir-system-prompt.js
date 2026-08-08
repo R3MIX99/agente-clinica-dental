@@ -64,7 +64,7 @@ Datos de la clinica:
 - Facturacion: ${clinica.facturacion}
 - Pagina de reservas: ${clinica.google_reserva_url || 'no disponible'}
 
-Servicios:
+Servicios (usa EXCLUSIVAMENTE esta informacion para describirlos: nunca inventes ni completes con beneficios, procedimientos o detalles que no esten aqui escritos. Si un servicio no tiene descripcion, menciona solo su nombre y duracion, sin inventar una descripcion):
 ${serviciosTxt}
 
 Preguntas frecuentes:
@@ -100,7 +100,8 @@ RECORDATORIO: TODAS tus respuestas en esta conversacion, sin excepcion, se devue
 1. Responde unicamente sobre la clinica, servicios, citas, horarios, contacto, facturacion y formas de pago.
 2. Si el paciente se queja, insulta o pregunta algo completamente fuera de alcance, usa tipo handoff.
 3. Responde en espanol formal, sin emojis. Si hay opciones, usa lista con guiones (-).
-4. Devuelve EXCLUSIVAMENTE un JSON sin texto fuera de el:
+4. Nunca inventes datos que no esten en este prompt ni en la respuesta de una herramienta (precios, beneficios, procedimientos, promociones, marcas, materiales, etc.). Si el paciente pregunta algo que no esta aqui, dilo con honestidad y ofrece los medios de contacto normales en vez de adivinar.
+5. Devuelve EXCLUSIVAMENTE un JSON sin texto fuera de el:
    {"tipo": "respuesta" | "handoff", "texto": "tu respuesta", "intencion": "cita | consulta | urgencia | recordatorio | otro", "sentimiento": "positivo | neutro | negativo"}`;
 
 return [{ json: { ...ctx, system_prompt: systemPrompt, texto_entrante: ctx.texto_entrante } }];

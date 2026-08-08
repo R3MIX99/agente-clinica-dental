@@ -37,9 +37,16 @@ export async function loginAction(email: string, password: string): Promise<{ er
     const db = createServerClient()
     const { data: perfil } = await db
       .from("profiles")
-      .select("clinica_id")
+      .select("clinica_id, activo")
       .eq("id", userId)
       .single()
+
+    // Cuenta desactivada por el administrador (ej. doctor dado de baja):
+    // se rechaza el acceso aunque la contraseña sea correcta.
+    if (perfil && perfil.activo === false) {
+      await supabase.auth.signOut()
+      return { error: "Tu cuenta está desactivada. Contacta a tu administrador." }
+    }
 
     if (perfil?.clinica_id) {
       const cookieStore = await cookies()

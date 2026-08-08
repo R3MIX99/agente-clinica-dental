@@ -100,7 +100,6 @@ export type DatosPaciente = {
   channel: string
   channel_user_id: string
   notas: string
-  laboratorio: string
   tiempo_cita_min: string
   fecha_ingreso: string
   doctores: string[]
@@ -137,7 +136,6 @@ export async function crearPaciente(datos: DatosPaciente) {
       channel: (datos.channel || "telegram") as "telegram" | "whatsapp",
       channel_user_id: datos.channel_user_id.trim() || null,
       notas: datos.notas.trim() || null,
-      laboratorio: datos.laboratorio.trim() || null,
       tiempo_cita_min: datos.tiempo_cita_min ? parseInt(datos.tiempo_cita_min) : null,
       fecha_ingreso: datos.fecha_ingreso || null,
     })
@@ -173,7 +171,6 @@ export async function actualizarPaciente(id: string, datos: DatosPaciente) {
       channel: (datos.channel || "telegram") as "telegram" | "whatsapp",
       channel_user_id: datos.channel_user_id.trim() || null,
       notas: datos.notas.trim() || null,
-      laboratorio: datos.laboratorio.trim() || null,
       tiempo_cita_min: datos.tiempo_cita_min ? parseInt(datos.tiempo_cita_min) : null,
       fecha_ingreso: datos.fecha_ingreso || null,
     })

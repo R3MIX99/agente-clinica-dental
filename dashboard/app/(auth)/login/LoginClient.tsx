@@ -1,6 +1,7 @@
 "use client"
 
-import { useTransition } from "react"
+import { useTransition, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -22,6 +23,13 @@ type Campos = z.infer<typeof esquema>
 
 export function LoginClient() {
   const [isPending, startTransition] = useTransition()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get("desactivado") === "1") {
+      toast.error("Tu cuenta está desactivada. Contacta a tu administrador.")
+    }
+  }, [searchParams])
 
   const {
     register,

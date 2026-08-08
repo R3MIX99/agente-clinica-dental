@@ -541,45 +541,45 @@ async function resolverConversacionPaciente(
 // ---------------------------------------------------------------------------
 
 export type DatosCerrarDia = {
-  fecha: string          // YYYY-MM-DD (hora local Mexico)
+  fecha: string          // YYYY-MM-DD (hora local Mexico) — inicio del rango
+  fecha_fin?: string     // YYYY-MM-DD — fin del rango, inclusive; vacio = solo "fecha"
   service_id?: string    // vacio = toda la clinica ese dia
   motivo?: string
 }
 
+// Suma dias de calendario a una fecha YYYY-MM-DD sin depender de zona horaria
+// (aritmetica pura sobre el texto, evita corrimientos por DST/UTC).
+function sumarDiasFecha(fecha: string, dias: number): string {
+  const [y, m, d] = fecha.split("-").map(Number)
+  const fechaUTC = new Date(Date.UTC(y, m - 1, d))
+  fechaUTC.setUTCDate(fechaUTC.getUTCDate() + dias)
+  return fechaUTC.toISOString().slice(0, 10)
+}
+
 export async function cerrarDia(
   datos: DatosCerrarDia,
-): Promise<{ ok: boolean; error?: string; afectadas?: number; avisadas?: number }> {
+): Promise<{ ok: boolean; error?: string; afectadas?: number; avisadas?: number; dias?: number }> {
   const clinicaId = await resolverClinicaId()
   const supabase = createServerClient()
 
   if (!datos.fecha) return { ok: false, error: "Selecciona la fecha a cerrar." }
 
-  // 1. Registrar el bloqueo
-  const { error: errB } = await supabase.from("bloqueos").insert({
-    clinica_id: clinicaId,
-    fecha: datos.fecha,
-    service_id: datos.service_id || null,
-    motivo: datos.motivo?.trim() || null,
-  })
-  if (errB) return { ok: false, error: errB.message }
+  const fechaFin = datos.fecha_fin?.trim() || datos.fecha
+  if (fechaFin < datos.fecha) {
+    return { ok: false, error: "La fecha final no puede ser anterior a la fecha inicial." }
+  }
 
-  // 2. Rango del dia en zona horaria de Mexico
-  const inicio = mexLocalToISO(datos.fecha + "T00:00")
-  const fin = mexLocalToISO(datos.fecha + "T23:59")
+  // Lista de fechas del rango (limite defensivo de 90 dias para evitar un
+  // rango capturado por error que bloquee la clinica indefinidamente).
+  const fechas: string[] = []
+  for (let f = datos.fecha; f <= fechaFin; f = sumarDiasFecha(f, 1)) {
+    fechas.push(f)
+    if (fechas.length > 90) {
+      return { ok: false, error: "El rango no puede superar 90 dias." }
+    }
+  }
 
-  let q = supabase
-    .from("appointments")
-    .select("id, service_id, patient_id, patients(nombre, channel, channel_user_id), services(nombre)")
-    .eq("clinica_id", clinicaId)
-    .gte("fecha_hora", inicio)
-    .lte("fecha_hora", fin)
-    .in("status", ["programada", "confirmada"])
-  if (datos.service_id) q = q.eq("service_id", datos.service_id)
-
-  const { data: citas, error: errC } = await q
-  if (errC) return { ok: false, error: errC.message }
-
-  // 3. Datos de la clinica para el mensaje de reagenda
+  // Datos de la clinica para el mensaje de reagenda (una sola vez para todo el rango)
   const { data: clinica } = await supabase
     .from("clinicas")
     .select("google_reserva_url, telefono, nombre")
@@ -587,73 +587,104 @@ export async function cerrarDia(
     .single()
 
   const reservaUrl = clinica?.google_reserva_url?.trim() || null
-  const fechaTxt = new Date(inicio).toLocaleDateString("es-MX", {
-    timeZone: "America/Mexico_City",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  })
 
-  let avisadas = 0
+  let afectadasTotal = 0
+  let avisadasTotal = 0
 
-  for (const cita of citas ?? []) {
-    const paciente = cita.patients as {
-      nombre: string
-      channel: string
-      channel_user_id: string | null
-    } | null
-    const servicio = cita.services as { nombre: string } | null
+  for (const fecha of fechas) {
+    // 1. Registrar el bloqueo de este dia
+    const { error: errB } = await supabase.from("bloqueos").insert({
+      clinica_id: clinicaId,
+      fecha,
+      service_id: datos.service_id || null,
+      motivo: datos.motivo?.trim() || null,
+    })
+    if (errB) return { ok: false, error: errB.message }
 
-    // Marcar la cita como por reagendar
-    await supabase
+    // 2. Rango del dia en zona horaria de Mexico
+    const inicio = mexLocalToISO(fecha + "T00:00")
+    const fin = mexLocalToISO(fecha + "T23:59")
+
+    let q = supabase
       .from("appointments")
-      .update({ status: "por_reagendar" })
-      .eq("id", cita.id)
+      .select("id, service_id, patient_id, patients(nombre, channel, channel_user_id), services(nombre)")
       .eq("clinica_id", clinicaId)
+      .gte("fecha_hora", inicio)
+      .lte("fecha_hora", fin)
+      .in("status", ["programada", "confirmada"])
+    if (datos.service_id) q = q.eq("service_id", datos.service_id)
 
-    // Avisar al paciente si tiene canal y una conversacion activa
-    const conversacionId = await resolverConversacionPaciente(
-      supabase,
-      clinicaId,
-      (cita as { patient_id: string | null }).patient_id,
-    )
-    if (paciente?.channel_user_id && conversacionId) {
-      const motivoTxt = datos.motivo?.trim() ? ` (${datos.motivo.trim()})` : ""
-      const comoReagendar =
-        `¿Gusta que le ayudemos a reagendarla por este mismo chat? ` +
-        `También puede comunicarse con la clinica${clinica?.telefono ? ` al ${clinica.telefono}` : ""} para reagendar` +
-        `${reservaUrl ? `, o usar este enlace: ${reservaUrl}` : ""}.`
-      const texto =
-        `Hola ${paciente.nombre}, le informamos que su cita` +
-        `${servicio ? ` de ${servicio.nombre}` : ""} del ${fechaTxt} necesita reprogramarse${motivoTxt}. ` +
-        comoReagendar
+    const { data: citas, error: errC } = await q
+    if (errC) return { ok: false, error: errC.message }
 
-      try {
-        await sendAgentMessage({
-          conversationId: conversacionId,
-          clinicaId,
-          channel: paciente.channel as "telegram" | "whatsapp",
-          channelUserId: paciente.channel_user_id,
-          texto,
-          agenteId: "sistema",
-        })
-        avisadas++
-      } catch {
-        // Si falla el envio a un paciente, continuar con los demas
+    const fechaTxt = new Date(inicio).toLocaleDateString("es-MX", {
+      timeZone: "America/Mexico_City",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    })
+
+    for (const cita of citas ?? []) {
+      const paciente = cita.patients as {
+        nombre: string
+        channel: string
+        channel_user_id: string | null
+      } | null
+      const servicio = cita.services as { nombre: string } | null
+
+      // Marcar la cita como por reagendar
+      await supabase
+        .from("appointments")
+        .update({ status: "por_reagendar" })
+        .eq("id", cita.id)
+        .eq("clinica_id", clinicaId)
+
+      // Avisar al paciente si tiene canal y una conversacion activa
+      const conversacionId = await resolverConversacionPaciente(
+        supabase,
+        clinicaId,
+        (cita as { patient_id: string | null }).patient_id,
+      )
+      if (paciente?.channel_user_id && conversacionId) {
+        const motivoTxt = datos.motivo?.trim() ? ` (${datos.motivo.trim()})` : ""
+        const comoReagendar =
+          `¿Gusta que le ayudemos a reagendarla por este mismo chat? ` +
+          `También puede comunicarse con la clinica${clinica?.telefono ? ` al ${clinica.telefono}` : ""} para reagendar` +
+          `${reservaUrl ? `, o usar este enlace: ${reservaUrl}` : ""}.`
+        const texto =
+          `Hola ${paciente.nombre}, le informamos que su cita` +
+          `${servicio ? ` de ${servicio.nombre}` : ""} del ${fechaTxt} necesita reprogramarse${motivoTxt}. ` +
+          comoReagendar
+
+        try {
+          await sendAgentMessage({
+            conversationId: conversacionId,
+            clinicaId,
+            channel: paciente.channel as "telegram" | "whatsapp",
+            channelUserId: paciente.channel_user_id,
+            texto,
+            agenteId: "sistema",
+          })
+          avisadasTotal++
+        } catch {
+          // Si falla el envio a un paciente, continuar con los demas
+        }
       }
     }
+
+    // 4. Marcar el bloqueo de este dia como notificado
+    await supabase
+      .from("bloqueos")
+      .update({ notificado_at: new Date().toISOString() })
+      .eq("clinica_id", clinicaId)
+      .eq("fecha", fecha)
+      .is("notificado_at", null)
+
+    afectadasTotal += citas?.length ?? 0
   }
 
-  // 4. Marcar el bloqueo como notificado
-  await supabase
-    .from("bloqueos")
-    .update({ notificado_at: new Date().toISOString() })
-    .eq("clinica_id", clinicaId)
-    .eq("fecha", datos.fecha)
-    .is("notificado_at", null)
-
   revalidatePath("/citas")
-  return { ok: true, afectadas: citas?.length ?? 0, avisadas }
+  return { ok: true, afectadas: afectadasTotal, avisadas: avisadasTotal, dias: fechas.length }
 }
 
 export async function reabrirDia(bloqueoId: string): Promise<{ ok: boolean; error?: string }> {

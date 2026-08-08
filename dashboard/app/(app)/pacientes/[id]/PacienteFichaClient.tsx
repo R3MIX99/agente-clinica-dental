@@ -415,7 +415,6 @@ export function PacienteFichaClient({
     channel: paciente.channel,
     channel_user_id: paciente.channel_user_id ?? "",
     notas: paciente.notas ?? "",
-    laboratorio: paciente.laboratorio ?? "",
     tiempo_cita_min:
       paciente.tiempo_cita_min != null ? String(paciente.tiempo_cita_min) : "",
     fecha_ingreso: paciente.fecha_ingreso ?? "",
@@ -519,7 +518,6 @@ export function PacienteFichaClient({
       channel: paciente.channel,
       channel_user_id: paciente.channel_user_id ?? "",
       notas: paciente.notas ?? "",
-      laboratorio: paciente.laboratorio ?? "",
       tiempo_cita_min:
         paciente.tiempo_cita_min != null ? String(paciente.tiempo_cita_min) : "",
       fecha_ingreso: paciente.fecha_ingreso ?? "",
@@ -692,14 +690,6 @@ export function PacienteFichaClient({
                       Fecha de ingreso:{" "}
                     </span>
                     {formatFechaIngreso(paciente.fecha_ingreso)}
-                  </p>
-                )}
-                {paciente.laboratorio && (
-                  <p>
-                    <span className="font-medium text-foreground/70">
-                      Laboratorio:{" "}
-                    </span>
-                    {paciente.laboratorio}
                   </p>
                 )}
                 {paciente.tiempo_cita_min != null && (
@@ -1357,27 +1347,16 @@ export function PacienteFichaClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Fecha de ingreso</Label>
-                <Input
-                  type="date"
-                  value={formPaciente.fecha_ingreso}
-                  onChange={(e) =>
-                    actualizarCampoPaciente("fecha_ingreso", e.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Laboratorio</Label>
-                <Input
-                  placeholder="Nombre del laboratorio"
-                  value={formPaciente.laboratorio}
-                  onChange={(e) =>
-                    actualizarCampoPaciente("laboratorio", e.target.value)
-                  }
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label>Fecha de ingreso</Label>
+              <Input
+                type="date"
+                value={formPaciente.fecha_ingreso}
+                onChange={(e) =>
+                  actualizarCampoPaciente("fecha_ingreso", e.target.value)
+                }
+                className="max-w-[220px]"
+              />
             </div>
 
             <div className="space-y-1.5">

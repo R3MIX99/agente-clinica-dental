@@ -39,15 +39,15 @@ export default async function PacientesPage() {
   const [
     { data: pacientesRaw },
     { data: citasFuturas },
+    { data: citasPasadas },
     { data: asignaciones },
-    { data: estudios },
     { data: servicios },
     { data: doctores },
   ] = await Promise.all([
     db
       .from("patients")
       .select(
-        "id, nombre, telefono, email, channel, channel_user_id, notas, created_at, laboratorio, tiempo_cita_min, fecha_ingreso"
+        "id, nombre, telefono, email, channel, channel_user_id, notas, created_at, tiempo_cita_min, fecha_ingreso"
       )
       .eq("clinica_id", clinicaId)
       .order("nombre"),
@@ -59,12 +59,17 @@ export default async function PacientesPage() {
       .in("status", ["programada", "confirmada"])
       .order("fecha_hora"),
     db
+      .from("appointments")
+      .select("id, patient_id, fecha_hora, status, services(nombre)")
+      .eq("clinica_id", clinicaId)
+      .lt("fecha_hora", ahora)
+      .order("fecha_hora", { ascending: false }),
+    db
       .from("patient_doctors")
       .select("patient_id, doctor_id, orden, doctors(id, nombre)")
       .eq("clinica_id", clinicaId)
       .order("patient_id")
       .order("orden"),
-    db.from("studies").select("patient_id").eq("clinica_id", clinicaId).eq("status", "pendiente"),
     db.from("services").select("id, nombre, precio").eq("clinica_id", clinicaId).eq("activo", true).order("nombre"),
     db.from("doctors").select("id, nombre").eq("clinica_id", clinicaId).order("nombre"),
   ])
@@ -107,13 +112,23 @@ export default async function PacientesPage() {
     doctorAsignMap.set(asig.patient_id, lista)
   }
 
-  const estudiosPendMap = new Map<string, number>()
-  for (const e of estudios ?? []) {
-    if (idsPermitidos && !idsPermitidos.has(e.patient_id)) continue
-    estudiosPendMap.set(
-      e.patient_id,
-      (estudiosPendMap.get(e.patient_id) ?? 0) + 1
-    )
+  // citasPasadas ya viene ordenada por fecha_hora descendente — la primera
+  // que aparece por paciente es su cita mas reciente.
+  const ultimaCitaMap = new Map<
+    string,
+    { fecha_hora: string; servicio_nombre: string | null; status: string }
+  >()
+  for (const cita of citasPasadas ?? []) {
+    if (!cita.patient_id) continue
+    if (idsPermitidos && !idsPermitidos.has(cita.patient_id)) continue
+    if (!ultimaCitaMap.has(cita.patient_id)) {
+      const svc = cita.services as { nombre: string } | null
+      ultimaCitaMap.set(cita.patient_id, {
+        fecha_hora: cita.fecha_hora,
+        servicio_nombre: svc?.nombre ?? null,
+        status: cita.status,
+      })
+    }
   }
 
   const pacientes = (pacientesRaw ?? [])
@@ -125,9 +140,9 @@ export default async function PacientesPage() {
       return {
         ...p,
         proxima_cita: proximaCitaMap.get(p.id) ?? null,
+        ultima_cita: ultimaCitaMap.get(p.id) ?? null,
         doctor_principal: asigs[0] ?? null,
         doctores_respaldo: asigs.slice(1),
-        estudios_pendientes: estudiosPendMap.get(p.id) ?? 0,
       }
     })
 

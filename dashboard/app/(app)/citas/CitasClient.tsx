@@ -1060,18 +1060,24 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
                     </IconTooltip>
                     <IconTooltip
                       label={
-                        !cita.patients?.channel_user_id
+                        new Date(cita.fecha_hora) < new Date()
+                          ? "La cita ya pasó"
+                          : !cita.patients?.channel_user_id
                           ? "Sin ID de canal configurado"
                           : "Enviar recordatorio"
                       }
                     >
                       <button
                         onClick={() => handleEnviarRecordatorio(cita)}
-                        disabled={enviandoId === cita.id || !cita.patients?.channel_user_id}
+                        disabled={
+                          enviandoId === cita.id ||
+                          !cita.patients?.channel_user_id ||
+                          new Date(cita.fecha_hora) < new Date()
+                        }
                         aria-label="Enviar recordatorio"
                         className={cn(
                           "p-1.5 rounded-md transition-colors",
-                          cita.patients?.channel_user_id
+                          cita.patients?.channel_user_id && new Date(cita.fecha_hora) >= new Date()
                             ? "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                             : "text-muted-foreground/30 cursor-not-allowed"
                         )}
@@ -1119,9 +1125,12 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
       {(() => {
         const tituloDetalle = citaDrawer?.services?.nombre ?? "Cita sin servicio"
 
+        const citaDrawerPasada = !!citaDrawer && new Date(citaDrawer.fecha_hora) < new Date()
+
         const recordatorioDeshabilitado =
           !citaDrawer?.patients?.channel_user_id ||
           !!citaDrawer?.recordatorio_enviado_at ||
+          citaDrawerPasada ||
           enviandoId === citaDrawer?.id
 
         const accionesDetalle = citaDrawer && (
@@ -1134,7 +1143,9 @@ export function CitasClient({ citas: citasIniciales, pacientes, servicios, docto
             </AccionBtn>
             <AccionBtn
               label={
-                !citaDrawer.patients?.channel_user_id
+                citaDrawerPasada
+                  ? "La cita ya pasó"
+                  : !citaDrawer.patients?.channel_user_id
                   ? "Sin ID de canal configurado"
                   : citaDrawer.recordatorio_enviado_at
                   ? "Recordatorio ya enviado"
@@ -1931,6 +1942,8 @@ function CerrarDiaModal({
 }) {
   const [isPending, startTransition] = useTransition()
   const [fecha, setFecha] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
+  const [rango, setRango] = useState<"un_dia" | "rango">("un_dia")
   const [alcance, setAlcance] = useState<"todo" | "servicio">("todo")
   const [serviceId, setServiceId] = useState("")
   const [motivo, setMotivo] = useState("")
@@ -1939,29 +1952,76 @@ function CerrarDiaModal({
     startTransition(async () => {
       const r = await cerrarDia({
         fecha,
+        fecha_fin: rango === "rango" ? fechaFin : undefined,
         service_id: alcance === "servicio" ? serviceId : undefined,
         motivo,
       })
       if (!r.ok) { toast.error(r.error ?? "No se pudo cerrar el día."); return }
       const avisadas = r.avisadas ?? 0
       const afectadas = r.afectadas ?? 0
+      const dias = r.dias ?? 1
+      const prefijo = dias > 1 ? `${dias} días cerrados` : "Día cerrado"
       toast.success(
         afectadas === 0
-          ? "Día cerrado. No había citas ese día."
-          : `Día cerrado. ${afectadas} cita(s) marcadas por reagendar, ${avisadas} paciente(s) avisados.`,
+          ? `${prefijo}. No había citas en ese periodo.`
+          : `${prefijo}. ${afectadas} cita(s) marcadas por reagendar, ${avisadas} paciente(s) avisados.`,
       )
-      setFecha(""); setMotivo(""); setAlcance("todo"); setServiceId("")
+      setFecha(""); setFechaFin(""); setRango("un_dia"); setMotivo(""); setAlcance("todo"); setServiceId("")
       onListo()
     })
   }
 
-  const puedeConfirmar = !isPending && !!fecha && !(alcance === "servicio" && !serviceId)
+  const puedeConfirmar =
+    !isPending &&
+    !!fecha &&
+    !(alcance === "servicio" && !serviceId) &&
+    !(rango === "rango" && (!fechaFin || fechaFin < fecha))
 
   const campos = (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="cerrar-fecha">Fecha a cerrar</Label>
-        <Input id="cerrar-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+      <div className="space-y-2">
+        <Label>Periodo</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setRango("un_dia")}
+            className={cn(
+              "rounded-lg border p-3 text-sm text-left transition-colors",
+              rango === "un_dia" ? "border-primary bg-primary/5" : "border-border",
+            )}
+          >
+            <span className="font-medium">Un día</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRango("rango")}
+            className={cn(
+              "rounded-lg border p-3 text-sm text-left transition-colors",
+              rango === "rango" ? "border-primary bg-primary/5" : "border-border",
+            )}
+          >
+            <span className="font-medium">Rango de fechas</span>
+          </button>
+        </div>
+      </div>
+
+      <div className={cn("grid gap-3", rango === "rango" ? "grid-cols-2" : "grid-cols-1")}>
+        <div className="space-y-1.5">
+          <Label htmlFor="cerrar-fecha">{rango === "rango" ? "Desde" : "Fecha a cerrar"}</Label>
+          <Input id="cerrar-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
+        {rango === "rango" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="cerrar-fecha-fin">Hasta</Label>
+            <Input
+              id="cerrar-fecha-fin"
+              type="date"
+              value={fechaFin}
+              min={fecha || undefined}
+              onChange={(e) => setFechaFin(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -2023,16 +2083,16 @@ function CerrarDiaModal({
       <Dialog open={open} onOpenChange={(o) => { if (!o) onCerrar() }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Cerrar un día</DialogTitle>
+            <DialogTitle>Cerrar un día o un periodo</DialogTitle>
             <DialogDescription>
-              Bloquea la fecha y avisa a los pacientes con cita ese día para que reagenden.
+              Bloquea la fecha (o un rango de fechas) y avisa a los pacientes con cita en ese periodo para que reagenden.
             </DialogDescription>
           </DialogHeader>
           {campos}
           <DialogFooter>
             <Button variant="outline" onClick={onCerrar}>Cancelar</Button>
             <Button onClick={confirmar} disabled={!puedeConfirmar}>
-              {isPending ? "Cerrando..." : "Cerrar día y avisar"}
+              {isPending ? "Cerrando..." : rango === "rango" ? "Cerrar periodo y avisar" : "Cerrar día y avisar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2045,13 +2105,13 @@ function CerrarDiaModal({
     <Drawer open={open} onOpenChange={(o) => { if (!o) onCerrar() }} shouldScaleBackground>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle>Cerrar un día</DrawerTitle>
+          <DrawerTitle>Cerrar un día o un periodo</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 pb-2 overflow-y-auto">{campos}</div>
         <DrawerFooter className="border-t border-border pt-3 flex-row gap-2">
           <Button variant="outline" className="flex-1" onClick={onCerrar}>Cancelar</Button>
           <Button className="flex-1" onClick={confirmar} disabled={!puedeConfirmar}>
-            {isPending ? "Cerrando..." : "Cerrar día"}
+            {isPending ? "Cerrando..." : rango === "rango" ? "Cerrar periodo" : "Cerrar día"}
           </Button>
         </DrawerFooter>
       </DrawerContent>

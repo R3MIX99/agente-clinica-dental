@@ -64,6 +64,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
+  // Cuenta desactivada por el administrador (ej. doctor dado de baja): se
+  // corta el acceso aunque la sesion de auth siga vigente, sin importar que
+  // pagina intente abrir. Se consulta el propio perfil (RLS permite
+  // auth.uid() = id sin depender de la clinica/membresia).
+  if (user && !esPublica(pathname) && !pathname.startsWith("/login")) {
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("activo")
+      .eq("id", user.id)
+      .maybeSingle()
+    if (perfil && perfil.activo === false) {
+      await supabase.auth.signOut()
+      const destino = new URL("/login", request.url)
+      destino.searchParams.set("desactivado", "1")
+      return NextResponse.redirect(destino)
+    }
+  }
+
   // Con sesion y en /login → redirigir al dashboard segun rol
   if (user && pathname.startsWith("/login")) {
     const rol = user.user_metadata?.rol

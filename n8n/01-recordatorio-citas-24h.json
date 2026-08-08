@@ -181,7 +181,8 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "recordatorio_enviado_at", "value": "={{ new Date().toISOString() }}" }
+            { "name": "recordatorio_enviado_at", "value": "={{ new Date().toISOString() }}" },
+            { "name": "status", "value": "confirmada" }
           ]
         },
         "options": {}
