@@ -349,7 +349,9 @@ export function UsuariosClient({ usuarios: usuariosIniciales, doctores, perfilAc
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="administrador">Administrador</SelectItem>
+                  {perfilActual.rol === "administrador" && (
+                    <SelectItem value="administrador">Administrador</SelectItem>
+                  )}
                   <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="doctor">Doctor</SelectItem>
                 </SelectContent>

@@ -3,6 +3,7 @@
 import { createServerClient as createServiceClient } from "@/lib/supabase/server"
 import { getProfile } from "@/lib/supabase/server-auth"
 import { generarPasswordTemporal } from "@/lib/auth/password-temporal"
+import { verificarLimiteDoctores, verificarLimiteUsuarios } from "@/app/actions/uso"
 import { revalidatePath } from "next/cache"
 
 export type PerfilUsuario = {
@@ -47,10 +48,27 @@ export async function crearUsuario(
     return { error: "Sin permisos para crear usuarios" }
   }
 
+  // Un supervisor no puede crear cuentas de administrador (evita que se
+  // auto-escale o escale a otro usuario a un rol por encima del suyo).
+  if (perfilActual.rol === "supervisor" && datos.rol === "administrador") {
+    return { error: "Un supervisor no puede crear administradores" }
+  }
+
   const clinicaId = perfilActual.clinica_id
   const cuentaId = perfilActual.cuenta_id
   if (!clinicaId || !cuentaId) {
     return { error: "Sin clinica activa" }
+  }
+
+  // Cupo del plan: solo cuenta si la cuenta se crea activa. Cubre tanto el
+  // pool de doctores como el de administrador/supervisor.
+  if (datos.activo) {
+    const limite = datos.rol === "doctor"
+      ? await verificarLimiteDoctores()
+      : await verificarLimiteUsuarios()
+    if (!limite.permitido) {
+      return { error: limite.mensaje ?? "Límite del plan alcanzado para este tipo de cuenta." }
+    }
   }
 
   const db = createServiceClient()
@@ -133,7 +151,7 @@ export async function editarUsuario(
 
   const { data: objetivo } = await db
     .from("profiles")
-    .select("rol, doctor_id, clinica_id")
+    .select("rol, doctor_id, clinica_id, activo")
     .eq("id", id)
     .single()
 
@@ -150,10 +168,33 @@ export async function editarUsuario(
       ? (objetivo?.rol ?? datos.rol)
       : datos.rol
 
+  // Un supervisor no puede promover a nadie (ni a si mismo) a administrador —
+  // el bloqueo de arriba solo cubre editar a alguien que YA es administrador,
+  // esto cubre el caso de ascenderlo a ese rol desde el propio formulario.
+  if (perfilActual.rol === "supervisor" && rolFinal === "administrador") {
+    return { error: "Un supervisor no puede asignar el rol de administrador" }
+  }
+
   const doctorIdFinal =
     rolFinal === "doctor"
       ? (datos.doctor_id || objetivo?.doctor_id || null)
       : null
+
+  // Cupo del plan: solo se revisa si esta edicion agrega una cuenta activa
+  // nueva a un pool (doctores, o administrador/supervisor) que antes no
+  // ocupaba — evita bloquear guardados que no cambian nada de cupo, incluso
+  // si la clinica ya esta al limite.
+  const poolDe = (rol: string) => (rol === "doctor" ? "doctores" : "usuarios")
+  const poolAntes = objetivo.activo ? poolDe(objetivo.rol) : null
+  const poolDespues = datos.activo ? poolDe(rolFinal) : null
+  if (poolDespues && poolDespues !== poolAntes) {
+    const limite = poolDespues === "doctores"
+      ? await verificarLimiteDoctores()
+      : await verificarLimiteUsuarios()
+    if (!limite.permitido) {
+      return { error: limite.mensaje ?? "Límite del plan alcanzado para este tipo de cuenta." }
+    }
+  }
 
   const nombreFinal = await resolverNombrePerfil(db, {
     ...datos,
